@@ -14,7 +14,7 @@ export function StatCard({ title, value, icon: Icon, trend, color = "primary", t
   const colors = {
     primary: "bg-primary/5 text-primary border-primary/20",
     secondary: "bg-secondary/5 text-secondary border-secondary/20",
-    accent: "bg-accent/5 text-accent-foreground border-accent/20",
+    accent: "bg-accent/5 text-accent border-accent/20",
     orange: "bg-orange-500/5 text-orange-600 border-orange-200",
   };
 
