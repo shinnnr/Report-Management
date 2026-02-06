@@ -1,7 +1,7 @@
-import { users, folders, reports, activities, activityLogs } from "@shared/schema";
-import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog } from "@shared/schema";
+import { users, folders, reports, activities, activityLogs, notifications } from "@shared/schema";
+import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, lt, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -24,9 +24,17 @@ export interface IStorage {
 
   // Activities
   getActivities(): Promise<Activity[]>;
+  getActivity(id: number): Promise<Activity | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
-  updateActivity(id: number, updates: Partial<InsertActivity>): Promise<Activity>;
+  updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
+  completeActivity(id: number, userId: number): Promise<void>;
+  checkDeadlines(): Promise<void>;
+
+  // Notifications
+  getNotifications(userId: number): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationRead(id: number): Promise<void>;
 
   // Logs
   getLogs(): Promise<ActivityLog[]>;
@@ -51,23 +59,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Folders
-  async getFolders(parentId?: number): Promise<Folder[]> {
-    if (parentId === undefined) {
-      return db.select().from(folders).where(eq(folders.parentId, null as any)); // Helper for null check if needed, but drizzle handles it
+  async getFolders(parentId?: number | null): Promise<Folder[]> {
+    if (parentId === undefined || parentId === null) {
+      return db.select().from(folders).where(sql`${folders.parentId} IS NULL`);
     }
-    // Handle root folders (parentId is null)
-    if (parentId === null) { 
-        // @ts-ignore
-        return db.select().from(folders).where(sql`${folders.parentId} IS NULL`); 
-    }
-    // Standard query
-    const result = await db.select().from(folders);
-    // Filter in memory for simplicity with nulls or use raw sql helper, but let's try standard filtering
-    if (parentId) {
-      return result.filter(f => f.parentId === parentId);
-    } else {
-      return result.filter(f => f.parentId === null);
-    }
+    return db.select().from(folders).where(eq(folders.parentId, parentId));
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
@@ -81,22 +77,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteFolder(id: number): Promise<void> {
-    // Recursive delete handling needs to happen here or be assumed by DB cascade (if configured)
-    // Since we didn't strictly configure cascade in Drizzle schema `references` options without extra config,
-    // we should manually delete children first.
-    
-    // 1. Find all children
     const children = await db.select().from(folders).where(eq(folders.parentId, id));
-    
-    // 2. Delete each child recursively
     for (const child of children) {
       await this.deleteFolder(child.id);
     }
-
-    // 3. Delete files in this folder
     await db.delete(reports).where(eq(reports.folderId, id));
-
-    // 4. Delete the folder itself
     await db.delete(folders).where(eq(folders.id, id));
   }
 
@@ -119,6 +104,12 @@ export class DatabaseStorage implements IStorage {
 
   async createReport(insertReport: InsertReport): Promise<Report> {
     const [report] = await db.insert(reports).values(insertReport).returning();
+    
+    // Automation: Link to activity if provided
+    if (report.activityId) {
+      await this.completeActivity(report.activityId, report.uploadedBy!);
+    }
+    
     return report;
   }
 
@@ -136,18 +127,89 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(activities).orderBy(activities.startDate);
   }
 
+  async getActivity(id: number): Promise<Activity | undefined> {
+    const [activity] = await db.select().from(activities).where(eq(activities.id, id));
+    return activity;
+  }
+
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const [activity] = await db.insert(activities).values(insertActivity).returning();
     return activity;
   }
 
-  async updateActivity(id: number, updates: Partial<InsertActivity>): Promise<Activity> {
+  async updateActivity(id: number, updates: Partial<Activity>): Promise<Activity> {
     const [activity] = await db.update(activities).set(updates).where(eq(activities.id, id)).returning();
     return activity;
   }
 
   async deleteActivity(id: number): Promise<void> {
     await db.delete(activities).where(eq(activities.id, id));
+  }
+
+  async completeActivity(id: number, userId: number): Promise<void> {
+    const activity = await this.getActivity(id);
+    if (activity && activity.status !== 'completed') {
+      await db.update(activities).set({
+        status: 'completed',
+        completionDate: new Date(),
+        completedBy: userId
+      }).where(eq(activities.id, id));
+      
+      await this.createLog(userId, "ACTIVITY_COMPLETED", `Activity "${activity.title}" marked as completed via report upload.`);
+    }
+  }
+
+  async checkDeadlines(): Promise<void> {
+    const now = new Date();
+    const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
+
+    // 1. Mark overdue activities
+    await db.update(activities)
+      .set({ status: 'overdue' })
+      .where(and(
+        lt(activities.deadlineDate, now),
+        sql`${activities.status} NOT IN ('completed', 'overdue')`
+      ));
+
+    // 2. Notify for upcoming deadlines (within 3 days)
+    const upcoming = await db.select().from(activities).where(and(
+      gte(activities.deadlineDate, now),
+      lt(activities.deadlineDate, threeDaysLater),
+      sql`${activities.status} NOT IN ('completed')`
+    ));
+
+    for (const activity of upcoming) {
+      // Check if notification already exists
+      const [existing] = await db.select().from(notifications).where(and(
+        eq(notifications.activityId, activity.id),
+        eq(notifications.userId, activity.userId!)
+      ));
+
+      if (!existing) {
+        const remainingDays = Math.ceil((activity.deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        await this.createNotification({
+          userId: activity.userId!,
+          activityId: activity.id,
+          title: "Upcoming Deadline",
+          content: `Activity "${activity.title}" is due on ${activity.deadlineDate.toLocaleDateString()}. ${remainingDays} days remaining.`,
+          isRead: false
+        });
+      }
+    }
+  }
+
+  // Notifications
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+  }
+
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(insertNotification).returning();
+    return notification;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
   }
 
   // Logs

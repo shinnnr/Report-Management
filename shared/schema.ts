@@ -34,6 +34,7 @@ export const reports = pgTable("reports", {
   fileData: text("file_data"), // Base64 encoded content for simplicity in this setup
   folderId: integer("folder_id").references(() => folders.id),
   uploadedBy: integer("uploaded_by").references(() => users.id),
+  activityId: integer("activity_id"), // Linked activity if uploaded as submission
   status: text("status").default("active"), // 'active', 'archived', 'deleted'
   year: integer("report_year"),
   month: integer("report_month"),
@@ -52,6 +53,19 @@ export const activities = pgTable("activities", {
   regulatoryAgency: text("regulatory_agency"),
   concernDepartment: text("concern_department"),
   reportDetails: text("report_details"),
+  completionDate: timestamp("completion_date"),
+  completedBy: integer("completed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === NOTIFICATIONS ===
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  activityId: integer("activity_id").references(() => activities.id).notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -90,12 +104,29 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     fields: [reports.uploadedBy],
     references: [users.id],
   }),
+  activity: one(activities, {
+    fields: [reports.activityId],
+    references: [activities.id],
+  }),
 }));
 
-export const activitiesRelations = relations(activities, ({ one }) => ({
+export const activitiesRelations = relations(activities, ({ one, many }) => ({
   user: one(users, {
     fields: [activities.userId],
     references: [users.id],
+  }),
+  submissions: many(reports),
+  notifications: many(notifications),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  activity: one(activities, {
+    fields: [notifications.activityId],
+    references: [activities.id],
   }),
 }));
 
@@ -104,6 +135,7 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export const insertFolderSchema = createInsertSchema(folders).omit({ id: true, createdAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type User = typeof users.$inferSelect;
@@ -112,3 +144,4 @@ export type Folder = typeof folders.$inferSelect;
 export type Report = typeof reports.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
 export type ActivityLog = typeof activityLogs.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;

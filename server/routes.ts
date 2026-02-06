@@ -85,12 +85,14 @@ export async function registerRoutes(
     res.status(401).json({ message: "Unauthorized" });
   };
 
-  const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-    if (req.isAuthenticated() && (req.user as any).role === "admin") {
-      return next();
+  // --- Background Jobs (Simple Cron Emulator) ---
+  setInterval(async () => {
+    try {
+      await storage.checkDeadlines();
+    } catch (err) {
+      console.error("Error in checkDeadlines job:", err);
     }
-    res.status(403).json({ message: "Forbidden" });
-  };
+  }, 1000 * 60 * 60 * 24); // Run daily
 
 
   // --- Auth Routes ---
@@ -160,8 +162,6 @@ export async function registerRoutes(
 
   app.post(api.reports.create.path, isAuthenticated, async (req, res) => {
     try {
-      // For a real app with file uploads, we'd process req.files here
-      // For this implementation, we assume the frontend sends base64 in 'fileData'
       const input = api.reports.create.input.parse({
         ...req.body,
         uploadedBy: (req.user as any).id
@@ -236,6 +236,18 @@ export async function registerRoutes(
     res.json({ message: "Activity deleted" });
   });
 
+  // --- Notification Routes ---
+  app.get(api.notifications.list.path, isAuthenticated, async (req, res) => {
+    const notifications = await storage.getNotifications((req.user as any).id);
+    res.json(notifications);
+  });
+
+  app.post(api.notifications.markRead.path, isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    await storage.markNotificationRead(id);
+    res.json({ message: "Notification marked as read" });
+  });
+
   // --- Logs ---
   app.get(api.logs.list.path, isAuthenticated, async (req, res) => {
     const logs = await storage.getLogs();
@@ -270,6 +282,9 @@ export async function registerRoutes(
       });
       console.log("Seeded assistant user");
     }
+    
+    // Trigger initial deadline check
+    await storage.checkDeadlines();
   }
 
   // Run seed
