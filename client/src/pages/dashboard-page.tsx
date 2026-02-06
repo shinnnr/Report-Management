@@ -52,6 +52,7 @@ export default function DashboardPage() {
           icon={Clock}
           color="accent"
           trend={`${activities?.length || 0} total activities`}
+          trendClassName="text-accent"
         />
         <StatCard
           title="Overdue"

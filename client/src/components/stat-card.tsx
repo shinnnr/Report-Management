@@ -7,9 +7,10 @@ interface StatCardProps {
   icon: LucideIcon;
   trend?: string;
   color?: "primary" | "secondary" | "accent" | "orange";
+  trendClassName?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, color = "primary" }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, trend, color = "primary", trendClassName }: StatCardProps) {
   const colors = {
     primary: "bg-primary/5 text-primary border-primary/20",
     secondary: "bg-secondary/5 text-secondary border-secondary/20",
@@ -34,7 +35,7 @@ export function StatCard({ title, value, icon: Icon, trend, color = "primary" }:
           <p className="text-sm font-medium opacity-70 mb-1">{title}</p>
           <h3 className="text-3xl font-display font-bold tracking-tight">{value}</h3>
           {trend && (
-            <p className="text-xs font-medium mt-2 opacity-80">
+            <p className={cn("text-xs font-medium mt-2 opacity-80", trendClassName)}>
               {trend}
             </p>
           )}

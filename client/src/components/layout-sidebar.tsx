@@ -11,6 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
+
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
@@ -26,12 +28,9 @@ export function Sidebar() {
     <div className="h-screen w-64 bg-primary text-primary-foreground flex flex-col shadow-2xl z-20">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center">
-             <span className="text-white font-bold text-xl">R</span>
-          </div>
+          <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain bg-white p-1" />
           <div>
-            <h1 className="font-display font-bold text-lg tracking-tight">RMS</h1>
-            <p className="text-xs text-primary-foreground/60">Report Management</p>
+            <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Report Management</h1>
           </div>
         </div>
 

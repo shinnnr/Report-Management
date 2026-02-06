@@ -21,6 +21,8 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
+
 export default function AuthPage() {
   const { user, loginMutation } = useAuth();
   
@@ -48,8 +50,8 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
         
         <div className="relative z-10">
-          <div className="w-12 h-12 rounded-xl bg-accent mb-6 flex items-center justify-center shadow-lg shadow-accent/20">
-            <span className="font-bold text-2xl text-primary">R</span>
+          <div className="mb-6">
+            <img src={neecoBanner} alt="NEECO Banner" className="h-20 w-auto rounded-lg shadow-lg" />
           </div>
           <h1 className="text-4xl font-display font-bold mb-4">Report Management System</h1>
           <p className="text-lg opacity-80 max-w-md">
