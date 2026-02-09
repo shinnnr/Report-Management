@@ -73,10 +73,27 @@ export default function DrivePage() {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
   const [renameName, setRenameName] = useState("");
+  const [renameType, setRenameType] = useState<"folder" | "file">("folder");
+
+  const [isRenameFileOpen, setIsRenameFileOpen] = useState(false);
+  const [renameFileId, setRenameFileId] = useState<number | null>(null);
+  const [renameFileName, setRenameFileName] = useState("");
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
+
+  const updateReport = useCreateReport(); // This is actually for creating, I should use the hook for update if available or direct apiRequest
+  const { mutate: updateReportMutate } = useReports(currentFolderId || "root"); // Hook management is a bit mixed, I'll use apiRequest from queryClient for simplicity in rename
+  
+  const handleRenameFile = async () => {
+    if (!renameFileName.trim() || !renameFileId) return;
+    const { apiRequest } = await import("@/lib/queryClient");
+    await apiRequest("PATCH", `/api/reports/${renameFileId}`, { title: renameFileName, fileName: renameFileName });
+    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    setRenameFileName("");
+    setIsRenameFileOpen(false);
+  };
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
@@ -96,26 +113,36 @@ export default function DrivePage() {
   };
 
   const handleUpload = async () => {
-    if (!uploadFile) return;
+    const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement;
+    const files = fileInput?.files;
+    if (!files || files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64 = reader.result as string;
-      await createReport.mutateAsync({
-        title: uploadFile.name,
-        fileName: uploadFile.name,
-        fileType: uploadFile.type,
-        fileSize: uploadFile.size,
-        fileData: base64,
-        folderId: currentFolderId,
-        description: "Uploaded file",
-        year: new Date().getFullYear(),
-        month: new Date().getMonth() + 1,
+    const targetFolderId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      await new Promise((resolve) => {
+        reader.onload = async () => {
+          const base64 = reader.result as string;
+          await createReport.mutateAsync({
+            title: file.name,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            fileData: base64,
+            folderId: targetFolderId,
+            description: "Uploaded file",
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+          });
+          resolve(null);
+        };
+        reader.readAsDataURL(file);
       });
-      setUploadFile(null);
-      setIsUploadOpen(false);
-    };
-    reader.readAsDataURL(uploadFile);
+    }
+    setUploadFile(null);
+    setIsUploadOpen(false);
   };
 
   const handleMoveFiles = async () => {
@@ -214,31 +241,51 @@ export default function DrivePage() {
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-                <UploadCloud className="w-4 h-4" /> Upload File
+                <UploadCloud className="w-4 h-4" /> Upload Files
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Upload File</DialogTitle>
+                <DialogTitle>Upload Files</DialogTitle>
               </DialogHeader>
-              <div className="py-8 text-center border-2 border-dashed border-muted-foreground/20 rounded-xl hover:bg-muted/50 transition-colors">
-                <Input 
-                  type="file" 
-                  className="hidden" 
-                  id="file-upload"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                />
-                <Label htmlFor="file-upload" className="cursor-pointer block w-full h-full">
-                  <div className="flex flex-col items-center gap-2">
-                    <UploadCloud className="w-10 h-10 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {uploadFile ? uploadFile.name : "Click to select file"}
-                    </span>
-                  </div>
-                </Label>
+              <div className="space-y-4">
+                <div className="py-8 text-center border-2 border-dashed border-muted-foreground/20 rounded-xl hover:bg-muted/50 transition-colors">
+                  <Input 
+                    type="file" 
+                    className="hidden" 
+                    id="file-upload-multiple"
+                    multiple
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  />
+                  <Label htmlFor="file-upload-multiple" className="cursor-pointer block w-full h-full">
+                    <div className="flex flex-col items-center gap-2">
+                      <UploadCloud className="w-10 h-10 text-muted-foreground" />
+                      <span className="text-sm font-medium">
+                        {uploadFile ? `Selected ${document.getElementById("file-upload-multiple")?.files?.length} files` : "Click to select files"}
+                      </span>
+                    </div>
+                  </Label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Destination Folder (Optional)</Label>
+                  <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="root">Home / Root</SelectItem>
+                      {allFoldersData?.map(folder => (
+                        <SelectItem key={folder.id} value={folder.id.toString()}>
+                          {folder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleUpload} disabled={!uploadFile || createReport.isPending}>
+                <Button onClick={handleUpload} disabled={createReport.isPending}>
                   {createReport.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
@@ -247,7 +294,26 @@ export default function DrivePage() {
         </div>
       </div>
 
-      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+      <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rename-file-name" className="mb-2 block">New Name</Label>
+            <Input 
+              id="rename-file-name" 
+              value={renameFileName} 
+              onChange={(e) => setRenameFileName(e.target.value)} 
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleRenameFile}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
@@ -401,6 +467,13 @@ export default function DrivePage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setRenameFileId(file.id);
+                                setRenameFileName(file.fileName);
+                                setIsRenameFileOpen(true);
+                              }}>
+                                <Edit2 className="w-4 h-4 mr-2" /> Rename
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteReport.mutate(file.id)}>
                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
                               </DropdownMenuItem>
