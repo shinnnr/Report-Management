@@ -52,8 +52,11 @@ export default function DrivePage() {
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const { data: allFoldersData } = useFolders(); 
-  const { data: folders, isLoading: foldersLoading } = useFolders(currentFolderId);
+  const { data: currentFolder } = useFolders(currentFolderId);
+  const folders = currentFolderId ? allFoldersData?.filter(f => f.parentId === currentFolderId) : allFoldersData?.filter(f => !f.parentId);
   const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId || "root");
+  
+  const foldersLoading = !allFoldersData;
   
   const createFolder = useCreateFolder();
   const deleteFolder = useDeleteFolder();
@@ -138,27 +141,32 @@ export default function DrivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-4 mb-2">
-            {currentFolderId && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => window.history.back()}
-                className="h-8 w-8"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => {
+                if (currentFolderId) {
+                  const parent = allFoldersData?.find(f => f.id === currentFolderId)?.parentId;
+                  setLocation(parent ? `/drive?folder=${parent}` : "/drive");
+                } else {
+                  window.history.back();
+                }
+              }}
+              className="h-8 w-8"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <h1 className="text-3xl font-display font-bold text-primary">My Drive</h1>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/drive" className="hover:text-primary flex items-center gap-1 transition-colors">
+            <Link href="/drive" className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground underline" : ""}`}>
               <Home className="w-4 h-4" /> Home
             </Link>
             {currentFolderId && (
               <>
                 <ChevronRight className="w-4 h-4" />
                 <span className="font-medium text-foreground">
-                  {folders?.find(f => f.id === currentFolderId)?.name || "Current Folder"}
+                  {allFoldersData?.find(f => f.id === currentFolderId)?.name || "Current Folder"}
                 </span>
               </>
             )}
