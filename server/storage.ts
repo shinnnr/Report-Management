@@ -13,13 +13,15 @@ export interface IStorage {
   getFolders(parentId?: number): Promise<Folder[]>;
   getFolder(id: number): Promise<Folder | undefined>;
   createFolder(folder: InsertFolder): Promise<Folder>;
+  renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
 
   // Reports
-  getReports(folderId?: number, status?: string): Promise<Report[]>;
+  getReports(folderId?: number | null, status?: string): Promise<Report[]>;
   getReport(id: number): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
   updateReport(id: number, updates: Partial<InsertReport>): Promise<Report>;
+  moveReports(reportIds: number[], folderId: number | null): Promise<void>;
   deleteReport(id: number): Promise<void>;
 
   // Activities
@@ -76,6 +78,11 @@ export class DatabaseStorage implements IStorage {
     return folder;
   }
 
+  async renameFolder(id: number, name: string): Promise<Folder> {
+    const [folder] = await db.update(folders).set({ name }).where(eq(folders.id, id)).returning();
+    return folder;
+  }
+
   async deleteFolder(id: number): Promise<void> {
     const children = await db.select().from(folders).where(eq(folders.parentId, id));
     for (const child of children) {
@@ -86,15 +93,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Reports
-  async getReports(folderId?: number, status?: string): Promise<Report[]> {
+  async getReports(folderId?: number | null, status?: string): Promise<Report[]> {
     let conditions = [];
-    if (folderId !== undefined) conditions.push(eq(reports.folderId, folderId));
+    if (folderId !== undefined) {
+      if (folderId === null) {
+        conditions.push(sql`${reports.folderId} IS NULL`);
+      } else {
+        conditions.push(eq(reports.folderId, folderId));
+      }
+    }
     if (status) conditions.push(eq(reports.status, status));
 
     if (conditions.length > 0) {
       return db.select().from(reports).where(and(...conditions));
     }
     return db.select().from(reports);
+  }
+
+  async moveReports(reportIds: number[], folderId: number | null): Promise<void> {
+    await db.update(reports).set({ folderId }).where(sql`${reports.id} IN ${reportIds}`);
   }
 
   async getReport(id: number): Promise<Report | undefined> {

@@ -67,6 +67,17 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    rename: {
+      method: 'PATCH' as const,
+      path: '/api/folders/:id/rename',
+      input: z.object({
+        name: z.string().min(1),
+      }),
+      responses: {
+        200: z.custom<typeof folders.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
     delete: {
       method: 'DELETE' as const,
       path: '/api/folders/:id',
@@ -81,7 +92,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/reports',
       input: z.object({
-        folderId: z.string().optional().transform(val => val ? parseInt(val) : undefined),
+        folderId: z.string().optional(),
         status: z.string().optional(),
       }).optional(),
       responses: {
@@ -95,6 +106,17 @@ export const api = {
       responses: {
         201: z.custom<typeof reports.$inferSelect>(),
         400: errorSchemas.validation,
+      },
+    },
+    move: {
+      method: 'POST' as const,
+      path: '/api/reports/move',
+      input: z.object({
+        reportIds: z.array(z.number()),
+        folderId: z.number().nullable(),
+      }),
+      responses: {
+        200: z.object({ message: z.string() }),
       },
     },
     get: {

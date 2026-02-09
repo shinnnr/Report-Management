@@ -145,6 +145,14 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/folders/:id/rename", isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { name } = req.body;
+    const folder = await storage.renameFolder(id, name);
+    await storage.createLog((req.user as any).id, "RENAME_FOLDER", `Renamed folder to: ${name}`);
+    res.json(folder);
+  });
+
   app.delete(api.folders.delete.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteFolder(id);
@@ -154,10 +162,18 @@ export async function registerRoutes(
 
   // --- Report Routes ---
   app.get(api.reports.list.path, isAuthenticated, async (req, res) => {
-    const folderId = req.query.folderId ? parseInt(req.query.folderId as string) : undefined;
+    const folderIdStr = req.query.folderId as string | undefined;
+    const folderId = folderIdStr === "root" ? null : (folderIdStr ? parseInt(folderIdStr) : undefined);
     const status = req.query.status as string | undefined;
     const reports = await storage.getReports(folderId, status);
     res.json(reports);
+  });
+
+  app.post("/api/reports/move", isAuthenticated, async (req, res) => {
+    const { reportIds, folderId } = req.body;
+    await storage.moveReports(reportIds, folderId === "root" ? null : folderId);
+    await storage.createLog((req.user as any).id, "MOVE_REPORTS", `Moved ${reportIds.length} reports`);
+    res.json({ message: "Reports moved successfully" });
   });
 
   app.post(api.reports.create.path, isAuthenticated, async (req, res) => {

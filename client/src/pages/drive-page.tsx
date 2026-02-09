@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
-import { useFolders, useCreateFolder, useDeleteFolder } from "@/hooks/use-folders";
-import { useReports, useCreateReport, useDeleteReport } from "@/hooks/use-reports";
+import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder } from "@/hooks/use-folders";
+import { useReports, useCreateReport, useDeleteReport, useMoveReports } from "@/hooks/use-reports";
 import { 
   Folder as FolderIcon, 
   FileText, 
@@ -11,7 +11,10 @@ import {
   ChevronRight, 
   Home,
   UploadCloud,
-  Loader2
+  Loader2,
+  ArrowLeft,
+  Edit2,
+  MoveHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,30 +31,49 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation } from "wouter";
 import { InsertReport } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
   
-  // Parse parentId from query param: /drive?folder=123
   const searchParams = new URLSearchParams(window.location.search);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
+  const { data: allFoldersData } = useFolders(); 
   const { data: folders, isLoading: foldersLoading } = useFolders(currentFolderId);
-  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId || undefined);
+  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId || "root");
   
   const createFolder = useCreateFolder();
   const deleteFolder = useDeleteFolder();
+  const renameFolder = useRenameFolder();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
+  const moveReports = useMoveReports();
 
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameId, setRenameId] = useState<number | null>(null);
+  const [renameName, setRenameName] = useState("");
+
+  const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+  const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
@@ -63,10 +85,16 @@ export default function DrivePage() {
     setIsNewFolderOpen(false);
   };
 
+  const handleRenameFolder = async () => {
+    if (!renameName.trim() || !renameId) return;
+    await renameFolder.mutateAsync({ id: renameId, name: renameName });
+    setRenameName("");
+    setIsRenameOpen(false);
+  };
+
   const handleUpload = async () => {
     if (!uploadFile) return;
 
-    // Convert file to Base64
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result as string;
@@ -87,15 +115,41 @@ export default function DrivePage() {
     reader.readAsDataURL(uploadFile);
   };
 
+  const handleMoveFiles = async () => {
+    if (selectedFiles.length === 0) return;
+    await moveReports.mutateAsync({
+      reportIds: selectedFiles,
+      folderId: moveToFolderId === "root" ? null : parseInt(moveToFolderId)
+    });
+    setSelectedFiles([]);
+    setIsMoveOpen(false);
+  };
+
+  const toggleFileSelection = (fileId: number) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) ? prev.filter(id => id !== fileId) : [...prev, fileId]
+    );
+  };
+
   const isLoading = foldersLoading || reportsLoading;
 
   return (
     <LayoutWrapper>
-      {/* Header & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
-          {/* Breadcrumbs */}
+          <div className="flex items-center gap-4 mb-2">
+            {currentFolderId && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => window.history.back()}
+                className="h-8 w-8"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            )}
+            <h1 className="text-3xl font-display font-bold text-primary">My Drive</h1>
+          </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link href="/drive" className="hover:text-primary flex items-center gap-1 transition-colors">
               <Home className="w-4 h-4" /> Home
@@ -103,13 +157,25 @@ export default function DrivePage() {
             {currentFolderId && (
               <>
                 <ChevronRight className="w-4 h-4" />
-                <span className="font-medium text-foreground">Current Folder</span>
+                <span className="font-medium text-foreground">
+                  {folders?.find(f => f.id === currentFolderId)?.name || "Current Folder"}
+                </span>
               </>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {selectedFiles.length > 0 && (
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => setIsMoveOpen(true)}
+            >
+              <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length})
+            </Button>
+          )}
+
           <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
@@ -173,14 +239,62 @@ export default function DrivePage() {
         </div>
       </div>
 
+      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rename-name" className="mb-2 block">New Name</Label>
+            <Input 
+              id="rename-name" 
+              value={renameName} 
+              onChange={(e) => setRenameName(e.target.value)} 
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleRenameFolder} disabled={renameFolder.isPending}>
+              {renameFolder.isPending ? "Renaming..." : "Rename"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move Files</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Select Destination Folder</Label>
+            <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select folder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="root">Home / Root</SelectItem>
+                {allFoldersData?.filter(f => f.id !== currentFolderId).map(folder => (
+                  <SelectItem key={folder.id} value={folder.id.toString()}>
+                    {folder.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleMoveFiles} disabled={moveReports.isPending}>
+              {moveReports.isPending ? "Moving..." : "Move Files"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : (
         <div className="space-y-8 animate-in fade-in duration-500">
-          
-          {/* Folders Section */}
           {folders && folders.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Folders</h2>
@@ -206,6 +320,13 @@ export default function DrivePage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setRenameId(folder.id);
+                            setRenameName(folder.name);
+                            setIsRenameOpen(true);
+                          }}>
+                            <Edit2 className="w-4 h-4 mr-2" /> Rename
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteFolder.mutate(folder.id)}>
                             <Trash2 className="w-4 h-4 mr-2" /> Delete
                           </DropdownMenuItem>
@@ -218,7 +339,6 @@ export default function DrivePage() {
             </section>
           )}
 
-          {/* Files Section */}
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Files</h2>
             {reports && reports.length > 0 ? (
@@ -226,6 +346,14 @@ export default function DrivePage() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-muted/50 text-muted-foreground font-medium border-b">
                     <tr>
+                      <th className="px-6 py-3 w-[40px]">
+                        <Checkbox 
+                          checked={selectedFiles.length === (reports?.length || 0)}
+                          onCheckedChange={(checked) => {
+                            setSelectedFiles(checked ? (reports?.map(r => r.id) || []) : []);
+                          }}
+                        />
+                      </th>
                       <th className="px-6 py-3">Name</th>
                       <th className="px-6 py-3 hidden md:table-cell">Uploaded By</th>
                       <th className="px-6 py-3 hidden md:table-cell">Date</th>
@@ -236,6 +364,12 @@ export default function DrivePage() {
                   <tbody className="divide-y">
                     {reports.map((file) => (
                       <tr key={file.id} className="hover:bg-muted/20 transition-colors group">
+                        <td className="px-6 py-4">
+                          <Checkbox 
+                            checked={selectedFiles.includes(file.id)}
+                            onCheckedChange={() => toggleFileSelection(file.id)}
+                          />
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
