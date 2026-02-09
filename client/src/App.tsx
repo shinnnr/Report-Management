@@ -13,7 +13,7 @@ import CalendarPage from "@/pages/calendar-page";
 import ArchivesPage from "@/pages/archives-page";
 import NotFound from "@/pages/not-found";
 
-function ProtectedRoute({ component: Component, path }: { component: React.ComponentType; path: string }) {
+function ProtectedRoute({ component: Component, path }: { component: React.ComponentType<any>; path: string }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
