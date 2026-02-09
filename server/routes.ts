@@ -123,7 +123,8 @@ export async function registerRoutes(
 
   // --- Folder Routes ---
   app.get(api.folders.list.path, isAuthenticated, async (req, res) => {
-    const parentId = req.query.parentId ? parseInt(req.query.parentId as string) : undefined;
+    const parentIdStr = req.query.parentId as string | undefined;
+    const parentId = parentIdStr === "null" ? null : (parentIdStr ? parseInt(parentIdStr) : undefined);
     const folders = await storage.getFolders(parentId);
     res.json(folders);
   });
@@ -146,7 +147,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/folders/:id/rename", isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { name } = req.body;
     const folder = await storage.renameFolder(id, name);
     await storage.createLog((req.user as any).id, "RENAME_FOLDER", `Renamed folder to: ${name}`);
@@ -154,7 +155,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.folders.delete.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.deleteFolder(id);
     await storage.createLog((req.user as any).id, "DELETE_FOLDER", `Deleted folder ID: ${id}`);
     res.json({ message: "Folder deleted" });
@@ -194,13 +195,13 @@ export async function registerRoutes(
   });
 
   app.get(api.reports.get.path, isAuthenticated, async (req, res) => {
-    const report = await storage.getReport(parseInt(req.params.id));
+    const report = await storage.getReport(parseInt(req.params.id as string));
     if (!report) return res.status(404).json({ message: "Report not found" });
     res.json(report);
   });
 
   app.patch(api.reports.update.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const updates = api.reports.update.input.parse(req.body);
     const report = await storage.updateReport(id, updates);
     await storage.createLog((req.user as any).id, "UPDATE_REPORT", `Updated report: ${report.title}`);
@@ -208,7 +209,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.reports.delete.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.deleteReport(id);
     await storage.createLog((req.user as any).id, "DELETE_REPORT", `Deleted report ID: ${id}`);
     res.json({ message: "Report deleted" });
@@ -238,7 +239,7 @@ export async function registerRoutes(
   });
 
   app.patch(api.activities.update.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const updates = api.activities.update.input.parse(req.body);
     const activity = await storage.updateActivity(id, updates);
     await storage.createLog((req.user as any).id, "UPDATE_ACTIVITY", `Updated activity: ${activity.title}`);
@@ -246,7 +247,7 @@ export async function registerRoutes(
   });
 
   app.delete(api.activities.delete.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.deleteActivity(id);
     await storage.createLog((req.user as any).id, "DELETE_ACTIVITY", `Deleted activity ID: ${id}`);
     res.json({ message: "Activity deleted" });
@@ -259,7 +260,7 @@ export async function registerRoutes(
   });
 
   app.post(api.notifications.markRead.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.markNotificationRead(id);
     res.json({ message: "Notification marked as read" });
   });

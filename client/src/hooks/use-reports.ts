@@ -3,7 +3,7 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useReports(folderId?: number, status: string = 'active') {
+export function useReports(folderId?: number | "root", status: string = 'active') {
   return useQuery({
     queryKey: [api.reports.list.path, folderId, status],
     queryFn: async () => {
@@ -40,6 +40,27 @@ export function useCreateReport() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to upload file", variant: "destructive" });
+    },
+  });
+}
+
+export function useMoveReports() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: { reportIds: number[]; folderId: number | null }) => {
+      const res = await fetch(api.reports.move.path, {
+        method: api.reports.move.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to move reports");
+      return api.reports.move.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      toast({ title: "Success", description: "Files moved successfully" });
     },
   });
 }

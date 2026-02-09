@@ -3,7 +3,7 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertFolder } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useFolders(parentId: number | null) {
+export function useFolders(parentId: number | null = null) {
   return useQuery({
     queryKey: [api.folders.list.path, parentId],
     queryFn: async () => {
@@ -40,6 +40,28 @@ export function useCreateFolder() {
   });
 }
 
+export function useRenameFolder() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: number; name: string }) => {
+      const url = buildUrl(api.folders.rename.path, { id });
+      const res = await fetch(url, {
+        method: api.folders.rename.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("Failed to rename folder");
+      return api.folders.rename.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      toast({ title: "Updated", description: "Folder renamed successfully" });
+    },
+  });
+}
+
 export function useDeleteFolder() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -52,7 +74,7 @@ export function useDeleteFolder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Deleted", description: "Folder and its contents moved to trash" });
+      toast({ title: "Deleted", description: "Folder deleted successfully" });
     },
   });
 }
