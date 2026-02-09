@@ -83,9 +83,6 @@ export default function DrivePage() {
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
 
-  const updateReport = useCreateReport(); // This is actually for creating, I should use the hook for update if available or direct apiRequest
-  const { mutate: updateReportMutate } = useReports(currentFolderId || "root"); // Hook management is a bit mixed, I'll use apiRequest from queryClient for simplicity in rename
-  
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
     const { apiRequest } = await import("@/lib/queryClient");
@@ -314,6 +311,8 @@ export default function DrivePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
