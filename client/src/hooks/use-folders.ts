@@ -7,7 +7,8 @@ export function useFolders(parentId: number | null = null) {
   return useQuery({
     queryKey: [api.folders.list.path, parentId],
     queryFn: async () => {
-      const url = `${api.folders.list.path}?parentId=${parentId ?? "null"}`;
+      const params = parentId !== null ? `?parentId=${parentId}` : '';
+      const url = `${api.folders.list.path}${params}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
