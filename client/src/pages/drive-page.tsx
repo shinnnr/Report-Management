@@ -48,7 +48,7 @@ import { queryClient } from "@/lib/queryClient";
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
 
-  const searchParams = new URLSearchParams(location);
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
