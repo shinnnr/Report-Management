@@ -48,8 +48,11 @@ import { queryClient } from "@/lib/queryClient";
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
 
-  const searchParams = new URLSearchParams(location);
-  const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
+  // Parse folder ID from path like /drive/folders/123 or /drive for root
+  const pathParts = location.split('/').filter(Boolean);
+  const currentFolderId = pathParts.length >= 2 && pathParts[0] === 'drive' && pathParts[1] === 'folders' && pathParts[2]
+    ? parseInt(pathParts[2])
+    : null;
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
@@ -69,7 +72,7 @@ export default function DrivePage() {
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
-    setLocation(`/drive?folder=${id}`);
+    setLocation(`/drive/folders/${id}`);
   };
 
   const createFolder = useCreateFolder(currentFolderId);
@@ -206,14 +209,14 @@ export default function DrivePage() {
         <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <button onClick={() => navigate("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
+            <button onClick={() => setLocation("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
               <Home className="w-4 h-4" /> Home
             </button>
             {breadcrumbs.map((crumb) => (
               <div key={crumb.id} className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4" />
                 <button
-                  onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
+                  onClick={() => setLocation(`/drive/folders/${crumb.id}`)}
                   className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
                 >
                   {crumb.name}

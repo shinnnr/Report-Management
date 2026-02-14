@@ -36,7 +36,7 @@ function Router() {
     <Switch>
       <Route path="/login" component={AuthPage} />
       <ProtectedRoute path="/dashboard" component={DashboardPage} />
-      <ProtectedRoute path="/drive" component={DrivePage} />
+      <ProtectedRoute path="/drive*" component={DrivePage} />
       <ProtectedRoute path="/calendar" component={CalendarPage} />
       <ProtectedRoute path="/archives" component={ArchivesPage} />
       
