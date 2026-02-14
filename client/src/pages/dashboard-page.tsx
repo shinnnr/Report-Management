@@ -8,6 +8,7 @@ import { useActivities, useLogs } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -18,6 +19,12 @@ export default function DashboardPage() {
 
   const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
   const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+
+  // Calculate real storage usage
+  const totalStorageBytes = 10 * 1024 * 1024 * 1024; // 10GB in bytes
+  const usedStorageBytes = reports?.reduce((total, report) => total + (report.fileSize || 0), 0) || 0;
+  const usedStorageGB = usedStorageBytes / (1024 * 1024 * 1024);
+  const storagePercentage = Math.min((usedStorageBytes / totalStorageBytes) * 100, 100);
 
   return (
     <LayoutWrapper>
@@ -83,14 +90,28 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start gap-2">
-                          <p className="font-medium text-sm text-foreground truncate">{log.description}</p>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{log.description}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           <span className="text-xs text-muted-foreground shrink-0">
                             {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 capitalize">
-                          Action: {log.action.replace('_', ' ')}
-                        </p>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className="text-xs text-muted-foreground capitalize">
+                            Action: {log.action.replace('_', ' ')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            By: {log.userFullName || 'Unknown'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -121,16 +142,30 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Used</span>
-                  <span className="font-medium">45%</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Storage Used</span>
+                  <span className="text-sm font-semibold text-foreground">{storagePercentage.toFixed(1)}%</span>
                 </div>
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-accent w-[45%]" />
+                <div className="relative h-3 w-full bg-muted rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className={`h-full transition-all duration-500 ease-out rounded-full ${
+                      storagePercentage > 90 ? 'bg-red-500' :
+                      storagePercentage > 70 ? 'bg-yellow-500' :
+                      'bg-gradient-to-r from-primary to-primary/80'
+                    }`}
+                    style={{ width: `${storagePercentage}%` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Using 4.5GB of 10GB allocated storage.
-                </p>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{usedStorageGB.toFixed(2)} GB used</span>
+                  <span>10.00 GB total</span>
+                </div>
+                {storagePercentage > 80 && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    ⚠️ Storage usage is high. Consider cleaning up old files.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

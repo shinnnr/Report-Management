@@ -42,6 +42,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
@@ -96,6 +106,9 @@ export default function DrivePage() {
 
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
+
+  const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
+  const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
@@ -376,6 +389,56 @@ export default function DrivePage() {
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={!!deleteFolderId} onOpenChange={() => setDeleteFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this folder? This action cannot be undone and will also delete all files and subfolders inside it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteFolderId) {
+                  deleteFolder.mutate(deleteFolderId);
+                  setDeleteFolderId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteFileId} onOpenChange={() => setDeleteFileId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this file? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteFileId) {
+                  deleteReport.mutate(deleteFileId);
+                  setDeleteFileId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
@@ -396,7 +459,7 @@ export default function DrivePage() {
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => deleteFolder.mutate(f.id)}>Delete</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -437,7 +500,7 @@ export default function DrivePage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => deleteReport.mutate(r.id)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
