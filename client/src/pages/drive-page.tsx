@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports } from "@/hooks/use-reports";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Folder as FolderIcon,
   FileText,
@@ -60,6 +61,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
+  const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -266,8 +268,10 @@ export default function DrivePage() {
       setIsCreatingFolder(false);
       // Refresh folders data
       queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating folder:", error);
+      // Show error to user
+      alert(`Failed to create folder: ${error?.message || 'Unknown error'}`);
     }
   };
 

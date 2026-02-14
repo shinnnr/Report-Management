@@ -300,7 +300,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteActivity(id: number): Promise<void> {
-    await db.delete(activities).where(eq(activities.id, id));
+    await db.transaction(async (tx) => {
+      // Delete related records first due to foreign key constraints
+      await tx.delete(activitySubmissions).where(eq(activitySubmissions.activityId, id));
+      await tx.delete(notifications).where(eq(notifications.activityId, id));
+
+      // Finally delete the activity
+      await tx.delete(activities).where(eq(activities.id, id));
+    });
   }
 
   async completeActivity(id: number, userId: number): Promise<void> {
