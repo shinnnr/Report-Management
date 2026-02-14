@@ -9,9 +9,9 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
 
 const scryptAsync = promisify(scrypt);
+const SessionStore = MemoryStore(session);
 const PgSession = connectPgSimple(session);
 
 // --- Auth Helper Functions ---
@@ -36,10 +36,9 @@ export async function registerRoutes(
   // --- Session & Passport Setup ---
   app.use(
     session({
-      store: new PgSession({
-        pool: pool,
+      store: new (connectPgSimple(session))({
+        conString: process.env.DATABASE_URL,
         tableName: "session",
-        createTableIfMissing: true,
       }),
       secret: process.env.SESSION_SECRET || "default_secret_dev_only",
       resave: false,
