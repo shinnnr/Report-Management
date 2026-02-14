@@ -88,96 +88,117 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
-    // Prevent duplicate folder names in the same parent
-    const existing = await db.select().from(folders).where(
-      and(
-        eq(folders.name, insertFolder.name),
-        insertFolder.parentId === null 
-          ? sql`parent_id IS NULL`
-          : eq(folders.parentId, insertFolder.parentId)
-      )
-    ).limit(1);
+    return await db.transaction(async (tx) => {
+      // Prevent duplicate folder names in the same parent
+      const existing = await tx.select().from(folders).where(
+        and(
+          eq(folders.name, insertFolder.name),
+          insertFolder.parentId === null 
+            ? sql`parent_id IS NULL`
+            : eq(folders.parentId, insertFolder.parentId)
+        )
+      ).limit(1);
 
-    if (existing.length > 0) {
-      throw new Error(`A folder named "${insertFolder.name}" already exists in this location.`);
-    }
+      if (existing.length > 0) {
+        throw new Error(`A folder named "${insertFolder.name}" already exists in this location.`);
+      }
 
-    const [folder] = await db.insert(folders).values(insertFolder).returning();
-    return folder;
+      const [folder] = await tx.insert(folders).values(insertFolder).returning();
+      return folder;
+    });
   }
 
   async renameFolder(id: number, name: string): Promise<Folder> {
-    const current = await this.getFolder(id);
-    if (!current) throw new Error("Folder not found");
+    return await db.transaction(async (tx) => {
+      const current = await this.getFolder(id);
+      if (!current) throw new Error("Folder not found");
 
-    // Prevent duplicate folder names in the same parent on rename
-    const existing = await db.select().from(folders).where(
-      and(
-        eq(folders.name, name),
-        current.parentId === null 
-          ? sql`parent_id IS NULL`
-          : eq(folders.parentId, current.parentId),
-        sql`${folders.id} != ${id}`
-      )
-    ).limit(1);
+      // Prevent duplicate folder names in the same parent on rename
+      const existing = await tx.select().from(folders).where(
+        and(
+          eq(folders.name, name),
+          current.parentId === null 
+            ? sql`parent_id IS NULL`
+            : eq(folders.parentId, current.parentId),
+          sql`${folders.id} != ${id}`
+        )
+      ).limit(1);
 
-    if (existing.length > 0) {
-      throw new Error(`A folder named "${name}" already exists in this location.`);
-    }
+      if (existing.length > 0) {
+        throw new Error(`A folder named "${name}" already exists in this location.`);
+      }
 
-    const [folder] = await db.update(folders).set({ name }).where(eq(folders.id, id)).returning();
-    return folder;
+      const [folder] = await tx.update(folders).set({ name }).where(eq(folders.id, id)).returning();
+      return folder;
+    });
   }
 
   async moveFolder(id: number, targetParentId: number | null): Promise<Folder> {
-    if (id === targetParentId) {
-      throw new Error("Cannot move a folder into itself.");
-    }
-
-    const folder = await this.getFolder(id);
-    if (!folder) throw new Error("Folder not found");
-
-    // Check for circular reference
-    if (targetParentId !== null) {
-      let currentParentId: number | null = targetParentId;
-      while (currentParentId !== null) {
-        if (currentParentId === id) {
-          throw new Error("Cannot move a folder into one of its subfolders.");
-        }
-        const parentFolder: Folder | undefined = await this.getFolder(currentParentId);
-        currentParentId = parentFolder?.parentId || null;
+    return await db.transaction(async (tx) => {
+      if (id === targetParentId) {
+        throw new Error("Cannot move a folder into itself.");
       }
-    }
 
-    // Prevent duplicate names in target location
-    const existing = await db.select().from(folders).where(
-      and(
-        eq(folders.name, folder.name),
-        targetParentId === null 
-          ? sql`parent_id IS NULL`
-          : eq(folders.parentId, targetParentId),
-        sql`${folders.id} != ${id}`
-      )
-    ).limit(1);
+      const folder = await this.getFolder(id);
+      if (!folder) throw new Error("Folder not found");
 
-    if (existing.length > 0) {
-      throw new Error(`A folder named "${folder.name}" already exists in the target location.`);
-    }
+      // Check for circular reference
+      if (targetParentId !== null) {
+        let currentParentId: number | null = targetParentId;
+        while (currentParentId !== null) {
+          if (currentParentId === id) {
+            throw new Error("Cannot move a folder into one of its subfolders.");
+          }
+          const parentFolder: Folder | undefined = await this.getFolder(currentParentId);
+          currentParentId = parentFolder?.parentId || null;
+        }
+      }
 
-    const [updatedFolder] = await db.update(folders)
-      .set({ parentId: targetParentId })
-      .where(eq(folders.id, id))
-      .returning();
-    return updatedFolder;
+      // Prevent duplicate names in target location
+      const existing = await tx.select().from(folders).where(
+        and(
+          eq(folders.name, folder.name),
+          targetParentId === null 
+            ? sql`parent_id IS NULL`
+            : eq(folders.parentId, targetParentId),
+          sql`${folders.id} != ${id}`
+        )
+      ).limit(1);
+
+      if (existing.length > 0) {
+        throw new Error(`A folder named "${folder.name}" already exists in the target location.`);
+      }
+
+      const [updatedFolder] = await tx.update(folders)
+        .set({ parentId: targetParentId })
+        .where(eq(folders.id, id))
+        .returning();
+      return updatedFolder;
+    });
   }
 
   async deleteFolder(id: number): Promise<void> {
-    const children = await db.select().from(folders).where(eq(folders.parentId, id));
+    await db.transaction(async (tx) => {
+      const children = await tx.select().from(folders).where(eq(folders.parentId, id));
+      for (const child of children) {
+        // Recursively delete children within the same transaction context if possible, 
+        // but since we are using DatabaseStorage methods which might create their own transactions,
+        // we should ideally pass the transaction object. For now, let's just use raw deletes here
+        // to stay within this transaction.
+        await this._recursiveDelete(tx, child.id);
+      }
+      await tx.delete(reports).where(eq(reports.folderId, id));
+      await tx.delete(folders).where(eq(folders.id, id));
+    });
+  }
+
+  private async _recursiveDelete(tx: any, id: number): Promise<void> {
+    const children = await tx.select().from(folders).where(eq(folders.parentId, id));
     for (const child of children) {
-      await this.deleteFolder(child.id);
+      await this._recursiveDelete(tx, child.id);
     }
-    await db.delete(reports).where(eq(reports.folderId, id));
-    await db.delete(folders).where(eq(folders.id, id));
+    await tx.delete(reports).where(eq(reports.folderId, id));
+    await tx.delete(folders).where(eq(folders.id, id));
   }
 
   // Reports
