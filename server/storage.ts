@@ -1,7 +1,7 @@
 import { users, folders, reports, activities, activityLogs, notifications } from "@shared/schema";
 import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, lt, gte, sql } from "drizzle-orm";
+import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(folders);
     }
     if (parentId === null) {
-      return db.select().from(folders).where(sql`parent_id IS NULL`);
+      return db.select().from(folders).where(isNull(folders.parentId));
     }
     return db.select().from(folders).where(eq(folders.parentId, parentId));
   }
@@ -97,7 +97,7 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(folders.name, insertFolder.name),
           insertFolder.parentId === null 
-            ? sql`parent_id IS NULL`
+            ? isNull(folders.parentId)
             : eq(folders.parentId, insertFolder.parentId)
         )
       ).limit(1);
@@ -121,9 +121,9 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(folders.name, name),
           current.parentId === null 
-            ? sql`parent_id IS NULL`
+            ? isNull(folders.parentId)
             : eq(folders.parentId, current.parentId),
-          sql`${folders.id} != ${id}`
+          ne(folders.id, id)
         )
       ).limit(1);
 
@@ -162,9 +162,9 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(folders.name, folder.name),
           targetParentId === null 
-            ? sql`parent_id IS NULL`
+            ? isNull(folders.parentId)
             : eq(folders.parentId, targetParentId),
-          sql`${folders.id} != ${id}`
+          ne(folders.id, id)
         )
       ).limit(1);
 

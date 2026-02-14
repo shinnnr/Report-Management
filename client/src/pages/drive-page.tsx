@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
-import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder } from "@/hooks/use-folders";
+import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports } from "@/hooks/use-reports";
 import { 
   Folder as FolderIcon, 
@@ -67,9 +67,10 @@ export default function DrivePage() {
   const foldersLoading = !allFoldersData;
   const isLoading = foldersLoading || reportsLoading;
 
-  const createFolder = useCreateFolder();
+  const createFolder = useCreateFolder(currentFolderId);
   const deleteFolder = useDeleteFolder();
   const renameFolder = useRenameFolder();
+  const moveFolder = useMoveFolder();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
   const moveReports = useMoveReports();
@@ -101,10 +102,9 @@ export default function DrivePage() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    const targetParentId = !currentFolderId ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) : currentFolderId;
     await createFolder.mutateAsync({
       name: newFolderName,
-      parentId: targetParentId,
+      parentId: currentFolderId,
     });
     setNewFolderName("");
     setIsNewFolderOpen(false);
@@ -122,8 +122,6 @@ export default function DrivePage() {
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
-    const targetFolderId = !currentFolderId ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) : currentFolderId;
-
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const reader = new FileReader();
@@ -136,7 +134,7 @@ export default function DrivePage() {
             fileType: file.type,
             fileSize: file.size,
             fileData: base64,
-            folderId: targetFolderId,
+            folderId: currentFolderId,
             description: "Uploaded file",
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
@@ -159,7 +157,7 @@ export default function DrivePage() {
     }
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await renameFolder.mutateAsync({ id, parentId: targetFolderId } as any);
+        await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
       }
     }
     setSelectedFiles([]);
@@ -232,18 +230,6 @@ export default function DrivePage() {
                   <Label>Folder Name</Label>
                   <Input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
                 </div>
-                {!currentFolderId && (
-                  <div className="space-y-2">
-                    <Label>Destination</Label>
-                    <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="root">Home</SelectItem>
-                        {allFoldersData?.map(f => <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>Create</Button>
@@ -267,15 +253,6 @@ export default function DrivePage() {
                     <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
                   </Label>
                 </div>
-                {!currentFolderId && (
-                  <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="root">Home</SelectItem>
-                      {allFoldersData?.map(f => <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleUpload} disabled={createReport.isPending}>Upload</Button>
