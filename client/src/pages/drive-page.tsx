@@ -238,7 +238,7 @@ export default function DrivePage() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent aria-describedby="new-folder-description">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <p id="new-folder-description" className="text-sm text-muted-foreground">Create a new folder in the current location.</p>
@@ -278,7 +278,7 @@ export default function DrivePage() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent aria-describedby="upload-description">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <p id="upload-description" className="text-sm text-muted-foreground">Select and upload files to the current location.</p>
@@ -318,7 +318,7 @@ export default function DrivePage() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent aria-describedby="rename-file-description">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <p id="rename-file-description" className="text-sm text-muted-foreground">Enter a new name for the file.</p>
@@ -332,7 +332,7 @@ export default function DrivePage() {
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent aria-describedby="rename-folder-description">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <p id="rename-folder-description" className="text-sm text-muted-foreground">Enter a new name for the folder.</p>
@@ -346,7 +346,7 @@ export default function DrivePage() {
       </Dialog>
 
       <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
-        <DialogContent aria-describedby="move-description">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <p id="move-description" className="text-sm text-muted-foreground">Select a destination folder for the selected items.</p>
