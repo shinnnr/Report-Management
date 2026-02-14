@@ -26,6 +26,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -241,7 +242,7 @@ export default function DrivePage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
-                <p id="new-folder-description" className="text-sm text-muted-foreground">Create a new folder in the current location.</p>
+                <DialogDescription>Create a new folder in the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -281,7 +282,7 @@ export default function DrivePage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
-                <p id="upload-description" className="text-sm text-muted-foreground">Select and upload files to the current location.</p>
+                <DialogDescription>Select and upload files to the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 {!currentFolderId && (
@@ -321,7 +322,7 @@ export default function DrivePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
-            <p id="rename-file-description" className="text-sm text-muted-foreground">Enter a new name for the file.</p>
+            <DialogDescription>Enter a new name for the file.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="rename-file-input">File Name</Label>
@@ -335,7 +336,7 @@ export default function DrivePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
-            <p id="rename-folder-description" className="text-sm text-muted-foreground">Enter a new name for the folder.</p>
+            <DialogDescription>Enter a new name for the folder.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="rename-folder-input">Folder Name</Label>
@@ -349,7 +350,7 @@ export default function DrivePage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
-            <p id="move-description" className="text-sm text-muted-foreground">Select a destination folder for the selected items.</p>
+            <DialogDescription>Select a destination folder for the selected items.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="move-destination">Destination</Label>
