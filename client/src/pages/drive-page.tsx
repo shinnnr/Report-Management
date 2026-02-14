@@ -146,7 +146,6 @@ export default function DrivePage() {
   const [renameFileName, setRenameFileName] = useState("");
 
   const [isMoveOpen, setIsMoveOpen] = useState(false);
-  const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
   const [selectedDestination, setSelectedDestination] = useState<number | null>(null);
   const [destinationSelected, setDestinationSelected] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
@@ -170,13 +169,10 @@ export default function DrivePage() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
-    const targetParentId = !currentFolderId 
-      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) 
-      : currentFolderId;
 
     await createFolder.mutateAsync({
       name: newFolderName,
-      parentId: targetParentId,
+      parentId: currentFolderId,
     });
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     setNewFolderName("");
@@ -195,10 +191,6 @@ export default function DrivePage() {
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
-    const targetFolderId = !currentFolderId
-      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId))
-      : currentFolderId;
-
     // Process files asynchronously without blocking
     const uploadPromises = Array.from(files).map(async (file) => {
       return new Promise<void>((resolve) => {
@@ -212,7 +204,7 @@ export default function DrivePage() {
               fileType: file.type,
               fileSize: file.size,
               fileData: base64,
-              folderId: targetFolderId,
+              folderId: currentFolderId,
               description: "Uploaded file",
               year: new Date().getFullYear(),
               month: new Date().getMonth() + 1,
@@ -454,23 +446,6 @@ export default function DrivePage() {
                   <Label htmlFor="new-folder-name">Folder Name</Label>
                   <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
                 </div>
-                {!currentFolderId && (
-                  <div className="space-y-2">
-                    <Label>Location</Label>
-                    <Select 
-                      value={moveToFolderId === "root" ? "root" : moveToFolderId} 
-                      onValueChange={setMoveToFolderId}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="root">Home</SelectItem>
-                        {allFoldersData?.map(f => (
-                          <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>Create</Button>
@@ -490,23 +465,6 @@ export default function DrivePage() {
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                {!currentFolderId && (
-                  <div className="space-y-2">
-                    <Label>Target Folder</Label>
-                    <Select 
-                      value={moveToFolderId === "root" ? "root" : moveToFolderId} 
-                      onValueChange={setMoveToFolderId}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="root">Home</SelectItem>
-                        {allFoldersData?.map(f => (
-                          <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
                 <div className="py-8 text-center border-2 border-dashed rounded-xl">
                   <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
