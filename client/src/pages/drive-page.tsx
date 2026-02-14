@@ -94,9 +94,14 @@ export default function DrivePage() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
+    
+    // Use target folder if selected in dialog, otherwise current context, otherwise root
+    const targetParentId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
+    const finalParentId = targetParentId !== null ? targetParentId : currentFolderId;
+
     await createFolder.mutateAsync({
       name: newFolderName,
-      parentId: currentFolderId,
+      parentId: finalParentId,
     });
     setNewFolderName("");
     setIsNewFolderOpen(false);
@@ -110,11 +115,13 @@ export default function DrivePage() {
   };
 
   const handleUpload = async () => {
-    const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement;
+    const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
-    const targetFolderId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
+    // Use target folder if selected, otherwise current folder context
+    const selectionId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
+    const targetFolderId = selectionId !== null ? selectionId : currentFolderId;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -158,42 +165,44 @@ export default function DrivePage() {
     );
   };
 
+  const getBreadcrumbs = () => {
+    const crumbs = [];
+    let tempId = currentFolderId;
+    while (tempId && allFoldersData) {
+      const folder = allFoldersData.find(f => f.id === tempId);
+      if (folder) {
+        crumbs.unshift(folder);
+        tempId = folder.parentId;
+      } else {
+        break;
+      }
+    }
+    return crumbs;
+  };
+
+  const breadcrumbs = getBreadcrumbs();
   const isLoading = foldersLoading || reportsLoading;
 
   return (
     <LayoutWrapper>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-4 mb-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => {
-                if (currentFolderId) {
-                  const parent = allFoldersData?.find(f => f.id === currentFolderId)?.parentId;
-                  setLocation(parent ? `/drive?folder=${parent}` : "/drive");
-                } else {
-                  window.history.back();
-                }
-              }}
-              className="h-8 w-8"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-3xl font-display font-bold text-primary">My Drive</h1>
-          </div>
+          <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/drive" className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground underline" : ""}`}>
+            <Link href="/drive" className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
               <Home className="w-4 h-4" /> Home
             </Link>
-            {currentFolderId && (
-              <>
+            {breadcrumbs.map((crumb) => (
+              <div key={crumb.id} className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4" />
-                <span className="font-medium text-foreground">
-                  {allFoldersData?.find(f => f.id === currentFolderId)?.name || "Current Folder"}
-                </span>
-              </>
-            )}
+                <Link 
+                  href={`/drive?folder=${crumb.id}`}
+                  className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
+                >
+                  {crumb.name}
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -218,14 +227,32 @@ export default function DrivePage() {
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
               </DialogHeader>
-              <div className="py-4">
-                <Label htmlFor="name" className="mb-2 block">Folder Name</Label>
-                <Input 
-                  id="name" 
-                  value={newFolderName} 
-                  onChange={(e) => setNewFolderName(e.target.value)} 
-                  placeholder="e.g. Monthly Reports"
-                />
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Folder Name</Label>
+                  <Input 
+                    id="name" 
+                    value={newFolderName} 
+                    onChange={(e) => setNewFolderName(e.target.value)} 
+                    placeholder="e.g. Monthly Reports"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Destination (Optional - Defaults to current folder)</Label>
+                  <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Current Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="root">Home / Root</SelectItem>
+                      {allFoldersData?.map(folder => (
+                        <SelectItem key={folder.id} value={folder.id.toString()}>
+                          {folder.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
