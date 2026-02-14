@@ -66,6 +66,11 @@ export default function DrivePage() {
   const foldersLoading = !allFoldersData;
   const isLoading = foldersLoading || reportsLoading;
 
+  // Sync navigation on folder click
+  const handleFolderClick = (id: number) => {
+    navigate(`/drive?folder=${id}`);
+  };
+
   const createFolder = useCreateFolder(currentFolderId);
   const deleteFolder = useDeleteFolder();
   const renameFolder = useRenameFolder();
@@ -297,14 +302,14 @@ export default function DrivePage() {
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8">
-          {folders && folders.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold mb-4">Folders</h2>
+          <section>
+            <h2 className="text-sm font-semibold mb-4">Folders</h2>
+            {folders && folders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {folders.map(f => (
                   <div key={f.id} className={`relative p-4 rounded-xl border ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
                     <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />
-                    <div onClick={() => navigate(`/drive?folder=${f.id}`)} className="flex items-center gap-3 pt-4 cursor-pointer">
+                    <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                       <FolderIcon className="w-10 h-10 text-secondary" />
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -320,8 +325,10 @@ export default function DrivePage() {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <p className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">No folders found</p>
+            )}
+          </section>
 
           <section>
             <h2 className="text-sm font-semibold mb-4">Files</h2>
