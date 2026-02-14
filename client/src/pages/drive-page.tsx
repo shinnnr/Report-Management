@@ -189,7 +189,7 @@ export default function DrivePage() {
         <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/drive" className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
+            <Link href="/drive" className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`} onClick={() => setLocation("/drive")}>
               <Home className="w-4 h-4" /> Home
             </Link>
             {breadcrumbs.map((crumb) => (
@@ -198,6 +198,7 @@ export default function DrivePage() {
                 <Link 
                   href={`/drive?folder=${crumb.id}`}
                   className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
+                  onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
                 >
                   {crumb.name}
                 </Link>
@@ -237,22 +238,24 @@ export default function DrivePage() {
                     placeholder="e.g. Monthly Reports"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Destination (Optional - Defaults to current folder)</Label>
-                  <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Current Location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="root">Home / Root</SelectItem>
-                      {allFoldersData?.map(folder => (
-                        <SelectItem key={folder.id} value={folder.id.toString()}>
-                          {folder.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!currentFolderId && (
+                  <div className="space-y-2">
+                    <Label>Destination (Optional - Defaults to current folder)</Label>
+                    <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Current Location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="root">Home / Root</SelectItem>
+                        {allFoldersData?.map(folder => (
+                          <SelectItem key={folder.id} value={folder.id.toString()}>
+                            {folder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
@@ -291,22 +294,24 @@ export default function DrivePage() {
                   </Label>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Destination Folder (Optional)</Label>
-                  <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="root">Home / Root</SelectItem>
-                      {allFoldersData?.map(folder => (
-                        <SelectItem key={folder.id} value={folder.id.toString()}>
-                          {folder.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!currentFolderId && (
+                  <div className="space-y-2">
+                    <Label>Destination Folder (Optional)</Label>
+                    <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select destination" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="root">Home / Root</SelectItem>
+                        {allFoldersData?.map(folder => (
+                          <SelectItem key={folder.id} value={folder.id.toString()}>
+                            {folder.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleUpload} disabled={createReport.isPending}>
@@ -403,10 +408,10 @@ export default function DrivePage() {
                   <div 
                     key={folder.id}
                     className="group relative bg-white p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer"
+                    onClick={() => setLocation(`/drive?folder=${folder.id}`)}
                   >
                     <div 
                       className="flex items-center gap-3 mb-2"
-                      onClick={() => setLocation(`/drive?folder=${folder.id}`)}
                     >
                       <FolderIcon className="w-10 h-10 text-secondary fill-secondary/20" />
                       <span className="font-medium truncate flex-1">{folder.name}</span>
