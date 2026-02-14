@@ -57,16 +57,22 @@ export async function registerRoutes(
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Looking up user:", username);
         const user = await storage.getUserByUsername(username);
         if (!user) {
+          console.log("User not found:", username);
           return done(null, false, { message: "Incorrect username." });
         }
+        console.log("User found, checking password");
         const isValid = await comparePassword(password, user.password);
         if (!isValid) {
+          console.log("Invalid password for user:", username);
           return done(null, false, { message: "Incorrect password." });
         }
+        console.log("Password valid for user:", username);
         return done(null, user);
       } catch (err) {
+        console.error("Error in local strategy:", err);
         return done(err);
       }
     })
@@ -105,9 +111,18 @@ export async function registerRoutes(
 
   // --- Auth Routes ---
   app.post(api.auth.login.path, (req, res, next) => {
+    console.log("Login attempt for username:", req.body.username);
     passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info.message });
+      console.log("Passport authenticate result:", { err: !!err, user: !!user, info });
+      if (err) {
+        console.error("Passport error:", err);
+        return next(err);
+      }
+      if (!user) {
+        console.log("No user found:", info.message);
+        return res.status(401).json({ message: info.message });
+      }
+      console.log("User authenticated:", user.username);
       req.logIn(user, async (err) => {
         if (err) {
           console.error("Login session save error:", err);
@@ -115,6 +130,7 @@ export async function registerRoutes(
         }
         try {
           await storage.createLog(user.id, "LOGIN", "User logged in");
+          console.log("Login successful for user:", user.username);
           res.json(user);
         } catch (logErr) {
           console.error("Login log error:", logErr);
