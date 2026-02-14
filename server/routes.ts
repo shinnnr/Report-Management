@@ -412,29 +412,29 @@ export async function registerRoutes(
       const now = new Date();
       const isLate = now > deadline;
 
-      // Create organized folder structure: {Year}/{Month}/(files uploaded)
-      const year = deadline.getFullYear();
+      // Create organized folder structure: {Current Year}/{Activity Month}/(files uploaded)
+      const currentYear = now.getFullYear();
       const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
       ];
-      const monthName = monthNames[deadline.getMonth()];
+      const activityMonthName = monthNames[deadline.getMonth()];
 
       // Create or get year folder
-      let yearFolder = await storage.getFolderByNameAndParent(`${year}`, null);
+      let yearFolder = await storage.getFolderByNameAndParent(`${currentYear}`, null);
       if (!yearFolder) {
         yearFolder = await storage.createFolder({
-          name: `${year}`,
+          name: `${currentYear}`,
           parentId: null,
           createdBy: userId
         });
       }
 
       // Create or get month folder
-      let monthFolder = await storage.getFolderByNameAndParent(monthName, yearFolder.id);
+      let monthFolder = await storage.getFolderByNameAndParent(activityMonthName, yearFolder.id);
       if (!monthFolder) {
         monthFolder = await storage.createFolder({
-          name: monthName,
+          name: activityMonthName,
           parentId: yearFolder.id,
           createdBy: userId
         });
@@ -451,7 +451,7 @@ export async function registerRoutes(
         folderId: monthFolder.id,
         uploadedBy: userId,
         activityId,
-        year,
+        year: currentYear,
         month: deadline.getMonth() + 1,
         status: 'active'
       });
@@ -464,9 +464,9 @@ export async function registerRoutes(
         status: isLate ? 'late' : 'submitted'
       });
 
-      // Update activity status
+      // Update activity status - allow completion even for overdue activities
       await storage.updateActivity(activityId, {
-        status: isLate ? 'overdue' : 'completed',
+        status: 'completed',
         completionDate: now,
         completedBy: userId
       });
@@ -477,7 +477,8 @@ export async function registerRoutes(
       res.status(201).json({
         submission,
         report,
-        message: isLate ? "Submission received but marked as late" : "Submission successful"
+        message: isLate ? "Submission successful (marked as late)" : "Submission successful",
+        isLate
       });
     } catch (err: any) {
       console.error("Submission error:", err);

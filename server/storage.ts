@@ -198,26 +198,33 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFolder(id: number): Promise<void> {
     await db.transaction(async (tx) => {
-      const children = await tx.select().from(folders).where(eq(folders.parentId, id));
-      for (const child of children) {
-        // Recursively delete children within the same transaction context if possible, 
-        // but since we are using DatabaseStorage methods which might create their own transactions,
-        // we should ideally pass the transaction object. For now, let's just use raw deletes here
-        // to stay within this transaction.
-        await this._recursiveDelete(tx, child.id);
+      // Get all descendant folder IDs including the root
+      const allFolderIds = await this._getAllDescendantFolderIds(tx, id);
+      allFolderIds.push(id);
+
+      // Delete all reports in these folders
+      if (allFolderIds.length > 0) {
+        await tx.delete(reports).where(sql`${reports.folderId} IN ${allFolderIds}`);
       }
-      await tx.delete(reports).where(eq(reports.folderId, id));
-      await tx.delete(folders).where(eq(folders.id, id));
+
+      // Delete all folders (children first due to foreign key constraints)
+      for (const folderId of allFolderIds.reverse()) {
+        await tx.delete(folders).where(eq(folders.id, folderId));
+      }
     });
   }
 
-  private async _recursiveDelete(tx: any, id: number): Promise<void> {
-    const children = await tx.select().from(folders).where(eq(folders.parentId, id));
+  private async _getAllDescendantFolderIds(tx: any, parentId: number): Promise<number[]> {
+    const descendants: number[] = [];
+    const children = await tx.select().from(folders).where(eq(folders.parentId, parentId));
+
     for (const child of children) {
-      await this._recursiveDelete(tx, child.id);
+      descendants.push(child.id);
+      const childDescendants = await this._getAllDescendantFolderIds(tx, child.id);
+      descendants.push(...childDescendants);
     }
-    await tx.delete(reports).where(eq(reports.folderId, id));
-    await tx.delete(folders).where(eq(folders.id, id));
+
+    return descendants;
   }
 
   // Reports
