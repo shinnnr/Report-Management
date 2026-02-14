@@ -111,6 +111,7 @@ export default function DrivePage() {
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
   const [selectedDestination, setSelectedDestination] = useState<number | null>(null);
+  const [destinationSelected, setDestinationSelected] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [currentNavigationFolder, setCurrentNavigationFolder] = useState<number | null>(null);
@@ -246,6 +247,7 @@ export default function DrivePage() {
 
   const selectDestination = (folderId: number | null) => {
     setSelectedDestination(folderId);
+    setDestinationSelected(true);
     setCurrentNavigationFolder(folderId); // Selected folder becomes current for new folder creation
   };
 
@@ -292,8 +294,8 @@ export default function DrivePage() {
       // Don't show current folder
       if (f.id === currentFolderId) return false;
 
-      // When moving to root (Home), don't show folders already at root
-      if (selectedDestination === null && f.parentId === null) return false;
+      // When moving to root (Home) and a destination has been selected, don't show folders already at root
+      if (destinationSelected && selectedDestination === null && f.parentId === null) return false;
 
       return true;
     });
@@ -473,6 +475,7 @@ export default function DrivePage() {
         setIsMoveOpen(open);
         if (!open) {
           setSelectedDestination(null);
+          setDestinationSelected(false);
           setExpandedFolders(new Set());
           setSearchQuery("");
           setCurrentNavigationFolder(null);
