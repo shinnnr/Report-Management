@@ -197,23 +197,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteFolder(id: number): Promise<void> {
-    // Use a simpler approach - recursively delete from the bottom up
-    await this._deleteFolderRecursive(id);
+    try {
+      // Use a simpler approach - recursively delete from the bottom up
+      await this._deleteFolderRecursive(id);
+    } catch (error) {
+      console.error(`Error deleting folder ${id}:`, error);
+      throw error;
+    }
   }
 
   private async _deleteFolderRecursive(folderId: number): Promise<void> {
-    // First, recursively delete all child folders
-    const children = await db.select().from(folders).where(eq(folders.parentId, folderId));
+    try {
+      // First, recursively delete all child folders
+      const children = await db.select().from(folders).where(eq(folders.parentId, folderId));
 
-    for (const child of children) {
-      await this._deleteFolderRecursive(child.id);
+      for (const child of children) {
+        await this._deleteFolderRecursive(child.id);
+      }
+
+      // Delete all activity submissions for reports in this folder
+      const folderReports = await db.select().from(reports).where(eq(reports.folderId, folderId));
+      for (const report of folderReports) {
+        await db.delete(activitySubmissions).where(eq(activitySubmissions.reportId, report.id));
+      }
+
+      // Delete all reports in this folder
+      await db.delete(reports).where(eq(reports.folderId, folderId));
+
+      // Finally, delete the folder itself
+      await db.delete(folders).where(eq(folders.id, folderId));
+    } catch (error) {
+      console.error(`Error in _deleteFolderRecursive for folder ${folderId}:`, error);
+      throw error;
     }
-
-    // Delete all reports in this folder
-    await db.delete(reports).where(eq(reports.folderId, folderId));
-
-    // Finally, delete the folder itself
-    await db.delete(folders).where(eq(folders.id, folderId));
   }
 
   // Reports
