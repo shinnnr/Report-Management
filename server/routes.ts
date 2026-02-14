@@ -5,7 +5,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import session from "express-session";
+import session, { MemoryStore } from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import connectPgSimple from "connect-pg-simple";
@@ -34,18 +34,22 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // --- Session & Passport Setup ---
-  app.use(
-    session({
-      store: new (connectPgSimple(session))({
-        conString: process.env.DATABASE_URL,
-        tableName: "session",
-      }),
-      secret: process.env.SESSION_SECRET || "default_secret_dev_only",
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: app.get("env") === "production" },
-    })
-  );
+  console.log("Setting up session store...");
+  try {
+    app.use(
+      session({
+        store: new MemoryStore(),
+        secret: process.env.SESSION_SECRET || "default_secret_dev_only",
+        resave: false,
+        saveUninitialized: false,
+        cookie: { secure: app.get("env") === "production" },
+      })
+    );
+    console.log("Session store setup successful");
+  } catch (err) {
+    console.error("Session store setup failed:", err);
+    throw err;
+  }
 
   app.use(passport.initialize());
   app.use(passport.session());
@@ -355,7 +359,11 @@ export async function registerRoutes(
   }
 
   // Run seed
-  seed().catch(console.error);
+  console.log("Running seed...");
+  seed().then(() => console.log("Seed completed")).catch((err) => {
+    console.error("Seed failed:", err);
+    // Don't throw, continue
+  });
 
   return httpServer;
 }
