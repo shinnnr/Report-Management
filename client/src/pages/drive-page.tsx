@@ -246,6 +246,9 @@ export default function DrivePage() {
   };
 
   const selectDestination = (folderId: number | null) => {
+    // Don't allow selecting folders that are being moved
+    if (folderId !== null && selectedFolders.includes(folderId)) return;
+
     setSelectedDestination(folderId);
     setDestinationSelected(true);
     setCurrentNavigationFolder(folderId); // Selected folder becomes current for new folder creation
@@ -294,8 +297,8 @@ export default function DrivePage() {
       // Don't show current folder
       if (f.id === currentFolderId) return false;
 
-      // When moving to root (Home) and a destination has been selected, don't show folders already at root
-      if (destinationSelected && selectedDestination === null && f.parentId === null) return false;
+      // Don't show folders being moved as destinations
+      if (selectedFolders.includes(f.id)) return false;
 
       return true;
     });
@@ -563,11 +566,28 @@ export default function DrivePage() {
                   {/* Root/Home option - only show when not navigated */}
                   {currentNavigationFolder === null && (
                     <div
-                      className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
+                      className={`flex items-center gap-2 p-2 rounded-md ${
                         selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
+                      } ${
+                        // Disable Home if all selected items are already at root
+                        selectedFolders.length > 0 && selectedFolders.every(id =>
+                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
+                        ) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 cursor-pointer'
                       }`}
-                      onClick={() => selectDestination(null)}
-                      title="Click to select as destination"
+                      onClick={() => {
+                        // Don't allow selecting Home if all selected items are already at root
+                        const allSelectedAtRoot = selectedFolders.length > 0 && selectedFolders.every(id =>
+                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
+                        );
+                        if (!allSelectedAtRoot) {
+                          selectDestination(null);
+                        }
+                      }}
+                      title={
+                        selectedFolders.length > 0 && selectedFolders.every(id =>
+                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
+                        ) ? "Items are already at Home" : "Click to select as destination"
+                      }
                     >
                       <Home className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">Home</span>
@@ -610,11 +630,14 @@ export default function DrivePage() {
             </Button>
             <Button
               onClick={() => {
-                if (selectedDestination !== null) {
+                if (selectedDestination !== null || (selectedDestination === null && destinationSelected)) {
                   handleMoveItems();
                 }
               }}
-              disabled={selectedDestination === null}
+              disabled={
+                selectedDestination === null && !destinationSelected || // No destination selected
+                selectedFolders.includes(selectedDestination || 0) // Selected destination is being moved
+              }
             >
               Move Here
             </Button>
