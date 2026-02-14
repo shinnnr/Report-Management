@@ -35,11 +35,11 @@ export default function CalendarPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
-  
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [deadline, setDeadline] = useState("");
 
   const daysInMonth = eachDayOfInterval({
     start: startOfMonth(currentDate),
@@ -51,18 +51,18 @@ export default function CalendarPage() {
   const paddingDays = Array.from({ length: startDay });
 
   const handleCreate = async () => {
-    if (!title || !deadline) return;
+    if (!title || !selectedDate) return;
     await createActivity.mutateAsync({
       title,
       description,
       startDate: new Date().toISOString(),
-      deadlineDate: new Date(deadline).toISOString(),
+      deadlineDate: selectedDate.toISOString(),
       status: 'pending',
     });
     setIsNewActivityOpen(false);
+    setSelectedDate(null);
     setTitle("");
     setDescription("");
-    setDeadline("");
   };
 
   const getStatusColor = (status: string | null) => {
@@ -83,14 +83,28 @@ export default function CalendarPage() {
         
         <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary">
-              <Plus className="w-4 h-4" /> Add Activity
+            <Button
+              className="gap-2 shadow-lg shadow-primary/20 bg-primary"
+              disabled={!selectedDate}
+              onClick={() => {
+                if (!selectedDate) {
+                  // Show message to select a date first
+                  alert("Please select a date on the calendar first.");
+                  return;
+                }
+                setIsNewActivityOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              {selectedDate ? `Add Activity for ${format(selectedDate, 'MMM d')}` : 'Select a Date First'}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Activity</DialogTitle>
-              <DialogDescription>Create a new activity with a title, description, and deadline.</DialogDescription>
+              <DialogDescription>
+                Create a new activity for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'the selected date'}.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -100,10 +114,6 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 <Label htmlFor="desc">Description</Label>
                 <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date">Deadline</Label>
-                <Input type="date" id="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
               </div>
             </div>
             <DialogFooter>
@@ -154,12 +164,14 @@ export default function CalendarPage() {
             const dayActivities = activities?.filter(a => isSameDay(new Date(a.deadlineDate), date));
             
             return (
-              <div 
-                key={date.toISOString()} 
+              <div
+                key={date.toISOString()}
                 className={cn(
-                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors hover:bg-muted/5",
-                  isToday(date) && "bg-accent/5"
+                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer",
+                  isToday(date) && "bg-accent/5",
+                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
                 )}
+                onClick={() => setSelectedDate(date)}
               >
                 <div className={cn(
                   "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
