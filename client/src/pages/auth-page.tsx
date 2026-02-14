@@ -83,9 +83,10 @@ export default function AuthPage() {
                     <FormItem>
                       <FormLabel>Username</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="admin" 
-                          {...field} 
+                        <Input
+                          placeholder="admin"
+                          autoComplete="username"
+                          {...field}
                           className="h-12 text-base"
                         />
                       </FormControl>
@@ -100,10 +101,11 @@ export default function AuthPage() {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          placeholder="••••••••" 
-                          {...field} 
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          {...field}
                           className="h-12 text-base"
                         />
                       </FormControl>
