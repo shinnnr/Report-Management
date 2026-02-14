@@ -15,6 +15,7 @@ import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } fro
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -54,8 +55,8 @@ export default function CalendarPage() {
     await createActivity.mutateAsync({
       title,
       description,
-      startDate: new Date(),
-      deadlineDate: new Date(deadline),
+      startDate: new Date().toISOString(),
+      deadlineDate: new Date(deadline).toISOString(),
       status: 'pending',
     });
     setIsNewActivityOpen(false);
@@ -89,6 +90,7 @@ export default function CalendarPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Activity</DialogTitle>
+              <DialogDescription>Create a new activity with a title, description, and deadline.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
