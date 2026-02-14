@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     if (parentId === null || parentId === 0) {
       return db.select().from(folders).where(isNull(folders.parentId));
     }
-    return db.select().from(folders).where(sql`${folders.parentId} = ${parentId}`);
+    return db.select().from(folders).where(sql`${folders.parentId}::text = ${parentId.toString()}`);
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
