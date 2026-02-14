@@ -42,13 +42,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
+  const search = useSearch();
 
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const searchParams = new URLSearchParams(search);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
@@ -132,32 +133,40 @@ export default function DrivePage() {
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
-    const targetFolderId = !currentFolderId 
-      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) 
+    const targetFolderId = !currentFolderId
+      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId))
       : currentFolderId;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const reader = new FileReader();
-      await new Promise((resolve) => {
+    // Process files asynchronously without blocking
+    const uploadPromises = Array.from(files).map(async (file) => {
+      return new Promise<void>((resolve) => {
+        const reader = new FileReader();
         reader.onload = async () => {
           const base64 = reader.result as string;
-          await createReport.mutateAsync({
-            title: file.name,
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            fileData: base64,
-            folderId: targetFolderId,
-            description: "Uploaded file",
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
-          });
-          resolve(null);
+          try {
+            await createReport.mutateAsync({
+              title: file.name,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              fileData: base64,
+              folderId: targetFolderId,
+              description: "Uploaded file",
+              year: new Date().getFullYear(),
+              month: new Date().getMonth() + 1,
+            });
+          } catch (error) {
+            console.error("Upload failed:", error);
+          }
+          resolve();
         };
         reader.readAsDataURL(file);
       });
-    }
+    });
+
+    // Wait for all uploads to complete
+    await Promise.all(uploadPromises);
+
     setUploadFile(null);
     setIsUploadOpen(false);
   };
