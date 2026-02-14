@@ -79,7 +79,7 @@ export const activityLogs = pgTable("activity_logs", {
 });
 
 // === SESSIONS ===
-export const userSessions = pgTable("user_sessions", {
+export const userSessions = pgTable("session", {
   sid: text("sid").primaryKey(),
   sess: jsonb("sess").notNull(),
   expire: timestamp("expire").notNull(),
