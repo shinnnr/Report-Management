@@ -851,7 +851,7 @@ export default function DrivePage() {
                             {isSelectMode ? (
                               <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             ) : (
-                              <a href={r.fileData || undefined} target="_blank" rel="noopener noreferrer" download={r.fileName} className="hover:text-primary">{r.fileName}</a>
+                              <a href={r.fileData || undefined} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{r.fileName}</a>
                             )}
                           </div>
                         </td>
