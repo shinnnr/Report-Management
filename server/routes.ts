@@ -9,7 +9,6 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
 
 const scryptAsync = promisify(scrypt);
 const PgSession = connectPgSimple(session);
@@ -33,11 +32,14 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Trust proxy for Railway
+  app.set('trust proxy', 1);
+
   // --- Session & Passport Setup ---
   app.use(
     session({
       store: new PgSession({
-        pool: pool,
+        conString: process.env.DATABASE_URL,
         tableName: 'user_sessions',
         createTableIfMissing: true,
       }),
