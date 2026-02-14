@@ -9,20 +9,8 @@ import session, { Store } from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-
-// Define session table schema
-const sessionTable = sql`
-  CREATE TABLE IF NOT EXISTS user_sessions (
-    sid VARCHAR NOT NULL COLLATE "default",
-    sess JSON NOT NULL,
-    expire TIMESTAMP(6) NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS IDX_session_expire ON user_sessions(expire);
-  ALTER TABLE user_sessions ADD CONSTRAINT IF NOT EXISTS session_pkey PRIMARY KEY (sid) NOT DEFERRABLE INITIALLY IMMEDIATE;
-`;
+import { eq, and, sql, desc } from "drizzle-orm";
+import { userSessions } from "@shared/schema";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -32,12 +20,14 @@ class DrizzleSessionStore extends Store {
 
   async get(sid: string, callback: (err: any, session?: any) => void) {
     try {
-      const result = await db.execute(sql`
-        SELECT sess FROM user_sessions
-        WHERE sid = ${sid} AND expire > NOW()
-      `);
-      if (result.rows.length > 0) {
-        callback(null, result.rows[0].sess);
+      const result = await db
+        .select()
+        .from(userSessions)
+        .where(and(eq(userSessions.sid, sid), sql`${userSessions.expire} > NOW()`))
+        .limit(1);
+
+      if (result.length > 0) {
+        callback(null, result[0].sess);
       } else {
         callback(null, null);
       }
@@ -49,13 +39,20 @@ class DrizzleSessionStore extends Store {
   async set(sid: string, session: any, callback: (err?: any) => void) {
     try {
       const expire = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      await db.execute(sql`
-        INSERT INTO user_sessions (sid, sess, expire)
-        VALUES (${sid}, ${JSON.stringify(session)}, ${expire})
-        ON CONFLICT (sid) DO UPDATE SET
-          sess = EXCLUDED.sess,
-          expire = EXCLUDED.expire
-      `);
+      await db
+        .insert(userSessions)
+        .values({
+          sid,
+          sess: session,
+          expire,
+        })
+        .onConflictDoUpdate({
+          target: userSessions.sid,
+          set: {
+            sess: session,
+            expire,
+          },
+        });
       callback();
     } catch (err) {
       callback(err);
@@ -64,7 +61,7 @@ class DrizzleSessionStore extends Store {
 
   async destroy(sid: string, callback: (err?: any) => void) {
     try {
-      await db.execute(sql`DELETE FROM user_sessions WHERE sid = ${sid}`);
+      await db.delete(userSessions).where(eq(userSessions.sid, sid));
       callback();
     } catch (err) {
       callback(err);
@@ -96,12 +93,8 @@ export async function registerRoutes(
   // Trust proxy for Railway
   app.set('trust proxy', 1);
 
-  // Create sessions table if it doesn't exist
-  try {
-    await db.execute(sessionTable);
-  } catch (err) {
-    console.error("Error creating sessions table:", err);
-  }
+  // Ensure sessions table exists (Drizzle will handle this via migrations)
+  // The table will be created when we run db:push
 
   // --- Session & Passport Setup ---
   app.use(
