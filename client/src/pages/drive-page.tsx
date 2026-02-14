@@ -51,6 +51,14 @@ export default function DrivePage() {
   const searchParams = new URLSearchParams(window.location.search);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
+  // Track folder ID change to force re-render if needed
+  const [lastFolderId, setLastFolderId] = useState(currentFolderId);
+  if (currentFolderId !== lastFolderId) {
+    setLastFolderId(currentFolderId);
+    setSelectedFiles([]);
+    setSelectedFolders([]);
+  }
+
   const { data: allFoldersData } = useFolders(); 
   const { data: currentFolder } = useFolders(currentFolderId);
   const folders = currentFolderId ? allFoldersData?.filter(f => f.parentId === currentFolderId) : allFoldersData?.filter(f => !f.parentId);
@@ -97,7 +105,7 @@ export default function DrivePage() {
     
     // Use target folder if selected in dialog, otherwise current context, otherwise root
     const targetParentId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
-    const finalParentId = targetParentId !== null ? targetParentId : currentFolderId;
+    const finalParentId = !currentFolderId ? (targetParentId !== null ? targetParentId : null) : currentFolderId;
 
     await createFolder.mutateAsync({
       name: newFolderName,
@@ -121,7 +129,7 @@ export default function DrivePage() {
 
     // Use target folder if selected, otherwise current folder context
     const selectionId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
-    const targetFolderId = selectionId !== null ? selectionId : currentFolderId;
+    const targetFolderId = !currentFolderId ? (selectionId !== null ? selectionId : null) : currentFolderId;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -149,14 +157,35 @@ export default function DrivePage() {
     setIsUploadOpen(false);
   };
 
-  const handleMoveFiles = async () => {
-    if (selectedFiles.length === 0) return;
-    await moveReports.mutateAsync({
-      reportIds: selectedFiles,
-      folderId: moveToFolderId === "root" ? null : parseInt(moveToFolderId)
-    });
+  const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
+
+  const handleMoveItems = async () => {
+    if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
+    
+    const targetFolderId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
+    
+    if (selectedFiles.length > 0) {
+      await moveReports.mutateAsync({
+        reportIds: selectedFiles,
+        folderId: targetFolderId
+      });
+    }
+
+    if (selectedFolders.length > 0) {
+      for (const folderId of selectedFolders) {
+        await renameFolder.mutateAsync({ id: folderId, parentId: targetFolderId });
+      }
+    }
+
     setSelectedFiles([]);
+    setSelectedFolders([]);
     setIsMoveOpen(false);
+  };
+
+  const toggleFolderSelection = (folderId: number) => {
+    setSelectedFolders(prev => 
+      prev.includes(folderId) ? prev.filter(id => id !== folderId) : [...prev, folderId]
+    );
   };
 
   const toggleFileSelection = (fileId: number) => {
@@ -208,13 +237,13 @@ export default function DrivePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {selectedFiles.length > 0 && (
+          {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
             <Button 
               variant="outline" 
               className="gap-2"
               onClick={() => setIsMoveOpen(true)}
             >
-              <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length})
+              <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
             </Button>
           )}
 
@@ -368,7 +397,7 @@ export default function DrivePage() {
       <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Move Files</DialogTitle>
+            <DialogTitle>Move Items</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Label className="mb-2 block">Select Destination Folder</Label>
@@ -378,7 +407,7 @@ export default function DrivePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="root">Home / Root</SelectItem>
-                {allFoldersData?.filter(f => f.id !== currentFolderId).map(folder => (
+                {allFoldersData?.filter(f => f.id !== currentFolderId && !selectedFolders.includes(f.id)).map(folder => (
                   <SelectItem key={folder.id} value={folder.id.toString()}>
                     {folder.name}
                   </SelectItem>
@@ -387,8 +416,8 @@ export default function DrivePage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button onClick={handleMoveFiles} disabled={moveReports.isPending}>
-              {moveReports.isPending ? "Moving..." : "Move Files"}
+            <Button onClick={handleMoveItems} disabled={moveReports.isPending || renameFolder.isPending}>
+              {(moveReports.isPending || renameFolder.isPending) ? "Moving..." : "Move Items"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -407,11 +436,18 @@ export default function DrivePage() {
                 {folders.map((folder) => (
                   <div 
                     key={folder.id}
-                    className="group relative bg-white p-4 rounded-xl border border-border hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer"
-                    onClick={() => setLocation(`/drive?folder=${folder.id}`)}
+                    className={`group relative bg-white p-4 rounded-xl border transition-all cursor-pointer ${selectedFolders.includes(folder.id) ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50 hover:shadow-lg"}`}
                   >
+                    <div className="absolute top-2 left-2 z-10">
+                      <Checkbox 
+                        checked={selectedFolders.includes(folder.id)}
+                        onCheckedChange={() => toggleFolderSelection(folder.id)}
+                        className="bg-white/80"
+                      />
+                    </div>
                     <div 
-                      className="flex items-center gap-3 mb-2"
+                      className="flex items-center gap-3 mb-2 pt-4"
+                      onClick={() => setLocation(`/drive?folder=${folder.id}`)}
                     >
                       <FolderIcon className="w-10 h-10 text-secondary fill-secondary/20" />
                       <span className="font-medium truncate flex-1">{folder.name}</span>
@@ -480,7 +516,15 @@ export default function DrivePage() {
                             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
                               <FileText className="w-4 h-4" />
                             </div>
-                            <span className="font-medium">{file.fileName}</span>
+                            <a 
+                              href={file.fileData} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              download={file.fileName}
+                              className="font-medium hover:text-primary transition-colors cursor-pointer"
+                            >
+                              {file.fileName}
+                            </a>
                           </div>
                         </td>
                         <td className="px-6 py-4 hidden md:table-cell text-muted-foreground">User #{file.uploadedBy}</td>
