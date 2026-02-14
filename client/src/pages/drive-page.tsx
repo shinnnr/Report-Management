@@ -69,12 +69,22 @@ export default function DrivePage() {
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
   const [driveSearchQuery, setDriveSearchQuery] = useState("");
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
 
   // Reset selection on navigation
   useEffect(() => {
     setSelectedFiles([]);
     setSelectedFolders([]);
   }, [currentFolderId]);
+
+  // Reset selection when exiting select mode
+  useEffect(() => {
+    if (!isSelectMode) {
+      setSelectedFiles([]);
+      setSelectedFolders([]);
+    }
+  }, [isSelectMode]);
 
   const { data: currentFolders } = useFolders(currentFolderId);
   const { data: allFoldersData } = useFolders('all'); // For breadcrumbs and dropdowns
@@ -83,8 +93,31 @@ export default function DrivePage() {
   const foldersLoading = !currentFolders;
   const isLoading = foldersLoading || reportsLoading;
 
-  const filteredFolders = currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
-  const filteredReports = reports?.filter(r => r.title.toLowerCase().includes(driveSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
+  const filteredFolders = (currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || []).sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'date':
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case 'size':
+        // Folders don't have size, so sort by name for folders
+        return a.name.localeCompare(b.name);
+      default:
+        return 0;
+    }
+  });
+  const filteredReports = (reports?.filter(r => r.title.toLowerCase().includes(driveSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(driveSearchQuery.toLowerCase())) || []).sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.fileName.localeCompare(b.fileName);
+      case 'date':
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      case 'size':
+        return b.fileSize - a.fileSize;
+      default:
+        return 0;
+    }
+  });
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -371,9 +404,17 @@ export default function DrivePage() {
 
         <div className="flex items-center gap-3">
           {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
-            <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
-              <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
-            </Button>
+            <>
+              <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
+                <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
+              </Button>
+              <Button variant="destructive" className="gap-2" onClick={() => {
+                selectedFolders.forEach(id => setDeleteFolderId(id));
+                selectedFiles.forEach(id => setDeleteFileId(id));
+              }}>
+                <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
+              </Button>
+            </>
           )}
 
           <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
@@ -707,13 +748,36 @@ export default function DrivePage() {
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
-            <h2 className="text-sm font-semibold mb-4">Folders</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold">Folders</h2>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                    {isSelectMode ? 'Exit Select' : 'Select'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('name')}>
+                    Sort by Name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('date')}>
+                    Sort by Date
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('size')}>
+                    Sort by Size
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             {filteredFolders && filteredFolders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredFolders.map(f => (
                   <div key={f.id} className={`relative p-4 rounded-xl border ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
-                    <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />
-                    <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
+                    {isSelectMode && <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
+                    <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                       <FolderIcon className="w-10 h-10 text-secondary" />
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -741,13 +805,36 @@ export default function DrivePage() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold mb-4">Files</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold">Files</h2>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                    {isSelectMode ? 'Exit Select' : 'Select'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('name')}>
+                    Sort by Name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('date')}>
+                    Sort by Date
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('size')}>
+                    Sort by Size
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             {filteredReports && filteredReports.length > 0 ? (
               <div className="bg-white rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredReports.map(r => r.id) : [])} /></th>
+                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredReports.map(r => r.id) : [])} /></th>}
                       <th className="px-6 py-3">Name</th>
                       <th className="px-6 py-3 text-right">Size</th>
                       <th className="px-6 py-3 w-[50px]"></th>
@@ -756,11 +843,15 @@ export default function DrivePage() {
                   <tbody className="divide-y">
                     {filteredReports.map(r => (
                       <tr key={r.id} className="hover:bg-muted/20 group">
-                        <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>
+                        {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4" />
-                            <a href={r.fileData || undefined} target="_blank" rel="noopener noreferrer" download={r.fileName} className="hover:text-primary">{r.fileName}</a>
+                            {isSelectMode ? (
+                              <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                            ) : (
+                              <a href={r.fileData || undefined} target="_blank" rel="noopener noreferrer" download={r.fileName} className="hover:text-primary">{r.fileName}</a>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
