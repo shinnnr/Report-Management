@@ -251,6 +251,18 @@ export default function DrivePage() {
     setCurrentNavigationFolder(folderId); // Selected folder becomes current for new folder creation
   };
 
+  const isDescendant = (folderId: number | null, ancestorId: number): boolean => {
+    if (folderId === null) return false;
+    let current = folderId;
+    while (current !== null) {
+      const folder = allFoldersData?.find(f => f.id === current);
+      if (!folder) break;
+      if (folder.parentId === ancestorId) return true;
+      current = folder.parentId;
+    }
+    return false;
+  };
+
   const navigateToFolder = (folderId: number | null) => {
     setCurrentNavigationFolder(folderId);
     // Reset search when navigating
@@ -290,9 +302,6 @@ export default function DrivePage() {
     const filteredFolders = searchQuery ? folders : folders.filter(f => {
       // Don't show folders being moved
       if (selectedFolders.includes(f.id)) return false;
-
-      // Don't show current folder
-      if (f.id === currentFolderId) return false;
 
       return true;
     });
@@ -471,9 +480,8 @@ export default function DrivePage() {
       <Dialog open={isMoveOpen} onOpenChange={(open) => {
         setIsMoveOpen(open);
         if (open) {
-          // Set initial navigation to parent of current folder to show sibling folders
-          const parentId = allFoldersData?.find(f => f.id === currentFolderId)?.parentId ?? null;
-          setCurrentNavigationFolder(parentId);
+          // Set initial navigation to root to show all folders
+          setCurrentNavigationFolder(null);
         } else {
           setSelectedDestination(null);
           setDestinationSelected(false);
@@ -618,6 +626,8 @@ export default function DrivePage() {
               disabled={
                 selectedDestination === null && !destinationSelected || // No destination selected
                 selectedFolders.includes(selectedDestination || 0) || // Selected destination is being moved
+                selectedFolders.some(id => isDescendant(selectedDestination, id)) || // Selected destination is a descendant of moved folders
+                selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null) || // Selected destination is the current parent
                 (selectedDestination === null && destinationSelected && // Trying to move to Home
                  selectedFolders.length > 0 && selectedFolders.every(id => // All selected folders are already at root
                    (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
