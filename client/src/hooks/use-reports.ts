@@ -10,9 +10,9 @@ export function useReports(folderId?: number | "root", status: string = 'active'
       const params = new URLSearchParams();
       if (folderId) params.append("folderId", folderId.toString());
       if (status) params.append("status", status);
-      
+
       const url = `${api.reports.list.path}?${params.toString()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch reports");
       return api.reports.list.responses[200].parse(await res.json());
     },
@@ -28,6 +28,7 @@ export function useCreateReport() {
       const res = await fetch(api.reports.create.path, {
         method: api.reports.create.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       
@@ -53,6 +54,7 @@ export function useMoveReports() {
       const res = await fetch(api.reports.move.path, {
         method: api.reports.move.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to move reports");
@@ -72,7 +74,7 @@ export function useDeleteReport() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.reports.delete.path, { id });
-      const res = await fetch(url, { method: api.reports.delete.method });
+      const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete report");
     },
     onSuccess: () => {
@@ -92,6 +94,7 @@ export function useUpdateReport() {
       const res = await fetch(url, {
         method: api.reports.update.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(updates),
       });
       if (!res.ok) throw new Error("Failed to update report");

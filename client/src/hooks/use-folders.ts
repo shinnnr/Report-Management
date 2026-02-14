@@ -8,7 +8,7 @@ export function useFolders(parentId: number | null = null) {
     queryKey: [api.folders.list.path, parentId],
     queryFn: async () => {
       const url = `${api.folders.list.path}?parentId=${parentId ?? "null"}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
     },
@@ -24,6 +24,7 @@ export function useCreateFolder(currentParentId: number | null = null) {
       const res = await fetch(api.folders.create.path, {
         method: api.folders.create.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ ...data, parentId: data.parentId || currentParentId }),
       });
       
@@ -53,6 +54,7 @@ export function useRenameFolder() {
       const res = await fetch(url, {
         method: api.folders.rename.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ name }),
       });
       if (!res.ok) {
@@ -81,6 +83,7 @@ export function useMoveFolder() {
       const res = await fetch(url, {
         method: api.folders.move.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ targetParentId }),
       });
       if (!res.ok) {
@@ -106,7 +109,7 @@ export function useDeleteFolder() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.folders.delete.path, { id });
-      const res = await fetch(url, { method: api.folders.delete.method });
+      const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete folder");
     },
     onSuccess: () => {
