@@ -345,11 +345,10 @@ export async function registerRoutes(
 
   app.post(api.activities.create.path, isAuthenticated, async (req, res) => {
     try {
-      const input = api.activities.create.input.parse({
-        ...req.body,
-        userId: (req.user as any).id
-      });
-      const activity = await storage.createActivity(input);
+      const input = api.activities.create.input.parse(req.body);
+      // Override userId with authenticated user for security
+      const activityData = { ...input, userId: (req.user as any).id };
+      const activity = await storage.createActivity(activityData);
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
       res.status(201).json(activity);
     } catch (err) {

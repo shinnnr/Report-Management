@@ -141,7 +141,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertFolderSchema = createInsertSchema(folders).omit({ id: true, createdAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
-export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
+export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true, userId: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 // === TYPES ===

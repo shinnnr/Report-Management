@@ -57,7 +57,6 @@ export default function CalendarPage() {
       startDate: new Date(),
       deadlineDate: new Date(deadline),
       status: 'pending',
-      userId: user?.id,
     });
     setIsNewActivityOpen(false);
     setTitle("");
