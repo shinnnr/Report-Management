@@ -146,6 +146,12 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/folders/:id/path", isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    const path = await storage.getFolderPath(id);
+    res.json(path);
+  });
+
   app.patch("/api/folders/:id/rename", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);

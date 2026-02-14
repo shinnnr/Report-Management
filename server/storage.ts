@@ -12,6 +12,7 @@ export interface IStorage {
   // Folders
   getFolders(parentId?: number): Promise<Folder[]>;
   getFolder(id: number): Promise<Folder | undefined>;
+  getFolderPath(id: number): Promise<Folder[]>;
   createFolder(folder: InsertFolder): Promise<Folder>;
   renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
@@ -72,6 +73,18 @@ export class DatabaseStorage implements IStorage {
   async getFolder(id: number): Promise<Folder | undefined> {
     const [folder] = await db.select().from(folders).where(eq(folders.id, id));
     return folder;
+  }
+
+  async getFolderPath(id: number): Promise<Folder[]> {
+    const path: Folder[] = [];
+    let currentId: number | null = id;
+    while (currentId !== null) {
+      const folder = await this.getFolder(currentId);
+      if (!folder) break;
+      path.unshift(folder);
+      currentId = folder.parentId;
+    }
+    return path;
   }
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {

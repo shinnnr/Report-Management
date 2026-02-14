@@ -52,12 +52,46 @@ export function useRenameFolder() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
-      if (!res.ok) throw new Error("Failed to rename folder");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to rename folder");
+      }
       return api.folders.rename.responses[200].parse(await res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       toast({ title: "Updated", description: "Folder renamed successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useMoveFolder() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, targetParentId }: { id: number; targetParentId: number | null }) => {
+      const url = buildUrl(api.folders.move.path, { id });
+      const res = await fetch(url, {
+        method: api.folders.move.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetParentId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to move folder");
+      }
+      return api.folders.move.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      toast({ title: "Moved", description: "Folder moved successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
