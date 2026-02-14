@@ -168,7 +168,7 @@ export async function registerRoutes(
     try {
       const id = parseInt(req.params.id as string);
       const { targetParentId } = req.body;
-      const folder = await storage.moveFolder(id, targetParentId === "root" ? null : targetParentId);
+      const folder = await storage.moveFolder(id, (targetParentId === "root" || targetParentId === null) ? null : parseInt(targetParentId));
       await storage.createLog((req.user as any).id, "MOVE_FOLDER", `Moved folder: ${folder.name}`);
       res.json(folder);
     } catch (err: any) {

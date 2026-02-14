@@ -7,7 +7,7 @@ export function useFolders(parentId: number | null = null) {
   return useQuery({
     queryKey: [api.folders.list.path, parentId],
     queryFn: async () => {
-      const url = `${api.folders.list.path}?parentId=${parentId ?? 'null'}`;
+      const url = `${api.folders.list.path}?parentId=${parentId ?? "null"}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
@@ -15,7 +15,7 @@ export function useFolders(parentId: number | null = null) {
   });
 }
 
-export function useCreateFolder() {
+export function useCreateFolder(currentParentId: number | null = null) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -24,18 +24,21 @@ export function useCreateFolder() {
       const res = await fetch(api.folders.create.path, {
         method: api.folders.create.method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, parentId: data.parentId || currentParentId }),
       });
       
-      if (!res.ok) throw new Error("Failed to create folder");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to create folder");
+      }
       return api.folders.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       toast({ title: "Success", description: "Folder created successfully" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
