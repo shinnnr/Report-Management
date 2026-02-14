@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(folders);
     }
     if (parentId === null || parentId === 0) {
-      return db.select().from(folders).where(isNull(folders.parentId));
+      return db.select().from(folders).where(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
     }
     return db.select().from(folders).where(sql`${folders.parentId}::text = ${parentId.toString()}`);
   }
