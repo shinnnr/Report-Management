@@ -106,9 +106,17 @@ export async function registerRoutes(
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: info.message });
       req.logIn(user, async (err) => {
-        if (err) return next(err);
-        await storage.createLog(user.id, "LOGIN", "User logged in");
-        res.json(user);
+        if (err) {
+          console.error("Login session save error:", err);
+          return res.status(500).json({ message: "Login failed due to session error" });
+        }
+        try {
+          await storage.createLog(user.id, "LOGIN", "User logged in");
+          res.json(user);
+        } catch (logErr) {
+          console.error("Login log error:", logErr);
+          res.json(user); // Still succeed even if logging fails
+        }
       });
     })(req, res, next);
   });
