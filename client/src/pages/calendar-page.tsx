@@ -297,20 +297,37 @@ export default function CalendarPage() {
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsActivityModalOpen(false)}>
-                Close
+            <DialogFooter className="flex justify-between">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (confirm('Are you sure you want to delete this activity?')) {
+                    deleteActivity.mutate(selectedActivity.id);
+                    setIsActivityModalOpen(false);
+                  }
+                }}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Activity
               </Button>
-              {selectedActivity?.status !== 'completed' && (
-                <Button
-                  className="gap-2"
-                  onClick={handleSubmit}
-                  disabled={!selectedFile || isSubmitting}
-                >
-                  <Upload className="w-4 h-4" />
-                  {isSubmitting ? 'Submitting...' : 'Submit Report'}
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsActivityModalOpen(false)}>
+                  Close
                 </Button>
-              )}
+                {selectedActivity?.status !== 'completed' && (
+                  <Button
+                    className="gap-2"
+                    onClick={handleSubmit}
+                    disabled={!selectedFile || isSubmitting}
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -373,33 +390,19 @@ export default function CalendarPage() {
                 
                 <div className="space-y-1">
                   {dayActivities?.map(activity => (
-                    <div
+                    <button
                       key={activity.id}
+                      onClick={() => {
+                        setSelectedActivity(activity);
+                        setIsActivityModalOpen(true);
+                      }}
                       className={cn(
-                        "text-xs p-1.5 rounded-md border truncate font-medium flex items-center justify-between group cursor-pointer",
+                        "text-xs p-1.5 rounded-md border truncate font-medium text-left hover:underline w-full",
                         getStatusColor(activity.status)
                       )}
                     >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedActivity(activity);
-                          setIsActivityModalOpen(true);
-                        }}
-                        className="truncate text-left hover:underline flex-1"
-                      >
-                        {activity.title}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteActivity.mutate(activity.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </button>
-                    </div>
+                      {activity.title}
+                    </button>
                   ))}
                 </div>
               </div>
