@@ -248,20 +248,23 @@ export default function DrivePage() {
 
   const selectDestination = (folderId: number | null) => {
     setSelectedDestination(folderId);
+    setCurrentNavigationFolder(folderId); // Selected folder becomes current for new folder creation
   };
 
   const navigateToFolder = (folderId: number | null) => {
     setCurrentNavigationFolder(folderId);
+    // Reset search when navigating
+    setSearchQuery("");
   };
 
   const handleCreateFolderInMove = async () => {
-    if (!moveNewFolderName.trim()) return;
+    if (!moveNewFolderName.trim() || !user) return;
 
     try {
       await createFolder.mutateAsync({
         name: moveNewFolderName,
         parentId: currentNavigationFolder,
-        createdBy: (user as any)?.id
+        createdBy: user.id
       });
 
       setMoveNewFolderName("");
@@ -299,7 +302,7 @@ export default function DrivePage() {
           <div
             className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
               isSelected ? 'bg-primary/10 border border-primary/20' : ''
-            } ${isCurrentNav ? 'bg-blue-50 border border-blue-200' : ''}`}
+            }`}
             style={{ paddingLeft: `${level * 20 + 8}px` }}
             onClick={() => selectDestination(folder.id)}
             onDoubleClick={() => navigateToFolder(folder.id)}
@@ -323,9 +326,6 @@ export default function DrivePage() {
               <FolderIcon className="w-4 h-4 text-muted-foreground" />
             )}
             <span className="text-sm truncate flex-1">{folder.name}</span>
-            {isCurrentNav && (
-              <span className="text-xs text-blue-600 font-medium">(current)</span>
-            )}
           </div>
           {isExpanded && hasChildren && renderFolderTree(folder.id, level + 1)}
         </div>
@@ -498,21 +498,9 @@ export default function DrivePage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Current Location & Navigation Path */}
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Current location:</span> {currentFolderId ? breadcrumbs.map(b => b.name).join(' / ') : 'Home'}
-              </div>
-              <div className="text-sm">
-                <span className="font-medium">Creating folders in:</span>{' '}
-                {currentNavigationFolder === null ? (
-                  <span className="text-blue-600">Home</span>
-                ) : (
-                  <span className="text-blue-600">
-                    {allFoldersData?.find(f => f.id === currentNavigationFolder)?.name || 'Unknown'}
-                  </span>
-                )}
-              </div>
+            {/* Current Location */}
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Current location:</span> {currentFolderId ? breadcrumbs.map(b => b.name).join(' / ') : 'Home'}
             </div>
 
             {/* Search and New Folder */}
@@ -582,16 +570,13 @@ export default function DrivePage() {
                   <div
                     className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
                       selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
-                    } ${currentNavigationFolder === null ? 'bg-blue-50 border border-blue-200' : ''}`}
+                    }`}
                     onClick={() => selectDestination(null)}
                     onDoubleClick={() => navigateToFolder(null)}
                     title="Single-click to select as destination, double-click to navigate"
                   >
                     <Home className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">Home</span>
-                    {currentNavigationFolder === null && (
-                      <span className="text-xs text-blue-600 font-medium">(current)</span>
-                    )}
                   </div>
 
                   {/* Folder tree */}

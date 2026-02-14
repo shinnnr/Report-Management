@@ -40,6 +40,8 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -346,10 +348,8 @@ export default function CalendarPage() {
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  if (confirm('Are you sure you want to delete this activity?')) {
-                    deleteActivity.mutate(selectedActivity.id);
-                    setIsActivityModalOpen(false);
-                  }
+                  setActivityToDelete(selectedActivity);
+                  setShowDeleteConfirm(true);
                 }}
                 className="gap-2"
               >
@@ -367,6 +367,35 @@ export default function CalendarPage() {
                   {isSubmitting ? 'Submitting...' : `Submit ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`}
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Activity</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete the activity "{activityToDelete?.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (activityToDelete) {
+                    deleteActivity.mutate(activityToDelete.id);
+                    setIsActivityModalOpen(false);
+                  }
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                Delete
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
