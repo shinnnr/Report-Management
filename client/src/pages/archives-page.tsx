@@ -17,7 +17,7 @@ export default function ArchivesPage() {
 
   return (
     <LayoutWrapper>
-      <header className="mb-8">
+      <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
           <Archive className="w-8 h-8" /> Archives
         </h1>
@@ -31,7 +31,7 @@ export default function ArchivesPage() {
           <div className="h-12 bg-muted rounded-lg" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           {archivedFiles && archivedFiles.length > 0 ? (
             <table className="w-full text-sm text-left">
               <thead className="bg-muted/50 text-muted-foreground font-medium border-b">

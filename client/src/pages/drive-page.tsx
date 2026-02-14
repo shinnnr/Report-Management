@@ -224,7 +224,7 @@ export default function DrivePage() {
 
   return (
     <LayoutWrapper>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
           <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>
@@ -443,7 +443,7 @@ export default function DrivePage() {
       {isLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
             <h2 className="text-sm font-semibold mb-4">Folders</h2>
             {currentFolders && currentFolders.length > 0 ? (
