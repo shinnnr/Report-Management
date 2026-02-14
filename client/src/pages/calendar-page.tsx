@@ -38,7 +38,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
@@ -78,65 +78,80 @@ export default function CalendarPage() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = Array.from(e.target.files || []);
+    const validFiles: File[] = [];
+
+    for (const file of files) {
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
-        alert('Please select a PDF or Word document.');
-        return;
+        alert(`File "${file.name}" is not a supported format. Please select PDF or Word documents only.`);
+        continue;
       }
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB.');
-        return;
+        alert(`File "${file.name}" is too large. Maximum file size is 10MB.`);
+        continue;
       }
-      setSelectedFile(file);
+      validFiles.push(file);
     }
+
+    setSelectedFiles(validFiles);
   };
 
   const handleSubmit = async () => {
-    if (!selectedActivity || !selectedFile) return;
+    if (!selectedActivity || selectedFiles.length === 0) return;
 
     setIsSubmitting(true);
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result as string;
+      // Submit all files
+      const uploadPromises = selectedFiles.map(async (file) => {
+        return new Promise<void>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            const base64 = reader.result as string;
 
-        // Submit the report
-        const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `${selectedActivity.title} - Submission`,
-            description: `Submission for activity: ${selectedActivity.title}`,
-            fileName: selectedFile!.name,
-            fileType: selectedFile!.type,
-            fileSize: selectedFile!.size,
-            fileData: base64,
-          }),
+            try {
+              const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  title: `${selectedActivity.title} - ${file.name}`,
+                  description: `Submission for activity: ${selectedActivity.title}`,
+                  fileName: file.name,
+                  fileType: file.type,
+                  fileSize: file.size,
+                  fileData: base64,
+                }),
+              });
+
+              if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Upload failed');
+              }
+
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
+          reader.onerror = () => reject(new Error('File reading failed'));
+          reader.readAsDataURL(file);
         });
+      });
 
-        if (response.ok) {
-          const result = await response.json();
-          alert(result.message || 'Submission successful!');
-          setIsActivityModalOpen(false);
-          setSelectedFile(null);
-          // Refresh activities
-          window.location.reload();
-        } else {
-          const error = await response.json();
-          alert(error.message || 'Submission failed');
-        }
-      };
-      reader.readAsDataURL(selectedFile);
-    } catch (error) {
+      await Promise.all(uploadPromises);
+
+      alert(`Successfully submitted ${selectedFiles.length} file(s)!`);
+      setIsActivityModalOpen(false);
+      setSelectedFiles([]);
+      // Refresh activities
+      window.location.reload();
+    } catch (error: any) {
       console.error('Submission error:', error);
-      alert('Submission failed. Please try again.');
+      alert(error.message || 'Submission failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -197,7 +212,7 @@ export default function CalendarPage() {
         <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
           setIsActivityModalOpen(open);
           if (!open) {
-            setSelectedFile(null);
+            setSelectedFiles([]);
             setSelectedActivity(null);
           }
         }}>
@@ -270,6 +285,7 @@ export default function CalendarPage() {
                       id="activity-file-upload"
                       className="hidden"
                       accept=".pdf,.doc,.docx"
+                      multiple
                       onChange={handleFileSelect}
                     />
                     <label
@@ -281,12 +297,19 @@ export default function CalendarPage() {
                     </label>
                   </div>
 
-                  {selectedFile && (
+                  {selectedFiles.length > 0 && (
                     <div className="text-center p-3 bg-muted/30 rounded-lg">
-                      <p className="text-sm font-medium">Selected file: {selectedFile.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      <p className="text-sm font-medium mb-2">
+                        {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected:
                       </p>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="text-xs text-muted-foreground flex justify-between">
+                            <span className="truncate">{file.name}</span>
+                            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -313,21 +336,16 @@ export default function CalendarPage() {
                 Delete Activity
               </Button>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsActivityModalOpen(false)}>
-                  Close
+              {selectedActivity?.status !== 'completed' && (
+                <Button
+                  className="gap-2"
+                  onClick={handleSubmit}
+                  disabled={selectedFiles.length === 0 || isSubmitting}
+                >
+                  <Upload className="w-4 h-4" />
+                  {isSubmitting ? 'Submitting...' : `Submit ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`}
                 </Button>
-                {selectedActivity?.status !== 'completed' && (
-                  <Button
-                    className="gap-2"
-                    onClick={handleSubmit}
-                    disabled={!selectedFile || isSubmitting}
-                  >
-                    <Upload className="w-4 h-4" />
-                    {isSubmitting ? 'Submitting...' : 'Submit Report'}
-                  </Button>
-                )}
-              </div>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

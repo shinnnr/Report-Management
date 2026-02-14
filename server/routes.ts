@@ -415,9 +415,13 @@ export async function registerRoutes(
       const now = new Date();
       const isLate = now > deadline;
 
-      // Create organized folder structure: Reports/{Year}/{Month}/Activity_{activity_id}/
+      // Create organized folder structure: {Year}/{Month}/(files uploaded)
       const year = deadline.getFullYear();
-      const month = deadline.getMonth() + 1;
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const monthName = monthNames[deadline.getMonth()];
 
       // Create or get year folder
       let yearFolder = await storage.getFolderByNameAndParent(`${year}`, null);
@@ -430,21 +434,11 @@ export async function registerRoutes(
       }
 
       // Create or get month folder
-      let monthFolder = await storage.getFolderByNameAndParent(`${month.toString().padStart(2, '0')}`, yearFolder.id);
+      let monthFolder = await storage.getFolderByNameAndParent(monthName, yearFolder.id);
       if (!monthFolder) {
         monthFolder = await storage.createFolder({
-          name: `${month.toString().padStart(2, '0')}`,
+          name: monthName,
           parentId: yearFolder.id,
-          createdBy: userId
-        });
-      }
-
-      // Create or get activity folder
-      let activityFolder = await storage.getFolderByNameAndParent(`Activity_${activityId}`, monthFolder.id);
-      if (!activityFolder) {
-        activityFolder = await storage.createFolder({
-          name: `Activity_${activityId}`,
-          parentId: monthFolder.id,
           createdBy: userId
         });
       }
@@ -457,11 +451,11 @@ export async function registerRoutes(
         fileType,
         fileSize,
         fileData,
-        folderId: activityFolder.id,
+        folderId: monthFolder.id,
         uploadedBy: userId,
         activityId,
         year,
-        month,
+        month: deadline.getMonth() + 1,
         status: 'active'
       });
 
