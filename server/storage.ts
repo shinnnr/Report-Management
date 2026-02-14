@@ -15,6 +15,7 @@ export interface IStorage {
   createFolder(folder: InsertFolder): Promise<Folder>;
   renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
+  moveFolder(id: number, targetParentId: number | null): Promise<Folder>;
 
   // Reports
   getReports(folderId?: number | null, status?: string): Promise<Report[]>;
@@ -74,13 +75,87 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
+    // Prevent duplicate folder names in the same parent
+    const existing = await db.select().from(folders).where(
+      and(
+        eq(folders.name, insertFolder.name),
+        insertFolder.parentId === null 
+          ? sql`${folders.parentId} IS NULL`
+          : eq(folders.parentId, insertFolder.parentId)
+      )
+    ).limit(1);
+
+    if (existing.length > 0) {
+      throw new Error(`A folder named "${insertFolder.name}" already exists in this location.`);
+    }
+
     const [folder] = await db.insert(folders).values(insertFolder).returning();
     return folder;
   }
 
   async renameFolder(id: number, name: string): Promise<Folder> {
+    const current = await this.getFolder(id);
+    if (!current) throw new Error("Folder not found");
+
+    // Prevent duplicate folder names in the same parent on rename
+    const existing = await db.select().from(folders).where(
+      and(
+        eq(folders.name, name),
+        current.parentId === null 
+          ? sql`${folders.parentId} IS NULL`
+          : eq(folders.parentId, current.parentId),
+        sql`${folders.id} != ${id}`
+      )
+    ).limit(1);
+
+    if (existing.length > 0) {
+      throw new Error(`A folder named "${name}" already exists in this location.`);
+    }
+
     const [folder] = await db.update(folders).set({ name }).where(eq(folders.id, id)).returning();
     return folder;
+  }
+
+  async moveFolder(id: number, targetParentId: number | null): Promise<Folder> {
+    if (id === targetParentId) {
+      throw new Error("Cannot move a folder into itself.");
+    }
+
+    const folder = await this.getFolder(id);
+    if (!folder) throw new Error("Folder not found");
+
+    // Check for circular reference
+    if (targetParentId !== null) {
+      let currentParentId: number | null = targetParentId;
+      while (currentParentId !== null) {
+        if (currentParentId === id) {
+          throw new Error("Cannot move a folder into one of its subfolders.");
+        }
+        const parentFolder: Folder | undefined = await this.getFolder(currentParentId);
+        currentParentId = parentFolder?.parentId || null;
+      }
+    }
+
+    // Prevent duplicate names in target location
+    const existing = await db.select().from(folders).where(
+      and(
+        eq(folders.name, folder.name),
+        targetParentId === null 
+          ? sql`${folders.parentId} IS NULL`
+          : eq(folders.parentId, targetParentId),
+        sql`${folders.id} != ${id}`
+      )
+    ).limit(1);
+
+    if (existing.length > 0) {
+      throw new Error(`A folder named "${folder.name}" already exists in the target location.`);
+    }
+
+    const [updatedFolder] = await db.update(folders)
+      .set({ parentId: targetParentId })
+      .where(eq(folders.id, id))
+      .returning();
+    return updatedFolder;
   }
 
   async deleteFolder(id: number): Promise<void> {

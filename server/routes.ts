@@ -138,20 +138,36 @@ export async function registerRoutes(
       const folder = await storage.createFolder(input);
       await storage.createLog((req.user as any).id, "CREATE_FOLDER", `Created folder: ${folder.name}`);
       res.status(201).json(folder);
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      res.status(400).json({ message: err.message });
     }
   });
 
   app.patch("/api/folders/:id/rename", isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id as string);
-    const { name } = req.body;
-    const folder = await storage.renameFolder(id, name);
-    await storage.createLog((req.user as any).id, "RENAME_FOLDER", `Renamed folder to: ${name}`);
-    res.json(folder);
+    try {
+      const id = parseInt(req.params.id as string);
+      const { name } = req.body;
+      const folder = await storage.renameFolder(id, name);
+      await storage.createLog((req.user as any).id, "RENAME_FOLDER", `Renamed folder to: ${name}`);
+      res.json(folder);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/folders/:id/move", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const { targetParentId } = req.body;
+      const folder = await storage.moveFolder(id, targetParentId === "root" ? null : targetParentId);
+      await storage.createLog((req.user as any).id, "MOVE_FOLDER", `Moved folder: ${folder.name}`);
+      res.json(folder);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
   });
 
   app.delete(api.folders.delete.path, isAuthenticated, async (req, res) => {
