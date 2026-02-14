@@ -1,40 +1,21 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  LayoutDashboard,
-  FolderOpen,
-  CalendarDays,
-  Archive,
-  Settings,
-  LogOut,
-  Loader2
+import { 
+  LayoutDashboard, 
+  FolderOpen, 
+  CalendarDays, 
+  Archive, 
+  Settings, 
+  LogOut 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
-
-  const handleLogout = () => {
-    logoutMutation.mutate();
-    setIsLogoutDialogOpen(false);
-  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -84,43 +65,14 @@ export function Sidebar() {
           </div>
         </div>
         
-        <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-primary-foreground/70 hover:text-white hover:bg-white/5"
-              disabled={logoutMutation.isPending}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to log out? This will end your current session.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleLogout}
-                disabled={logoutMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {logoutMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Logging out...
-                  </>
-                ) : (
-                  "Log Out"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-primary-foreground/70 hover:text-white hover:bg-white/5"
+          onClick={() => logoutMutation.mutate()}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Log Out
+        </Button>
       </div>
     </div>
   );

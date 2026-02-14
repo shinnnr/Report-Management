@@ -78,13 +78,6 @@ export const activityLogs = pgTable("activity_logs", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
-// === SESSIONS ===
-export const userSessions = pgTable("session", {
-  sid: text("sid").primaryKey(),
-  sess: jsonb("sess").notNull(),
-  expire: timestamp("expire").notNull(),
-});
-
 // === RELATIONS ===
 export const foldersRelations = relations(folders, ({ one, many }) => ({
   parent: one(folders, {

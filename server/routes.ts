@@ -5,14 +5,13 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import session, { MemoryStore } from "express-session";
+import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import connectPgSimple from "connect-pg-simple";
+import MemoryStore from "memorystore";
 
 const scryptAsync = promisify(scrypt);
 const SessionStore = MemoryStore(session);
-const PgSession = connectPgSimple(session);
 
 // --- Auth Helper Functions ---
 async function hashPassword(password: string) {
@@ -34,22 +33,15 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // --- Session & Passport Setup ---
-  console.log("Setting up session store...");
-  try {
-    app.use(
-      session({
-        store: new MemoryStore(),
-        secret: process.env.SESSION_SECRET || "default_secret_dev_only",
-        resave: false,
-        saveUninitialized: false,
-        cookie: { secure: app.get("env") === "production" },
-      })
-    );
-    console.log("Session store setup successful");
-  } catch (err) {
-    console.error("Session store setup failed:", err);
-    throw err;
-  }
+  app.use(
+    session({
+      store: new SessionStore({ checkPeriod: 86400000 }),
+      secret: process.env.SESSION_SECRET || "default_secret_dev_only",
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: app.get("env") === "production" },
+    })
+  );
 
   app.use(passport.initialize());
   app.use(passport.session());
@@ -57,22 +49,16 @@ export async function registerRoutes(
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log("Looking up user:", username);
         const user = await storage.getUserByUsername(username);
         if (!user) {
-          console.log("User not found:", username);
           return done(null, false, { message: "Incorrect username." });
         }
-        console.log("User found, checking password");
         const isValid = await comparePassword(password, user.password);
         if (!isValid) {
-          console.log("Invalid password for user:", username);
           return done(null, false, { message: "Incorrect password." });
         }
-        console.log("Password valid for user:", username);
         return done(null, user);
       } catch (err) {
-        console.error("Error in local strategy:", err);
         return done(err);
       }
     })
@@ -111,31 +97,13 @@ export async function registerRoutes(
 
   // --- Auth Routes ---
   app.post(api.auth.login.path, (req, res, next) => {
-    console.log("Login attempt for username:", req.body.username);
     passport.authenticate("local", (err: any, user: any, info: any) => {
-      console.log("Passport authenticate result:", { err: !!err, user: !!user, info });
-      if (err) {
-        console.error("Passport error:", err);
-        return next(err);
-      }
-      if (!user) {
-        console.log("No user found:", info.message);
-        return res.status(401).json({ message: info.message });
-      }
-      console.log("User authenticated:", user.username);
+      if (err) return next(err);
+      if (!user) return res.status(401).json({ message: info.message });
       req.logIn(user, async (err) => {
-        if (err) {
-          console.error("Login session save error:", err);
-          return res.status(500).json({ message: "Login failed due to session error" });
-        }
-        try {
-          await storage.createLog(user.id, "LOGIN", "User logged in");
-          console.log("Login successful for user:", user.username);
-          res.json(user);
-        } catch (logErr) {
-          console.error("Login log error:", logErr);
-          res.json(user); // Still succeed even if logging fails
-        }
+        if (err) return next(err);
+        await storage.createLog(user.id, "LOGIN", "User logged in");
+        res.json(user);
       });
     })(req, res, next);
   });
@@ -375,11 +343,7 @@ export async function registerRoutes(
   }
 
   // Run seed
-  console.log("Running seed...");
-  seed().then(() => console.log("Seed completed")).catch((err) => {
-    console.error("Seed failed:", err);
-    // Don't throw, continue
-  });
+  seed().catch(console.error);
 
   return httpServer;
 }
