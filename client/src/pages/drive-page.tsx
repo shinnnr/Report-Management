@@ -62,7 +62,7 @@ export default function DrivePage() {
   const { data: allFoldersData } = useFolders(); 
   const { data: currentFolder } = useFolders(currentFolderId || undefined);
   const folders = currentFolderId ? allFoldersData?.filter(f => f.parentId === currentFolderId) : allFoldersData?.filter(f => !f.parentId);
-  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId ? currentFolderId.toString() : "root");
+  const { data: reports, isLoading: reportsLoading } = useReports((currentFolderId || "root") as number | "root");
   
   const foldersLoading = !allFoldersData;
   const isLoading = foldersLoading || reportsLoading;
