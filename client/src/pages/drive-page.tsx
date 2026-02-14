@@ -285,9 +285,18 @@ export default function DrivePage() {
 
   const renderFolderTree = (parentId: number | null = null, level = 0) => {
     const folders = getFilteredFolders().filter(f => f.parentId === parentId);
-    const filteredFolders = searchQuery ? folders : folders.filter(f =>
-      !selectedFolders.includes(f.id) && f.id !== currentFolderId
-    );
+    const filteredFolders = searchQuery ? folders : folders.filter(f => {
+      // Don't show folders being moved
+      if (selectedFolders.includes(f.id)) return false;
+
+      // Don't show current folder
+      if (f.id === currentFolderId) return false;
+
+      // When moving to root (Home), don't show folders already at root
+      if (selectedDestination === null && f.parentId === null) return false;
+
+      return true;
+    });
 
     return filteredFolders.map(folder => {
       const hasChildren = getFilteredFolders().some(f => f.parentId === folder.id);
