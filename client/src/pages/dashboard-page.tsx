@@ -76,32 +76,32 @@ export default function DashboardPage() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  {logs?.map((log) => (
-                    <div key={log.id} className="flex items-start gap-4 p-4 rounded-lg bg-muted/30 border border-muted/50">
+                  {activities?.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg bg-muted/30 border border-muted/50">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-primary">
-                          {log.userFullName?.substring(0, 2).toUpperCase() || log.action.substring(0, 2)}
+                          {activity.userFullName?.substring(0, 2).toUpperCase() || 'AC'}
                         </span>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
-                          <p className="font-medium text-sm text-foreground">{log.description}</p>
+                          <p className="font-medium text-sm text-foreground">{activity.description || 'No description'}</p>
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                            {format(new Date(activity.createdAt!), 'MMM d, h:mm a')}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 capitalize">
-                          Action: {log.action.toLowerCase().replace('_', ' ')}
+                          Status: {activity.status}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          By: {log.userFullName}
+                          By: {activity.userFullName}
                         </p>
                       </div>
                     </div>
                   ))}
-                  {!logs?.length && (
+                  {!activities?.length && (
                     <div className="text-center py-10 text-muted-foreground">
-                      No recent activity logs found.
+                      No recent activities found.
                     </div>
                   )}
                 </div>
