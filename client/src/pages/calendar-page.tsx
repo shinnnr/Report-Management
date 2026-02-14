@@ -11,7 +11,7 @@ import {
 } from "date-fns";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,10 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -55,8 +59,8 @@ export default function CalendarPage() {
     await createActivity.mutateAsync({
       title,
       description,
-      startDate: new Date().toISOString(),
-      deadlineDate: selectedDate.toISOString(),
+      startDate: new Date(),
+      deadlineDate: selectedDate,
       status: 'pending',
     });
     setIsNewActivityOpen(false);
@@ -70,6 +74,71 @@ export default function CalendarPage() {
       case 'completed': return 'bg-green-100 text-green-700 border-green-200';
       case 'overdue': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-orange-100 text-orange-700 border-orange-200';
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a PDF or Word document.');
+        return;
+      }
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB.');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedActivity || !selectedFile) return;
+
+    setIsSubmitting(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+
+        // Submit the report
+        const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: `${selectedActivity.title} - Submission`,
+            description: `Submission for activity: ${selectedActivity.title}`,
+            fileName: selectedFile!.name,
+            fileType: selectedFile!.type,
+            fileSize: selectedFile!.size,
+            fileData: base64,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert(result.message || 'Submission successful!');
+          setIsActivityModalOpen(false);
+          setSelectedFile(null);
+          // Refresh activities
+          window.location.reload();
+        } else {
+          const error = await response.json();
+          alert(error.message || 'Submission failed');
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Submission failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -120,6 +189,128 @@ export default function CalendarPage() {
               <Button onClick={handleCreate} disabled={createActivity.isPending}>
                 {createActivity.isPending ? "Creating..." : "Create Activity"}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Activity Submission Modal */}
+        <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
+          setIsActivityModalOpen(open);
+          if (!open) {
+            setSelectedFile(null);
+            setSelectedActivity(null);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {selectedActivity?.title}
+              </DialogTitle>
+              <DialogDescription>
+                Submit your report for this activity
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Activity Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Description</h4>
+                  <p className="text-sm">{selectedActivity?.description || 'No description provided'}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Deadline</h4>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {selectedActivity ? format(new Date(selectedActivity.deadlineDate), 'PPP') : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-center">
+                <div className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2",
+                  selectedActivity?.status === 'completed' && "bg-green-100 text-green-700",
+                  selectedActivity?.status === 'overdue' && "bg-red-100 text-red-700",
+                  selectedActivity?.status === 'pending' && "bg-orange-100 text-orange-700"
+                )}>
+                  {selectedActivity?.status === 'completed' && <CheckCircle className="w-3 h-3" />}
+                  {selectedActivity?.status === 'overdue' && <AlertCircle className="w-3 h-3" />}
+                  {selectedActivity?.status === 'pending' && <Clock className="w-3 h-3" />}
+                  {selectedActivity?.status === 'pending' ? 'Pending' :
+                   selectedActivity?.status === 'completed' ? 'Completed' :
+                   selectedActivity?.status === 'overdue' ? 'Overdue' : 'Unknown'}
+                </div>
+              </div>
+
+              {/* Submission Status */}
+              {selectedActivity && (
+                <div className="text-center p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedActivity.status === 'completed'
+                      ? "You have already submitted this activity."
+                      : selectedActivity.status === 'overdue'
+                      ? "This activity is overdue. You can still submit but it will be marked as late."
+                      : "Ready to submit your report for this activity."
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* File Upload Section */}
+              {selectedActivity?.status !== 'completed' && (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <input
+                      type="file"
+                      id="activity-file-upload"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileSelect}
+                    />
+                    <label
+                      htmlFor="activity-file-upload"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Choose File
+                    </label>
+                  </div>
+
+                  {selectedFile && (
+                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                      <p className="text-sm font-medium">Selected file: {selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Supported formats: PDF, DOC, DOCX (Max 10MB)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsActivityModalOpen(false)}>
+                Close
+              </Button>
+              {selectedActivity?.status !== 'completed' && (
+                <Button
+                  className="gap-2"
+                  onClick={handleSubmit}
+                  disabled={!selectedFile || isSubmitting}
+                >
+                  <Upload className="w-4 h-4" />
+                  {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -182,20 +373,29 @@ export default function CalendarPage() {
                 
                 <div className="space-y-1">
                   {dayActivities?.map(activity => (
-                    <div 
+                    <div
                       key={activity.id}
                       className={cn(
                         "text-xs p-1.5 rounded-md border truncate font-medium flex items-center justify-between group cursor-pointer",
                         getStatusColor(activity.status)
                       )}
                     >
-                      <span className="truncate">{activity.title}</span>
-                      <button 
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedActivity(activity);
+                          setIsActivityModalOpen(true);
+                        }}
+                        className="truncate text-left hover:underline flex-1"
+                      >
+                        {activity.title}
+                      </button>
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           deleteActivity.mutate(activity.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
                       >
                         <Trash2 className="w-3 h-3 text-destructive" />
                       </button>

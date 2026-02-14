@@ -58,6 +58,17 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === ACTIVITY SUBMISSIONS ===
+export const activitySubmissions = pgTable("activity_submissions", {
+  id: serial("id").primaryKey(),
+  activityId: integer("activity_id").references(() => activities.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  reportId: integer("report_id").references(() => reports.id).notNull(),
+  submissionDate: timestamp("submission_date").defaultNow(),
+  status: text("status").default("submitted"), // 'submitted', 'late', 'approved', 'rejected'
+  notes: text("notes"),
+});
+
 // === NOTIFICATIONS ===
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -122,8 +133,23 @@ export const activitiesRelations = relations(activities, ({ one, many }) => ({
     fields: [activities.userId],
     references: [users.id],
   }),
-  submissions: many(reports),
+  submissions: many(activitySubmissions),
   notifications: many(notifications),
+}));
+
+export const activitySubmissionsRelations = relations(activitySubmissions, ({ one }) => ({
+  activity: one(activities, {
+    fields: [activitySubmissions.activityId],
+    references: [activities.id],
+  }),
+  user: one(users, {
+    fields: [activitySubmissions.userId],
+    references: [users.id],
+  }),
+  report: one(reports, {
+    fields: [activitySubmissions.reportId],
+    references: [reports.id],
+  }),
 }));
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -147,6 +173,7 @@ export const insertActivitySchema = createInsertSchema(activities)
     startDate: z.string().transform(str => new Date(str)),
     deadlineDate: z.string().transform(str => new Date(str)),
   });
+export const insertActivitySubmissionSchema = createInsertSchema(activitySubmissions).omit({ id: true, submissionDate: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
 
 // === TYPES ===
@@ -158,6 +185,8 @@ export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type ActivitySubmission = typeof activitySubmissions.$inferSelect;
+export type InsertActivitySubmission = z.infer<typeof insertActivitySubmissionSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 

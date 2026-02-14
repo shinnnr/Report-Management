@@ -1,5 +1,5 @@
-import { users, folders, reports, activities, activityLogs, notifications } from "@shared/schema";
-import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification } from "@shared/schema";
+import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions } from "@shared/schema";
+import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
 
@@ -13,6 +13,7 @@ export interface IStorage {
   getFolders(parentId?: number): Promise<Folder[]>;
   getFolder(id: number): Promise<Folder | undefined>;
   getFolderPath(id: number): Promise<Folder[]>;
+  getFolderByNameAndParent(name: string, parentId: number | null): Promise<Folder | undefined>;
   createFolder(folder: InsertFolder): Promise<Folder>;
   renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
@@ -34,6 +35,11 @@ export interface IStorage {
   deleteActivity(id: number): Promise<void>;
   completeActivity(id: number, userId: number): Promise<void>;
   checkDeadlines(): Promise<void>;
+
+  // Activity Submissions
+  getActivitySubmissions(activityId: number): Promise<ActivitySubmission[]>;
+  getUserSubmissionForActivity(userId: number, activityId: number): Promise<ActivitySubmission | undefined>;
+  createActivitySubmission(submission: InsertActivitySubmission): Promise<ActivitySubmission>;
 
   // Notifications
   getNotifications(userId: number): Promise<Notification[]>;
@@ -88,6 +94,16 @@ export class DatabaseStorage implements IStorage {
       currentId = folder.parentId;
     }
     return path;
+  }
+
+  async getFolderByNameAndParent(name: string, parentId: number | null): Promise<Folder | undefined> {
+    const [folder] = await db.select().from(folders).where(
+      and(
+        eq(folders.name, name),
+        parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId)
+      )
+    );
+    return folder;
   }
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
@@ -325,6 +341,26 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+  }
+
+  // Activity Submissions
+  async getActivitySubmissions(activityId: number): Promise<ActivitySubmission[]> {
+    return db.select().from(activitySubmissions).where(eq(activitySubmissions.activityId, activityId));
+  }
+
+  async getUserSubmissionForActivity(userId: number, activityId: number): Promise<ActivitySubmission | undefined> {
+    const [submission] = await db.select().from(activitySubmissions).where(
+      and(
+        eq(activitySubmissions.userId, userId),
+        eq(activitySubmissions.activityId, activityId)
+      )
+    );
+    return submission;
+  }
+
+  async createActivitySubmission(insertSubmission: InsertActivitySubmission): Promise<ActivitySubmission> {
+    const [submission] = await db.insert(activitySubmissions).values(insertSubmission).returning();
+    return submission;
   }
 
   // Notifications

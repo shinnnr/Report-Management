@@ -374,6 +374,129 @@ export async function registerRoutes(
     res.json({ message: "Activity deleted" });
   });
 
+  // --- Activity Submission Routes ---
+  app.get("/api/activities/:id/submissions", isAuthenticated, async (req, res) => {
+    const activityId = parseInt(req.params.id as string);
+    const submissions = await storage.getActivitySubmissions(activityId);
+    res.json(submissions);
+  });
+
+  app.post("/api/activities/:id/submit", isAuthenticated, async (req, res) => {
+    try {
+      const activityId = parseInt(req.params.id as string);
+      const userId = (req.user as any).id;
+
+      // Check if user already submitted
+      const existingSubmission = await storage.getUserSubmissionForActivity(userId, activityId);
+      if (existingSubmission) {
+        return res.status(400).json({ message: "You have already submitted for this activity" });
+      }
+
+      const { title, description, fileName, fileType, fileSize, fileData } = req.body;
+
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(fileType)) {
+        return res.status(400).json({ message: "Invalid file type. Only PDF and Word documents are allowed." });
+      }
+
+      // Validate file size (10MB limit)
+      if (fileSize > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: "File size too large. Maximum 10MB allowed." });
+      }
+
+      // Get activity details for folder creation
+      const activity = await storage.getActivity(activityId);
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+
+      const deadline = new Date(activity.deadlineDate);
+      const now = new Date();
+      const isLate = now > deadline;
+
+      // Create organized folder structure: Reports/{Year}/{Month}/Activity_{activity_id}/
+      const year = deadline.getFullYear();
+      const month = deadline.getMonth() + 1;
+
+      // Create or get year folder
+      let yearFolder = await storage.getFolderByNameAndParent(`${year}`, null);
+      if (!yearFolder) {
+        yearFolder = await storage.createFolder({
+          name: `${year}`,
+          parentId: null,
+          createdBy: userId
+        });
+      }
+
+      // Create or get month folder
+      let monthFolder = await storage.getFolderByNameAndParent(`${month.toString().padStart(2, '0')}`, yearFolder.id);
+      if (!monthFolder) {
+        monthFolder = await storage.createFolder({
+          name: `${month.toString().padStart(2, '0')}`,
+          parentId: yearFolder.id,
+          createdBy: userId
+        });
+      }
+
+      // Create or get activity folder
+      let activityFolder = await storage.getFolderByNameAndParent(`Activity_${activityId}`, monthFolder.id);
+      if (!activityFolder) {
+        activityFolder = await storage.createFolder({
+          name: `Activity_${activityId}`,
+          parentId: monthFolder.id,
+          createdBy: userId
+        });
+      }
+
+      // Create the report
+      const report = await storage.createReport({
+        title,
+        description,
+        fileName,
+        fileType,
+        fileSize,
+        fileData,
+        folderId: activityFolder.id,
+        uploadedBy: userId,
+        activityId,
+        year,
+        month,
+        status: 'active'
+      });
+
+      // Create submission record
+      const submission = await storage.createActivitySubmission({
+        activityId,
+        userId,
+        reportId: report.id,
+        status: isLate ? 'late' : 'submitted'
+      });
+
+      // Update activity status
+      await storage.updateActivity(activityId, {
+        status: isLate ? 'overdue' : 'completed',
+        completionDate: now,
+        completedBy: userId
+      });
+
+      // Log the submission
+      await storage.createLog(userId, "ACTIVITY_SUBMIT", `Submitted report for activity: ${activity.title}`);
+
+      res.status(201).json({
+        submission,
+        report,
+        message: isLate ? "Submission received but marked as late" : "Submission successful"
+      });
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Submission failed" });
+    }
+  });
+
   // --- Notification Routes ---
   app.get(api.notifications.list.path, isAuthenticated, async (req, res) => {
     const notifications = await storage.getNotifications((req.user as any).id);
