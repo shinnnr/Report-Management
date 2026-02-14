@@ -412,8 +412,8 @@ export async function registerRoutes(
       const now = new Date();
       const isLate = now > deadline;
 
-      // Create organized folder structure: {Current Year}/{Activity Month}/(files uploaded)
-      const currentYear = now.getFullYear();
+      // Create organized folder structure: {Activity Year}/{Activity Month}/(files uploaded)
+      const activityYear = deadline.getFullYear();
       const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
@@ -421,10 +421,10 @@ export async function registerRoutes(
       const activityMonthName = monthNames[deadline.getMonth()];
 
       // Create or get year folder
-      let yearFolder = await storage.getFolderByNameAndParent(`${currentYear}`, null);
+      let yearFolder = await storage.getFolderByNameAndParent(`${activityYear}`, null);
       if (!yearFolder) {
         yearFolder = await storage.createFolder({
-          name: `${currentYear}`,
+          name: `${activityYear}`,
           parentId: null,
           createdBy: userId
         });
@@ -451,7 +451,7 @@ export async function registerRoutes(
         folderId: monthFolder.id,
         uploadedBy: userId,
         activityId,
-        year: currentYear,
+        year: activityYear,
         month: deadline.getMonth() + 1,
         status: 'active'
       });

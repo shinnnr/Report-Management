@@ -26,12 +26,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CalendarPage() {
   const { user } = useAuth();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
+  const { toast } = useToast();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
@@ -85,12 +87,20 @@ export default function CalendarPage() {
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
-        alert(`File "${file.name}" is not a supported format. Please select PDF or Word documents only.`);
+        toast({
+          title: "Invalid file type",
+          description: `File "${file.name}" is not supported. Please select PDF or Word documents only.`,
+          variant: "destructive"
+        });
         continue;
       }
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert(`File "${file.name}" is too large. Maximum file size is 10MB.`);
+        toast({
+          title: "File too large",
+          description: `File "${file.name}" exceeds 10MB limit.`,
+          variant: "destructive"
+        });
         continue;
       }
       validFiles.push(file);
@@ -144,14 +154,21 @@ export default function CalendarPage() {
 
       await Promise.all(uploadPromises);
 
-      alert(`Successfully submitted ${selectedFiles.length} file(s)!`);
+      toast({
+        title: "Submission successful",
+        description: `Successfully submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`,
+      });
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
       // Refresh activities
       window.location.reload();
     } catch (error: any) {
       console.error('Submission error:', error);
-      alert(error.message || 'Submission failed. Please try again.');
+      toast({
+        title: "Submission failed",
+        description: error.message || 'Submission failed. Please try again.',
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +190,11 @@ export default function CalendarPage() {
               onClick={() => {
                 if (!selectedDate) {
                   // Show message to select a date first
-                  alert("Please select a date on the calendar first.");
+                  toast({
+                    title: "Select a date",
+                    description: "Please select a date on the calendar first.",
+                    variant: "destructive"
+                  });
                   return;
                 }
                 setIsNewActivityOpen(true);
