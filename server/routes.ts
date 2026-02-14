@@ -194,7 +194,15 @@ export async function registerRoutes(
   // --- Report Routes ---
   app.get(api.reports.list.path, isAuthenticated, async (req, res) => {
     const folderIdStr = req.query.folderId as string | undefined;
-    const folderId = folderIdStr === "root" ? null : (folderIdStr ? parseInt(folderIdStr) : undefined);
+    let folderId: number | null | undefined;
+
+    if (folderIdStr === "null" || folderIdStr === "root" || folderIdStr === "" || folderIdStr === undefined) {
+      folderId = null;
+    } else {
+      folderId = parseInt(folderIdStr);
+      if (isNaN(folderId)) folderId = null;
+    }
+
     const status = req.query.status as string | undefined;
     const reports = await storage.getReports(folderId, status);
     res.json(reports);

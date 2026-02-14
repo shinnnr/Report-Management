@@ -65,7 +65,7 @@ export default function DrivePage() {
     const targetParentId = currentFolderId === null ? null : Number(currentFolderId);
     return folderParentId === targetParentId;
   });
-  const { data: reports, isLoading: reportsLoading } = useReports((currentFolderId || "root") as number | "root");
+  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId);
   
   const foldersLoading = !allFoldersData;
   const isLoading = foldersLoading || reportsLoading;

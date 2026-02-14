@@ -67,7 +67,7 @@ export class DatabaseStorage implements IStorage {
     if (parentId === undefined) {
       return db.select().from(folders);
     }
-    if (parentId === null || parentId === 0 || isNaN(Number(parentId))) {
+    if (parentId === null || parentId === 0) {
       return db.select().from(folders).where(isNull(folders.parentId));
     }
     return db.select().from(folders).where(eq(folders.parentId, Number(parentId)));
@@ -208,8 +208,8 @@ export class DatabaseStorage implements IStorage {
   async getReports(folderId?: number | null, status?: string): Promise<Report[]> {
     let conditions = [];
     if (folderId !== undefined) {
-      if (folderId === null) {
-        conditions.push(sql`${reports.folderId} IS NULL`);
+      if (folderId === null || folderId === 0) {
+        conditions.push(isNull(reports.folderId));
       } else {
         conditions.push(eq(reports.folderId, folderId));
       }
