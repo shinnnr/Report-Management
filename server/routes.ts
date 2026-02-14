@@ -194,8 +194,15 @@ export async function registerRoutes(
   app.get(api.folders.list.path, isAuthenticated, async (req, res) => {
     const parentIdStr = req.query.parentId as string | undefined;
 
-    // If no parentId specified, return all folders (for breadcrumbs)
+    // If no parentId specified, return root folders
     if (!parentIdStr) {
+      const folders = await storage.getFolders(null);
+      res.json(folders);
+      return;
+    }
+
+    // If parentId is 'all', return all folders (for breadcrumbs)
+    if (parentIdStr === 'all') {
       const folders = await storage.getFolders(undefined);
       res.json(folders);
       return;

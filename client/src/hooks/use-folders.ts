@@ -3,11 +3,17 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertFolder } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useFolders(parentId: number | null = null) {
+export function useFolders(parentId: number | null | 'all' = null) {
   return useQuery({
     queryKey: [api.folders.list.path, parentId],
     queryFn: async () => {
-      const params = parentId !== null ? `?parentId=${parentId}` : '';
+      let params = '';
+      if (parentId === 'all') {
+        params = '?parentId=all';
+      } else if (parentId !== null) {
+        params = `?parentId=${parentId}`;
+      }
+      // no params for root folders
       const url = `${api.folders.list.path}${params}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch folders");
