@@ -246,9 +246,6 @@ export default function DrivePage() {
   };
 
   const selectDestination = (folderId: number | null) => {
-    // Don't allow selecting folders that are being moved
-    if (folderId !== null && selectedFolders.includes(folderId)) return;
-
     setSelectedDestination(folderId);
     setDestinationSelected(true);
     setCurrentNavigationFolder(folderId); // Selected folder becomes current for new folder creation
@@ -296,9 +293,6 @@ export default function DrivePage() {
 
       // Don't show current folder
       if (f.id === currentFolderId) return false;
-
-      // Don't show folders being moved as destinations
-      if (selectedFolders.includes(f.id)) return false;
 
       return true;
     });
@@ -476,7 +470,15 @@ export default function DrivePage() {
 
       <Dialog open={isMoveOpen} onOpenChange={(open) => {
         setIsMoveOpen(open);
-        if (!open) {
+        if (open) {
+          // Set initial navigation to parent of selected folders
+          if (selectedFolders.length > 0) {
+            const parentId = allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null;
+            setCurrentNavigationFolder(parentId);
+          } else {
+            setCurrentNavigationFolder(null);
+          }
+        } else {
           setSelectedDestination(null);
           setDestinationSelected(false);
           setExpandedFolders(new Set());
