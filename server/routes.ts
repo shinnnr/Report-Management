@@ -280,12 +280,13 @@ export async function registerRoutes(
     const folderIdStr = req.query.folderId as string | undefined;
     let folderId: number | null | undefined;
 
-    if (folderIdStr === "null" || folderIdStr === "root" || folderIdStr === "" || folderIdStr === undefined) {
+    if (folderIdStr === "null" || folderIdStr === "root" || folderIdStr === "") {
       folderId = null;
-    } else {
+    } else if (folderIdStr !== undefined) {
       folderId = parseInt(folderIdStr);
       if (isNaN(folderId)) folderId = null;
     }
+    // If folderIdStr is undefined, folderId remains undefined, meaning get all reports
 
     const status = req.query.status as string | undefined;
     const reports = await storage.getReports(folderId, status);

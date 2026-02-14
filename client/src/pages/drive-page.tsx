@@ -471,8 +471,9 @@ export default function DrivePage() {
       <Dialog open={isMoveOpen} onOpenChange={(open) => {
         setIsMoveOpen(open);
         if (open) {
-          // Set initial navigation to current folder to show subfolders
-          setCurrentNavigationFolder(currentFolderId);
+          // Set initial navigation to parent of current folder to show sibling folders
+          const parentId = allFoldersData?.find(f => f.id === currentFolderId)?.parentId ?? null;
+          setCurrentNavigationFolder(parentId);
         } else {
           setSelectedDestination(null);
           setDestinationSelected(false);
