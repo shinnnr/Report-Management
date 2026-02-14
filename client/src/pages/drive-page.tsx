@@ -46,8 +46,8 @@ import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
-  
-  const searchParams = new URLSearchParams(window.location.search);
+
+  const searchParams = new URLSearchParams(location);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
@@ -238,12 +238,15 @@ export default function DrivePage() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Create New Folder</DialogTitle></DialogHeader>
+            <DialogContent aria-describedby="new-folder-description">
+              <DialogHeader>
+                <DialogTitle>Create New Folder</DialogTitle>
+                <p id="new-folder-description" className="text-sm text-muted-foreground">Create a new folder in the current location.</p>
+              </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Folder Name</Label>
-                  <Input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
+                  <Label htmlFor="new-folder-name">Folder Name</Label>
+                  <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
                 </div>
                 {!currentFolderId && (
                   <div className="space-y-2">
@@ -275,8 +278,11 @@ export default function DrivePage() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Upload Files</DialogTitle></DialogHeader>
+            <DialogContent aria-describedby="upload-description">
+              <DialogHeader>
+                <DialogTitle>Upload Files</DialogTitle>
+                <p id="upload-description" className="text-sm text-muted-foreground">Select and upload files to the current location.</p>
+              </DialogHeader>
               <div className="space-y-4">
                 {!currentFolderId && (
                   <div className="space-y-2">
@@ -296,7 +302,7 @@ export default function DrivePage() {
                   </div>
                 )}
                 <div className="py-8 text-center border-2 border-dashed rounded-xl">
-                  <Input type="file" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
                     <UploadCloud className="w-10 h-10 mx-auto mb-2" />
                     <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
@@ -312,33 +318,53 @@ export default function DrivePage() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Rename File</DialogTitle></DialogHeader>
-          <Input value={renameFileName} onChange={(e) => setRenameFileName(e.target.value)} />
+        <DialogContent aria-describedby="rename-file-description">
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+            <p id="rename-file-description" className="text-sm text-muted-foreground">Enter a new name for the file.</p>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="rename-file-input">File Name</Label>
+            <Input id="rename-file-input" name="fileName" value={renameFileName} onChange={(e) => setRenameFileName(e.target.value)} />
+          </div>
           <DialogFooter><Button onClick={handleRenameFile}>Rename</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Rename Folder</DialogTitle></DialogHeader>
-          <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+        <DialogContent aria-describedby="rename-folder-description">
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+            <p id="rename-folder-description" className="text-sm text-muted-foreground">Enter a new name for the folder.</p>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="rename-folder-input">Folder Name</Label>
+            <Input id="rename-folder-input" name="folderName" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+          </div>
           <DialogFooter><Button onClick={handleRenameFolder}>Rename</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Move Items</DialogTitle></DialogHeader>
-          <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="root">Home</SelectItem>
-              {allFoldersData?.filter(f => f.id !== currentFolderId && !selectedFolders.includes(f.id)).map(f => (
-                <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <DialogContent aria-describedby="move-description">
+          <DialogHeader>
+            <DialogTitle>Move Items</DialogTitle>
+            <p id="move-description" className="text-sm text-muted-foreground">Select a destination folder for the selected items.</p>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="move-destination">Destination</Label>
+            <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
+              <SelectTrigger id="move-destination">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="root">Home</SelectItem>
+                {allFoldersData?.filter(f => f.id !== currentFolderId && !selectedFolders.includes(f.id)).map(f => (
+                  <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <DialogFooter><Button onClick={handleMoveItems}>Move</Button></DialogFooter>
         </DialogContent>
       </Dialog>
