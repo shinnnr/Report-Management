@@ -48,11 +48,8 @@ import { queryClient } from "@/lib/queryClient";
 export default function DrivePage() {
   const [location, setLocation] = useLocation();
 
-  // Parse folder ID from path like /drive/folders/123 or /drive for root
-  const pathParts = location.split('/').filter(Boolean);
-  const currentFolderId = pathParts.length >= 2 && pathParts[0] === 'drive' && pathParts[1] === 'folders' && pathParts[2]
-    ? parseInt(pathParts[2])
-    : null;
+  const searchParams = new URLSearchParams(location);
+  const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
@@ -72,7 +69,7 @@ export default function DrivePage() {
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
-    setLocation(`/drive/folders/${id}`);
+    setLocation(`/drive?folder=${id}`);
   };
 
   const createFolder = useCreateFolder(currentFolderId);
@@ -216,7 +213,7 @@ export default function DrivePage() {
               <div key={crumb.id} className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4" />
                 <button
-                  onClick={() => setLocation(`/drive/folders/${crumb.id}`)}
+                  onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
                   className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
                 >
                   {crumb.name}
