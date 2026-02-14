@@ -6,11 +6,11 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 channel = "stable-24_05"
 
 [[ports]]
-localPort = 5000
+localPort = 5023
 externalPort = 80
 
 [env]
-PORT = "5000"
+PORT = "5023"
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -36,4 +36,4 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
+waitForPort = 5023
