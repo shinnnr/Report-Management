@@ -68,6 +68,7 @@ export default function DrivePage() {
 
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
+  const [driveSearchQuery, setDriveSearchQuery] = useState("");
 
   // Reset selection on navigation
   useEffect(() => {
@@ -81,6 +82,9 @@ export default function DrivePage() {
 
   const foldersLoading = !currentFolders;
   const isLoading = foldersLoading || reportsLoading;
+
+  const filteredFolders = currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
+  const filteredReports = reports?.filter(r => r.title.toLowerCase().includes(driveSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -354,6 +358,14 @@ export default function DrivePage() {
                 </button>
               </div>
             ))}
+          </div>
+          <div className="mt-4">
+            <Input
+              placeholder="Search folders and files..."
+              value={driveSearchQuery}
+              onChange={(e) => setDriveSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
           </div>
         </div>
 
@@ -696,9 +708,9 @@ export default function DrivePage() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
             <h2 className="text-sm font-semibold mb-4">Folders</h2>
-            {currentFolders && currentFolders.length > 0 ? (
+            {filteredFolders && filteredFolders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {currentFolders.map(f => (
+                {filteredFolders.map(f => (
                   <div key={f.id} className={`relative p-4 rounded-xl border ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
                     <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />
                     <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
@@ -730,19 +742,19 @@ export default function DrivePage() {
 
           <section>
             <h2 className="text-sm font-semibold mb-4">Files</h2>
-            {reports && reports.length > 0 ? (
+            {filteredReports && filteredReports.length > 0 ? (
               <div className="bg-white rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === reports.length} onCheckedChange={(c) => setSelectedFiles(c ? reports.map(r => r.id) : [])} /></th>
+                      <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredReports.map(r => r.id) : [])} /></th>
                       <th className="px-6 py-3">Name</th>
                       <th className="px-6 py-3 text-right">Size</th>
                       <th className="px-6 py-3 w-[50px]"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {reports.map(r => (
+                    {filteredReports.map(r => (
                       <tr key={r.id} className="hover:bg-muted/20 group">
                         <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>
                         <td className="px-6 py-4">

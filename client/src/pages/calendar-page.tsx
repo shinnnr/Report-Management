@@ -431,23 +431,30 @@ export default function CalendarPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 min-h-[600px] auto-rows-fr">
+        <div className="grid grid-cols-7 min-h-[600px] auto-rows-fr" onClick={() => setSelectedDate(null)}>
           {paddingDays.map((_, i) => (
             <div key={`padding-${i}`} className="bg-muted/5 border-b border-r last:border-r-0" />
           ))}
-          
+
           {daysInMonth.map((date) => {
             const dayActivities = activities?.filter(a => isSameDay(new Date(a.deadlineDate), date));
-            
+
             return (
               <div
                 key={date.toISOString()}
                 className={cn(
-                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer",
+                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10",
                   isToday(date) && "bg-accent/5",
                   selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
                 )}
-                onClick={() => setSelectedDate(date)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (selectedDate && isSameDay(date, selectedDate)) {
+                    setSelectedDate(null);
+                  } else {
+                    setSelectedDate(date);
+                  }
+                }}
               >
                 <div className={cn(
                   "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
@@ -465,7 +472,7 @@ export default function CalendarPage() {
                         setIsActivityModalOpen(true);
                       }}
                       className={cn(
-                        "text-xs p-1.5 rounded-md border truncate font-medium text-left hover:underline w-full",
+                        "text-xs p-1.5 rounded-md border truncate font-medium text-left w-full",
                         getStatusColor(activity.status)
                       )}
                     >
