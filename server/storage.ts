@@ -67,7 +67,7 @@ export class DatabaseStorage implements IStorage {
     if (parentId === undefined) {
       return db.select().from(folders);
     }
-    if (parentId === null || parentId === 0) {
+    if (parentId === null || parentId === 0 || isNaN(Number(parentId))) {
       return db.select().from(folders).where(isNull(folders.parentId));
     }
     return db.select().from(folders).where(eq(folders.parentId, Number(parentId)));

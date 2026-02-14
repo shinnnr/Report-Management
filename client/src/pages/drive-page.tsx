@@ -60,7 +60,10 @@ export default function DrivePage() {
   }, [currentFolderId]);
 
   const { data: allFoldersData } = useFolders(); 
-  const folders = allFoldersData?.filter(f => Number(f.parentId) === Number(currentFolderId || 0) || (f.parentId === null && !currentFolderId));
+  const currentFolders = allFoldersData?.filter(f => {
+    if (currentFolderId === null) return f.parentId === null;
+    return Number(f.parentId) === currentFolderId;
+  });
   const { data: reports, isLoading: reportsLoading } = useReports((currentFolderId || "root") as number | "root");
   
   const foldersLoading = !allFoldersData;
@@ -307,9 +310,9 @@ export default function DrivePage() {
         <div className="space-y-8">
           <section>
             <h2 className="text-sm font-semibold mb-4">Folders</h2>
-            {folders && folders.length > 0 ? (
+            {currentFolders && currentFolders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {folders.map(f => (
+                {currentFolders.map(f => (
                   <div key={f.id} className={`relative p-4 rounded-xl border ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
                     <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />
                     <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
