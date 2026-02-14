@@ -3,18 +3,21 @@ import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports } from "@/hooks/use-reports";
 import { 
-  Folder as FolderIcon, 
-  FileText, 
-  MoreVertical, 
-  Plus, 
-  Trash2, 
-  ChevronRight, 
+  Folder as FolderIcon,
+  FileText,
+  MoreVertical,
+  Plus,
+  Trash2,
+  ChevronRight,
   Home,
   UploadCloud,
   Loader2,
   ArrowLeft,
   Edit2,
-  MoveHorizontal
+  MoveHorizontal,
+  Search,
+  FolderOpen,
+  FolderClosed
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -106,6 +110,12 @@ export default function DrivePage() {
 
   const [isMoveOpen, setIsMoveOpen] = useState(false);
   const [moveToFolderId, setMoveToFolderId] = useState<string>("root");
+  const [selectedDestination, setSelectedDestination] = useState<number | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentNavigationPath, setCurrentNavigationPath] = useState<number | null>(null);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [moveNewFolderName, setMoveNewFolderName] = useState("");
 
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
@@ -186,8 +196,8 @@ export default function DrivePage() {
 
   const handleMoveItems = async () => {
     if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
-    const targetFolderId = moveToFolderId === "root" ? null : parseInt(moveToFolderId);
-    
+    const targetFolderId = selectedDestination;
+
     if (selectedFiles.length > 0) {
       await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId });
     }
@@ -220,6 +230,94 @@ export default function DrivePage() {
       tempId = folder.parentId;
     } else break;
   }
+
+  // Helper functions for move modal
+  const toggleFolderExpansion = (folderId: number) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectDestination = (folderId: number | null) => {
+    setSelectedDestination(folderId);
+  };
+
+  const handleCreateFolderInMove = async () => {
+    if (!moveNewFolderName.trim()) return;
+
+    try {
+      await createFolder.mutateAsync({
+        name: moveNewFolderName,
+        parentId: selectedDestination,
+        createdBy: (user as any)?.id
+      });
+
+      setMoveNewFolderName("");
+      setIsCreatingFolder(false);
+      // Refresh folders data
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    } catch (error) {
+      console.error("Error creating folder:", error);
+    }
+  };
+
+  const getFilteredFolders = () => {
+    if (!searchQuery) return allFoldersData || [];
+    return (allFoldersData || []).filter(folder =>
+      folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  const renderFolderTree = (parentId: number | null = null, level = 0) => {
+    const folders = getFilteredFolders().filter(f => f.parentId === parentId);
+    const filteredFolders = searchQuery ? folders : folders.filter(f =>
+      !selectedFolders.includes(f.id) && f.id !== currentFolderId
+    );
+
+    return filteredFolders.map(folder => {
+      const hasChildren = getFilteredFolders().some(f => f.parentId === folder.id);
+      const isExpanded = expandedFolders.has(folder.id);
+      const isSelected = selectedDestination === folder.id;
+
+      return (
+        <div key={folder.id}>
+          <div
+            className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
+              isSelected ? 'bg-primary/10 border border-primary/20' : ''
+            }`}
+            style={{ paddingLeft: `${level * 20 + 8}px` }}
+            onClick={() => selectDestination(folder.id)}
+          >
+            {hasChildren ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFolderExpansion(folder.id);
+                }}
+                className="p-1 hover:bg-muted rounded"
+              >
+                {isExpanded ? (
+                  <FolderOpen className="w-4 h-4 text-primary" />
+                ) : (
+                  <FolderClosed className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            ) : (
+              <FolderIcon className="w-4 h-4 text-muted-foreground" />
+            )}
+            <span className="text-sm truncate flex-1">{folder.name}</span>
+          </div>
+          {isExpanded && hasChildren && renderFolderTree(folder.id, level + 1)}
+        </div>
+      );
+    });
+  };
 
 
   return (
@@ -366,27 +464,134 @@ export default function DrivePage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
-        <DialogContent>
+      <Dialog open={isMoveOpen} onOpenChange={(open) => {
+        setIsMoveOpen(open);
+        if (!open) {
+          setSelectedDestination(null);
+          setExpandedFolders(new Set());
+          setSearchQuery("");
+          setCurrentNavigationPath(null);
+          setIsCreatingFolder(false);
+          setMoveNewFolderName("");
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
-            <DialogDescription>Select a destination folder for the selected items.</DialogDescription>
+            <DialogDescription>
+              Select a destination folder for {selectedFiles.length + selectedFolders.length} item{selectedFiles.length + selectedFolders.length > 1 ? 's' : ''}.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="move-destination">Destination</Label>
-            <Select value={moveToFolderId} onValueChange={setMoveToFolderId}>
-              <SelectTrigger id="move-destination">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="root">Home</SelectItem>
-                {allFoldersData?.filter(f => f.id !== currentFolderId && !selectedFolders.includes(f.id)).map(f => (
-                  <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          <div className="space-y-4">
+            {/* Current Location */}
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Current location:</span> {currentFolderId ? breadcrumbs.map(b => b.name).join(' / ') : 'Home'}
+            </div>
+
+            {/* Search and New Folder */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search folders..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreatingFolder(!isCreatingFolder)}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Folder
+              </Button>
+            </div>
+
+            {/* New Folder Input */}
+            {isCreatingFolder && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter folder name"
+                  value={moveNewFolderName}
+                  onChange={(e) => setMoveNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateFolderInMove();
+                    } else if (e.key === 'Escape') {
+                      setIsCreatingFolder(false);
+                      setMoveNewFolderName("");
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleCreateFolderInMove}
+                  disabled={!moveNewFolderName.trim() || createFolder.isPending}
+                >
+                  {createFolder.isPending ? "Creating..." : "Create"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreatingFolder(false);
+                    setMoveNewFolderName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Folder Tree */}
+            <div className="border rounded-lg">
+              <ScrollArea className="h-64">
+                <div className="p-2">
+                  {/* Root/Home option */}
+                  <div
+                    className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
+                      selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
+                    }`}
+                    onClick={() => selectDestination(null)}
+                  >
+                    <Home className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">Home</span>
+                  </div>
+
+                  {/* Folder tree */}
+                  {renderFolderTree(null)}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Selected destination display */}
+            {selectedDestination !== null && (
+              <div className="text-sm">
+                <span className="font-medium">Selected:</span> {allFoldersData?.find(f => f.id === selectedDestination)?.name || 'Unknown'}
+              </div>
+            )}
           </div>
-          <DialogFooter><Button onClick={handleMoveItems}>Move</Button></DialogFooter>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMoveOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedDestination !== null) {
+                  handleMoveItems();
+                }
+              }}
+              disabled={selectedDestination === null}
+            >
+              Move Here
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
