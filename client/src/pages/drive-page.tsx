@@ -42,11 +42,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
+  const navigate = useNavigate();
 
   const searchParams = new URLSearchParams(location);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
@@ -199,9 +200,6 @@ export default function DrivePage() {
     } else break;
   }
 
-  const navigate = (path: string) => {
-    setLocation(path);
-  };
 
   return (
     <LayoutWrapper>
