@@ -468,7 +468,13 @@ export default function DrivePage() {
                 ))}
               </div>
             ) : (
-              <p className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">No folders found</p>
+              <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FolderIcon className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground">No folders found</h3>
+                <p className="text-muted-foreground">Create your first folder to get started.</p>
+              </div>
             )}
           </section>
 
@@ -510,7 +516,15 @@ export default function DrivePage() {
                   </tbody>
                 </table>
               </div>
-            ) : <p className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">Empty</p>}
+            ) : (
+              <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground">No files found</h3>
+                <p className="text-muted-foreground">Upload your first file to get started.</p>
+              </div>
+            )}
           </section>
         </div>
       )}
