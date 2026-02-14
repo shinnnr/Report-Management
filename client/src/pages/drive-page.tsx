@@ -157,6 +157,7 @@ export default function DrivePage() {
 
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
@@ -249,6 +250,29 @@ export default function DrivePage() {
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsMoveOpen(false);
+    setIsSelectMode(false); // Exit select mode after successful move
+    if (targetFolderId !== null) {
+      setLocation(`/drive?folder=${targetFolderId}`); // Navigate to destination folder
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFiles.length > 0) {
+      for (const id of selectedFiles) {
+        await deleteReport.mutateAsync(id);
+      }
+    }
+    if (selectedFolders.length > 0) {
+      for (const id of selectedFolders) {
+        await deleteFolder.mutateAsync(id);
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    setSelectedFiles([]);
+    setSelectedFolders([]);
+    setIsBulkDeleteOpen(false);
+    setIsSelectMode(false); // Exit select mode after successful delete
   };
 
   const toggleFolderSelection = (id: number) => {
@@ -408,10 +432,7 @@ export default function DrivePage() {
               <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                 <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
               </Button>
-              <Button variant="destructive" className="gap-2" onClick={() => {
-                selectedFolders.forEach(id => setDeleteFolderId(id));
-                selectedFiles.forEach(id => setDeleteFileId(id));
-              }}>
+              <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
                 <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
               </Button>
             </>
@@ -735,6 +756,28 @@ export default function DrivePage() {
                   setDeleteFileId(null);
                 }
               }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedFiles.length + selectedFolders.length} item{selectedFiles.length + selectedFolders.length > 1 ? 's' : ''}?
+              {selectedFolders.length > 0 && " This will also delete all files and subfolders inside the selected folders."}
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
