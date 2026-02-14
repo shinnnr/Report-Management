@@ -74,50 +74,33 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Action</th>
-                      <th className="px-4 py-3 text-left font-medium">Description</th>
-                      <th className="px-4 py-3 text-left font-medium">User</th>
-                      <th className="px-4 py-3 text-left font-medium">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {logs?.map((log) => (
-                      <tr key={log.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
-                            {log.action.replace('_', ' ')}
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-4">
+                  {logs?.map((log) => (
+                    <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Activity className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <p className="font-medium text-sm text-foreground truncate">{log.description}</p>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{log.description}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="text-xs font-bold text-primary">
-                                {log.userFullName?.substring(0, 2).toUpperCase() || 'U'}
-                              </span>
-                            </div>
-                            <span className="text-sm">{log.userFullName || 'Unknown'}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
-                        </td>
-                      </tr>
-                    ))}
-                    {!logs?.length && (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
-                          No recent system activity found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 capitalize">
+                          Action: {log.action.replace('_', ' ')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {!logs?.length && (
+                    <div className="text-center py-10 text-muted-foreground">
+                      No recent system activity found.
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
