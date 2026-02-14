@@ -60,7 +60,7 @@ export default function DrivePage() {
   }, [currentFolderId]);
 
   const { data: allFoldersData } = useFolders(); 
-  const folders = allFoldersData?.filter(f => f.parentId === (currentFolderId || null));
+  const folders = allFoldersData?.filter(f => (f.parentId || null) === (currentFolderId || null));
   const { data: reports, isLoading: reportsLoading } = useReports((currentFolderId || "root") as number | "root");
   
   const foldersLoading = !allFoldersData;
@@ -110,6 +110,7 @@ export default function DrivePage() {
       name: newFolderName,
       parentId: currentFolderId,
     });
+    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     setNewFolderName("");
     setIsNewFolderOpen(false);
   };
@@ -164,6 +165,8 @@ export default function DrivePage() {
         await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
       }
     }
+    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsMoveOpen(false);
