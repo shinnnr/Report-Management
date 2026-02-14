@@ -109,9 +109,13 @@ export default function DrivePage() {
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
+    const targetParentId = !currentFolderId 
+      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) 
+      : currentFolderId;
+
     await createFolder.mutateAsync({
       name: newFolderName,
-      parentId: currentFolderId,
+      parentId: targetParentId,
     });
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     setNewFolderName("");
@@ -130,6 +134,10 @@ export default function DrivePage() {
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
+    const targetFolderId = !currentFolderId 
+      ? (moveToFolderId === "root" ? null : parseInt(moveToFolderId)) 
+      : currentFolderId;
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const reader = new FileReader();
@@ -142,7 +150,7 @@ export default function DrivePage() {
             fileType: file.type,
             fileSize: file.size,
             fileData: base64,
-            folderId: currentFolderId,
+            folderId: targetFolderId,
             description: "Uploaded file",
             year: new Date().getFullYear(),
             month: new Date().getMonth() + 1,
@@ -240,6 +248,23 @@ export default function DrivePage() {
                   <Label>Folder Name</Label>
                   <Input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
                 </div>
+                {!currentFolderId && (
+                  <div className="space-y-2">
+                    <Label>Location</Label>
+                    <Select 
+                      value={moveToFolderId === "root" ? "root" : moveToFolderId} 
+                      onValueChange={setMoveToFolderId}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="root">Home</SelectItem>
+                        {allFoldersData?.map(f => (
+                          <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>Create</Button>
@@ -256,6 +281,23 @@ export default function DrivePage() {
             <DialogContent>
               <DialogHeader><DialogTitle>Upload Files</DialogTitle></DialogHeader>
               <div className="space-y-4">
+                {!currentFolderId && (
+                  <div className="space-y-2">
+                    <Label>Target Folder</Label>
+                    <Select 
+                      value={moveToFolderId === "root" ? "root" : moveToFolderId} 
+                      onValueChange={setMoveToFolderId}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="root">Home</SelectItem>
+                        {allFoldersData?.map(f => (
+                          <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="py-8 text-center border-2 border-dashed rounded-xl">
                   <Input type="file" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
