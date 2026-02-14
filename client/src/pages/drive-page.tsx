@@ -60,8 +60,9 @@ export default function DrivePage() {
   }, [currentFolderId]);
 
   const { data: currentFolders } = useFolders(currentFolderId);
+  const { data: allFoldersData } = useFolders(); // For breadcrumbs and dropdowns
   const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId);
-  
+
   const foldersLoading = !currentFolders;
   const isLoading = foldersLoading || reportsLoading;
 
