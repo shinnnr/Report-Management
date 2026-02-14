@@ -267,6 +267,43 @@ export default function DrivePage() {
     setIsSelectMode(false); // Exit select mode after successful delete
   };
 
+  const createBlobUrl = (dataUrl: string) => {
+    if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+
+    try {
+      const [mimeType, base64Data] = dataUrl.split(',');
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType.split(':')[1].split(';')[0] });
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error creating blob URL:', error);
+      return dataUrl;
+    }
+  };
+
+  const handleFileClick = (fileData: string, fileName: string) => {
+    const blobUrl = createBlobUrl(fileData);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the blob URL after a delay to allow the tab to open
+    setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  };
+
   const toggleFolderSelection = (id: number) => {
     setSelectedFolders(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
@@ -329,7 +366,7 @@ export default function DrivePage() {
       await createFolder.mutateAsync({
         name: moveNewFolderName,
         parentId: currentNavigationFolder,
-        createdBy: user.id
+        createdBy: user?.id
       });
 
       setMoveNewFolderName("");
@@ -851,7 +888,7 @@ export default function DrivePage() {
                             {isSelectMode ? (
                               <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             ) : (
-                              <a href={r.fileData || undefined} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{r.fileName}</a>
+                              <span onClick={() => handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             )}
                           </div>
                         </td>
