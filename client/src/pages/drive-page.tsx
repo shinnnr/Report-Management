@@ -42,11 +42,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useLocation, navigate } from "wouter";
+import { Link, useLocation } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const searchParams = new URLSearchParams(location);
   const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
@@ -69,7 +69,7 @@ export default function DrivePage() {
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
-    navigate(`/drive?folder=${id}`);
+    setLocation(`/drive?folder=${id}`);
   };
 
   const createFolder = useCreateFolder(currentFolderId);
@@ -212,8 +212,8 @@ export default function DrivePage() {
             {breadcrumbs.map((crumb) => (
               <div key={crumb.id} className="flex items-center gap-2">
                 <ChevronRight className="w-4 h-4" />
-                <button 
-                  onClick={() => navigate(`/drive?folder=${crumb.id}`)}
+                <button
+                  onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
                   className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
                 >
                   {crumb.name}
