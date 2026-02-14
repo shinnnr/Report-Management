@@ -17,8 +17,6 @@ import {
   Edit2,
   MoveHorizontal,
   Search,
-  FolderOpen,
-  FolderClosed
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -308,23 +306,7 @@ export default function DrivePage() {
             onDoubleClick={() => navigateToFolder(folder.id)}
             title="Single-click to select as destination, double-click to navigate"
           >
-            {hasChildren ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolderExpansion(folder.id);
-                }}
-                className="p-1 hover:bg-muted rounded"
-              >
-                {isExpanded ? (
-                  <FolderOpen className="w-4 h-4 text-primary" />
-                ) : (
-                  <FolderClosed className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            ) : (
-              <FolderIcon className="w-4 h-4 text-muted-foreground" />
-            )}
+            <FolderIcon className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm truncate flex-1">{folder.name}</span>
           </div>
           {isExpanded && hasChildren && renderFolderTree(folder.id, level + 1)}
@@ -566,21 +548,38 @@ export default function DrivePage() {
             <div className="border rounded-lg">
               <ScrollArea className="h-64">
                 <div className="p-2">
-                  {/* Root/Home option */}
-                  <div
-                    className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
-                      selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
-                    }`}
-                    onClick={() => selectDestination(null)}
-                    onDoubleClick={() => navigateToFolder(null)}
-                    title="Single-click to select as destination, double-click to navigate"
-                  >
-                    <Home className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">Home</span>
-                  </div>
+                  {/* Root/Home option - only show when not navigated */}
+                  {currentNavigationFolder === null && (
+                    <div
+                      className={`flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer rounded-md ${
+                        selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
+                      }`}
+                      onClick={() => selectDestination(null)}
+                      title="Click to select as destination"
+                    >
+                      <Home className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">Home</span>
+                    </div>
+                  )}
 
-                  {/* Folder tree */}
-                  {renderFolderTree(null)}
+                  {/* Navigation breadcrumb */}
+                  {currentNavigationFolder !== null && (
+                    <div className="mb-2 p-2 bg-muted/30 rounded text-sm">
+                      <button
+                        onClick={() => navigateToFolder(null)}
+                        className="text-primary hover:underline"
+                      >
+                        Home
+                      </button>
+                      <span className="mx-2">/</span>
+                      <span className="font-medium">
+                        {allFoldersData?.find(f => f.id === currentNavigationFolder)?.name || 'Unknown'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Folder tree - start from current navigation */}
+                  {renderFolderTree(currentNavigationFolder)}
                 </div>
               </ScrollArea>
             </div>
