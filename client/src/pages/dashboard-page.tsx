@@ -74,38 +74,50 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-4">
-                  {activities?.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-4 p-4 rounded-lg bg-muted/30 border border-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">
-                          {activity.userFullName?.substring(0, 2).toUpperCase() || 'AC'}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <p className="font-medium text-sm text-foreground">{activity.description || 'No description'}</p>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(activity.createdAt!), 'MMM d, h:mm a')}
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Action</th>
+                      <th className="px-4 py-3 text-left font-medium">Description</th>
+                      <th className="px-4 py-3 text-left font-medium">User</th>
+                      <th className="px-4 py-3 text-left font-medium">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {logs?.map((log) => (
+                      <tr key={log.id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
+                            {log.action.replace('_', ' ')}
                           </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1 capitalize">
-                          Status: {activity.status}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          By: {activity.userFullName}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {!activities?.length && (
-                    <div className="text-center py-10 text-muted-foreground">
-                      No recent activities found.
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{log.description}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-xs font-bold text-primary">
+                                {log.userFullName?.substring(0, 2).toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <span className="text-sm">{log.userFullName || 'Unknown'}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                        </td>
+                      </tr>
+                    ))}
+                    {!logs?.length && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
+                          No recent system activity found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </div>
