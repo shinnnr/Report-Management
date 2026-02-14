@@ -568,26 +568,9 @@ export default function DrivePage() {
                     <div
                       className={`flex items-center gap-2 p-2 rounded-md ${
                         selectedDestination === null ? 'bg-primary/10 border border-primary/20' : ''
-                      } ${
-                        // Disable Home if all selected items are already at root
-                        selectedFolders.length > 0 && selectedFolders.every(id =>
-                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
-                        ) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 cursor-pointer'
-                      }`}
-                      onClick={() => {
-                        // Don't allow selecting Home if all selected items are already at root
-                        const allSelectedAtRoot = selectedFolders.length > 0 && selectedFolders.every(id =>
-                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
-                        );
-                        if (!allSelectedAtRoot) {
-                          selectDestination(null);
-                        }
-                      }}
-                      title={
-                        selectedFolders.length > 0 && selectedFolders.every(id =>
-                          (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
-                        ) ? "Items are already at Home" : "Click to select as destination"
-                      }
+                      } hover:bg-muted/50 cursor-pointer`}
+                      onClick={() => selectDestination(null)}
+                      title="Click to select as destination"
                     >
                       <Home className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">Home</span>
@@ -636,7 +619,11 @@ export default function DrivePage() {
               }}
               disabled={
                 selectedDestination === null && !destinationSelected || // No destination selected
-                selectedFolders.includes(selectedDestination || 0) // Selected destination is being moved
+                selectedFolders.includes(selectedDestination || 0) || // Selected destination is being moved
+                (selectedDestination === null && destinationSelected && // Trying to move to Home
+                 selectedFolders.length > 0 && selectedFolders.every(id => // All selected folders are already at root
+                   (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
+                 ))
               }
             >
               Move Here
