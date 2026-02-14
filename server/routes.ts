@@ -386,11 +386,8 @@ export async function registerRoutes(
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
 
-      // Check if user already submitted
-      const existingSubmission = await storage.getUserSubmissionForActivity(userId, activityId);
-      if (existingSubmission) {
-        return res.status(400).json({ message: "You have already submitted for this activity" });
-      }
+      // Allow multiple submissions to the same activity (user can upload additional files)
+      // No check needed here as we want to allow multiple files per activity
 
       const { title, description, fileName, fileType, fileSize, fileData } = req.body;
 
