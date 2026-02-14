@@ -148,4 +148,13 @@ export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+
+export type ActivityLogWithUser = {
+  id: number;
+  userId: number | null;
+  action: string;
+  description: string;
+  timestamp: Date | null;
+  userFullName: string | null;
+};
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;

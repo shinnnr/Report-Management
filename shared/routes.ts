@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertFolderSchema, insertReportSchema, insertActivitySchema, insertNotificationSchema, users, folders, reports, activities, activityLogs, notifications } from './schema';
+import { insertUserSchema, insertFolderSchema, insertReportSchema, insertActivitySchema, insertNotificationSchema, users, folders, reports, activities, activityLogs, notifications, ActivityLogWithUser } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -213,7 +213,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/logs',
       responses: {
-        200: z.array(z.custom<typeof activityLogs.$inferSelect>()),
+        200: z.array(z.custom<ActivityLogWithUser>()),
       },
     },
   },

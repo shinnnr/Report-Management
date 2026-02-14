@@ -342,8 +342,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Logs
-  async getLogs(): Promise<ActivityLog[]> {
-    return db.select().from(activityLogs).orderBy(desc(activityLogs.timestamp));
+  async getLogs(): Promise<any[]> {
+    return db.select({
+      id: activityLogs.id,
+      userId: activityLogs.userId,
+      action: activityLogs.action,
+      description: activityLogs.description,
+      timestamp: activityLogs.timestamp,
+      userFullName: users.fullName,
+    }).from(activityLogs).leftJoin(users, eq(activityLogs.userId, users.id)).orderBy(desc(activityLogs.timestamp));
   }
 
   async createLog(userId: number, action: string, description: string): Promise<void> {

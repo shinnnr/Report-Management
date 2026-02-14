@@ -80,7 +80,7 @@ export default function DashboardPage() {
                     <div key={log.id} className="flex items-start gap-4 p-4 rounded-lg bg-muted/30 border border-muted/50">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-primary">
-                          {log.action.substring(0, 2)}
+                          {log.userFullName?.substring(0, 2).toUpperCase() || log.action.substring(0, 2)}
                         </span>
                       </div>
                       <div className="flex-1">
@@ -92,6 +92,9 @@ export default function DashboardPage() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 capitalize">
                           Action: {log.action.toLowerCase().replace('_', ' ')}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          By: {log.userFullName}
                         </p>
                       </div>
                     </div>
