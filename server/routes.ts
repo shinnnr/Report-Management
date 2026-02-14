@@ -8,10 +8,11 @@ import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 
 const scryptAsync = promisify(scrypt);
-const SessionStore = MemoryStore(session);
+const PgSession = connectPgSimple(session);
 
 // --- Auth Helper Functions ---
 async function hashPassword(password: string) {
@@ -35,7 +36,11 @@ export async function registerRoutes(
   // --- Session & Passport Setup ---
   app.use(
     session({
-      store: new SessionStore({ checkPeriod: 86400000 }),
+      store: new PgSession({
+        pool: pool,
+        tableName: "user_sessions",
+        createTableIfMissing: true,
+      }),
       secret: process.env.SESSION_SECRET || "default_secret_dev_only",
       resave: false,
       saveUninitialized: false,
