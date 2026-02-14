@@ -197,34 +197,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteFolder(id: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      // Get all descendant folder IDs including the root
-      const allFolderIds = await this._getAllDescendantFolderIds(tx, id);
-      allFolderIds.push(id);
-
-      // Delete all reports in these folders
-      if (allFolderIds.length > 0) {
-        await tx.delete(reports).where(sql`${reports.folderId} IN ${allFolderIds}`);
-      }
-
-      // Delete all folders (children first due to foreign key constraints)
-      for (const folderId of allFolderIds.reverse()) {
-        await tx.delete(folders).where(eq(folders.id, folderId));
-      }
-    });
+    // Use a simpler approach - recursively delete from the bottom up
+    await this._deleteFolderRecursive(id);
   }
 
-  private async _getAllDescendantFolderIds(tx: any, parentId: number): Promise<number[]> {
-    const descendants: number[] = [];
-    const children = await tx.select().from(folders).where(eq(folders.parentId, parentId));
+  private async _deleteFolderRecursive(folderId: number): Promise<void> {
+    // First, recursively delete all child folders
+    const children = await db.select().from(folders).where(eq(folders.parentId, folderId));
 
     for (const child of children) {
-      descendants.push(child.id);
-      const childDescendants = await this._getAllDescendantFolderIds(tx, child.id);
-      descendants.push(...childDescendants);
+      await this._deleteFolderRecursive(child.id);
     }
 
-    return descendants;
+    // Delete all reports in this folder
+    await db.delete(reports).where(eq(reports.folderId, folderId));
+
+    // Finally, delete the folder itself
+    await db.delete(folders).where(eq(folders.id, folderId));
   }
 
   // Reports
