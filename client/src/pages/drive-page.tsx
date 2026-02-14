@@ -59,15 +59,10 @@ export default function DrivePage() {
     setSelectedFolders([]);
   }, [currentFolderId]);
 
-  const { data: allFoldersData } = useFolders(); 
-  const currentFolders = allFoldersData?.filter(f => {
-    const folderParentId = f.parentId === null ? null : Number(f.parentId);
-    const targetParentId = currentFolderId === null ? null : Number(currentFolderId);
-    return folderParentId === targetParentId;
-  });
+  const { data: currentFolders } = useFolders(currentFolderId);
   const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId);
   
-  const foldersLoading = !allFoldersData;
+  const foldersLoading = !currentFolders;
   const isLoading = foldersLoading || reportsLoading;
 
   // Sync navigation on folder click
