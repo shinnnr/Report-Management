@@ -67,8 +67,8 @@ export default function AuthPage() {
       </div>
 
       {/* Right: Login Form */}
-      <div className="flex items-center justify-center p-8 bg-background">
-        <Card className="w-full max-w-md border-none shadow-none bg-transparent">
+      <div className="flex items-center justify-center p-8 bg-gray-50">
+        <Card className="w-full max-w-md border-none shadow-none bg-white">
           <CardHeader className="space-y-1 px-0">
             <CardTitle className="text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
             <CardDescription className="text-base">
