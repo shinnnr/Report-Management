@@ -59,11 +59,19 @@ export default function ArchivesPage() {
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
 
   const handleRestoreFolder = (id: number) => {
-    updateFolder.mutate({ id, status: 'active' });
+    updateFolder.mutate({ id, status: 'active' }, {
+      onSuccess: () => {
+        toast({ title: "Restored", description: "Folder restored successfully" });
+      }
+    });
   };
 
   const handleRestoreFile = (id: number) => {
-    updateReport.mutate({ id, status: 'active' });
+    updateReport.mutate({ id, status: 'active' }, {
+      onSuccess: () => {
+        toast({ title: "Restored", description: "File restored successfully" });
+      }
+    });
   };
 
   return (
