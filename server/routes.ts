@@ -280,7 +280,16 @@ export async function registerRoutes(
       const id = parseInt(req.params.id as string);
       const updates = api.folders.update.input.parse(req.body);
       const folder = await storage.updateFolder(id, updates);
-      await storage.createLog((req.user as any).id, "UPDATE_FOLDER", `Updated folder: ${folder.name}`);
+
+      // Log specific action based on what was updated
+      if (updates.status === 'archived') {
+        await storage.createLog((req.user as any).id, "ARCHIVE_FOLDER", `Archived folder: ${folder.name}`);
+      } else if (updates.status === 'active') {
+        await storage.createLog((req.user as any).id, "RESTORE_FOLDER", `Restored folder: ${folder.name}`);
+      } else {
+        await storage.createLog((req.user as any).id, "UPDATE_FOLDER", `Updated folder: ${folder.name}`);
+      }
+
       res.json(folder);
     } catch (err: any) {
       if (err instanceof z.ZodError) {
@@ -354,7 +363,16 @@ export async function registerRoutes(
     const id = parseInt(req.params.id as string);
     const updates = api.reports.update.input.parse(req.body);
     const report = await storage.updateReport(id, updates);
-    await storage.createLog((req.user as any).id, "UPDATE_REPORT", `Updated report: ${report.title}`);
+
+    // Log specific action based on what was updated
+    if (updates.status === 'archived') {
+      await storage.createLog((req.user as any).id, "ARCHIVE_REPORT", `Archived report: ${report.title}`);
+    } else if (updates.status === 'active') {
+      await storage.createLog((req.user as any).id, "RESTORE_REPORT", `Restored report: ${report.title}`);
+    } else {
+      await storage.createLog((req.user as any).id, "UPDATE_REPORT", `Updated report: ${report.title}`);
+    }
+
     res.json(report);
   });
 

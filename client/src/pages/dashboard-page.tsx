@@ -148,6 +148,16 @@ export default function DashboardPage() {
 
     const getActivityIcon = (action: string) => {
         const lowerAction = action.toLowerCase();
+        if (lowerAction.includes('create_report') || lowerAction.includes('upload_report')) return File;
+        if (lowerAction.includes('update_report')) return FileText;
+        if (lowerAction.includes('create_folder')) return Folder;
+        if (lowerAction.includes('update_folder')) return Folder;
+        if (lowerAction.includes('archive_report')) return Archive;
+        if (lowerAction.includes('archive_folder')) return Archive;
+        if (lowerAction.includes('restore_report')) return RotateCcw;
+        if (lowerAction.includes('restore_folder')) return RotateCcw;
+        if (lowerAction.includes('delete_report')) return Trash2;
+        if (lowerAction.includes('delete_folder')) return Trash2;
         if (lowerAction.includes('create') || lowerAction.includes('upload')) return Plus;
         if (lowerAction.includes('update') || lowerAction.includes('update_profile')) return Pencil;
         if (lowerAction.includes('delete')) return Trash2;
