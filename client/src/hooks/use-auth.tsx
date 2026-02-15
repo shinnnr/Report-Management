@@ -20,10 +20,18 @@ export function useUser() {
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: 'include' });
       if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
+      if (!res.ok) {
+        const error = new Error("Failed to fetch user");
+        error.name = "AuthError"; // Mark as auth error to suppress console error
+        throw error;
+      }
       return api.auth.me.responses[200].parse(await res.json());
     },
     retry: false,
+    throwOnError: (error) => {
+      // Don't throw on auth errors to suppress console errors
+      return error.name === "AuthError" ? false : true;
+    },
   });
 }
 

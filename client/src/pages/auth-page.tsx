@@ -81,7 +81,7 @@ export default function AuthPage() {
                 <FormField
                   control={form.control}
                   name="username"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Username</FormLabel>
                       <FormControl>
@@ -89,7 +89,7 @@ export default function AuthPage() {
                           placeholder="Enter Username"
                           autoComplete="username"
                           {...field}
-                          className="h-12 text-base"
+                          className={`h-12 text-base ${fieldState.error ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
                       </FormControl>
                       <FormMessage />
@@ -99,7 +99,7 @@ export default function AuthPage() {
                 <FormField
                   control={form.control}
                   name="password"
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
@@ -109,7 +109,7 @@ export default function AuthPage() {
                             placeholder="Enter Password"
                             autoComplete="current-password"
                             {...field}
-                            className="h-12 text-base pr-10"
+                            className={`h-12 text-base pr-10 ${fieldState.error ? 'border-red-500 focus:border-red-500' : ''}`}
                           />
                           <Button
                             type="button"
