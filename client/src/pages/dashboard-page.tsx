@@ -386,12 +386,12 @@ export default function DashboardPage() {
 
         {/* Quick Actions / Info */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-[#022420] dark:to-[#023020]">
+          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-[#022420] dark:to-[#023020] dark:text-white">
             <h3 className="text-lg font-display font-bold mb-2">Need Help?</h3>
-            <p className="text-sm mb-4">
+            <p className="text-sm mb-4 text-primary-foreground/80 dark:text-gray-200">
               Contact the system administrator if you encounter any issues with file permissions.
             </p>
-            <div className="text-xs opacity-80">System Version 1.0.0</div>
+            <div className="text-xs text-primary-foreground/60 dark:text-gray-400">System Version 1.0.0</div>
           </div>
 
           <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
