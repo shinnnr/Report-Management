@@ -18,7 +18,6 @@ import {
   Edit2,
   MoveHorizontal,
   Search,
-  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -151,7 +150,7 @@ export default function DrivePage() {
   const [renameFileName, setRenameFileName] = useState("");
 
   const [isMoveOpen, setIsMoveOpen] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState<number | null | -1>(null);
+  const [selectedDestination, setSelectedDestination] = useState<number | null>(null);
   const [destinationSelected, setDestinationSelected] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,28 +235,13 @@ export default function DrivePage() {
     if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
     const targetFolderId = selectedDestination;
 
-    if (targetFolderId === -1) {
-      // Archive items
-      if (selectedFiles.length > 0) {
-        for (const id of selectedFiles) {
-          await updateReport.mutateAsync({ id, status: 'archived' });
-        }
-      }
-      if (selectedFolders.length > 0) {
-        for (const id of selectedFolders) {
-          await updateFolder.mutateAsync({ id, status: 'archived' });
-        }
-      }
-      toast({ title: "Archived", description: `${selectedFiles.length + selectedFolders.length} item(s) archived successfully` });
-    } else {
-      // Move items
-      if (selectedFiles.length > 0) {
-        await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId });
-      }
-      if (selectedFolders.length > 0) {
-        for (const id of selectedFolders) {
-          await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
-        }
+    // Move items
+    if (selectedFiles.length > 0) {
+      await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId });
+    }
+    if (selectedFolders.length > 0) {
+      for (const id of selectedFolders) {
+        await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
@@ -266,13 +250,8 @@ export default function DrivePage() {
     setSelectedFolders([]);
     setIsMoveOpen(false);
     setIsSelectMode(false); // Exit select mode after successful move
-    if (targetFolderId === -1) {
-      setLocation('/drive');
-    } else if (targetFolderId !== null) {
-      setLocation(`/drive?folder=${targetFolderId}`);
-    }
     if (targetFolderId !== null) {
-      setLocation(`/drive?folder=${targetFolderId}`); // Navigate to destination folder
+      setLocation(`/drive?folder=${targetFolderId}`);
     }
   };
 
@@ -698,20 +677,6 @@ export default function DrivePage() {
 
                   {/* Folder tree - start from current navigation */}
                   {renderFolderTree(currentNavigationFolder)}
-
-                  {/* Archive option */}
-                  {currentNavigationFolder === null && (
-                    <div
-                      className={`flex items-center gap-2 p-2 rounded-md mt-2 border-t pt-2 ${
-                        selectedDestination === -1 ? 'bg-primary/10 border border-primary/20' : ''
-                      } hover:bg-muted/50 cursor-pointer`}
-                      onClick={() => setSelectedDestination(-1)}
-                      title="Click to archive selected items"
-                    >
-                      <Archive className="w-4 h-4 text-orange-500" />
-                      <span className="text-sm font-medium text-orange-600">Archive</span>
-                    </div>
-                  )}
                 </div>
               </ScrollArea>
             </div>
@@ -719,7 +684,7 @@ export default function DrivePage() {
             {/* Selected destination display */}
             {selectedDestination !== null && (
               <div className="text-sm">
-                <span className="font-medium">Selected:</span> {selectedDestination === -1 ? 'Archive' : (allFoldersData?.find(f => f.id === selectedDestination)?.name || 'Unknown')}
+                <span className="font-medium">Selected:</span> {allFoldersData?.find(f => f.id === selectedDestination)?.name || 'Unknown'}
               </div>
             )}
           </div>
