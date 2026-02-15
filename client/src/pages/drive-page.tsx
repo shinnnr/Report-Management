@@ -249,7 +249,6 @@ export default function DrivePage() {
         }
       }
       toast({ title: "Archived", description: `${selectedFiles.length + selectedFolders.length} item(s) archived successfully` });
-      window.location.href = '/drive';
     } else {
       // Move items
       if (selectedFiles.length > 0) {
@@ -260,9 +259,6 @@ export default function DrivePage() {
           await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
         }
       }
-      if (targetFolderId !== null) {
-        setLocation(`/drive?folder=${targetFolderId}`);
-      }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
@@ -270,6 +266,11 @@ export default function DrivePage() {
     setSelectedFolders([]);
     setIsMoveOpen(false);
     setIsSelectMode(false); // Exit select mode after successful move
+    if (targetFolderId === -1) {
+      setLocation('/drive');
+    } else if (targetFolderId !== null) {
+      setLocation(`/drive?folder=${targetFolderId}`);
+    }
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`); // Navigate to destination folder
     }
