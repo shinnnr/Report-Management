@@ -41,7 +41,7 @@ export function Sidebar() {
     <div className="h-screen w-64 bg-primary text-primary-foreground flex flex-col shadow-2xl z-20">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
-          <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain bg-white p-1" />
+          <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
           <div>
             <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Report Management</h1>
           </div>
