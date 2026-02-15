@@ -19,9 +19,9 @@ export function useMarkNotificationRead() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
-      const res = await fetch(api.notifications.markRead.path.replace(':id', id.toString()), {
-        method: api.notifications.markRead.method,
+    mutationFn: async ({ userId, notificationId }: { userId: number; notificationId: number }) => {
+      const res = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'POST',
         credentials: 'include',
       });
       if (!res.ok) throw new Error("Failed to mark notification as read");

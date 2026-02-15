@@ -120,7 +120,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => markReadMutation.mutate(notification.id)}
+                        onClick={() => markReadMutation.mutate({ userId: user?.id, notificationId: notification.id })}
                         disabled={markReadMutation.isPending}
                       >
                         <Check className="h-4 w-4" />

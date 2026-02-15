@@ -386,15 +386,14 @@ export async function registerRoutes(
 
       // Create notification for all users about new activity
       const users = await storage.getUsers();
-      for (const user of users) {
-        await storage.createNotification({
-          userId: user.id,
-          activityId: activity.id,
-          title: "New Activity Added",
-          content: `New activity added: ${activity.title}`,
-          isRead: false
-        });
-      }
+      const notification = await storage.createNotification({
+        activityId: activity.id,
+        title: "New Activity Added",
+        content: `New activity added: ${activity.title}`,
+        type: "new_activity"
+      });
+      const userIds = users.map(user => user.id);
+      await storage.createUserNotifications(notification.id, userIds);
 
       res.status(201).json(activity);
     } catch (err) {

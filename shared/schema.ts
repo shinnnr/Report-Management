@@ -73,11 +73,20 @@ export const activitySubmissions = pgTable("activity_submissions", {
 // === NOTIFICATIONS ===
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  activityId: integer("activity_id").references(() => activities.id).notNull(),
+  activityId: integer("activity_id").references(() => activities.id),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  type: text("type").notNull(), // 'new_activity', 'due_reminder', etc.
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === USER NOTIFICATIONS ===
+export const userNotifications = pgTable("user_notifications", {
+  id: serial("id").primaryKey(),
+  notificationId: integer("notification_id").references(() => notifications.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   isRead: boolean("is_read").default(false).notNull(),
+  readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -153,14 +162,22 @@ export const activitySubmissionsRelations = relations(activitySubmissions, ({ on
   }),
 }));
 
-export const notificationsRelations = relations(notifications, ({ one }) => ({
-  user: one(users, {
-    fields: [notifications.userId],
-    references: [users.id],
-  }),
+export const notificationsRelations = relations(notifications, ({ one, many }) => ({
   activity: one(activities, {
     fields: [notifications.activityId],
     references: [activities.id],
+  }),
+  userNotifications: many(userNotifications),
+}));
+
+export const userNotificationsRelations = relations(userNotifications, ({ one }) => ({
+  notification: one(notifications, {
+    fields: [userNotifications.notificationId],
+    references: [notifications.id],
+  }),
+  user: one(users, {
+    fields: [userNotifications.userId],
+    references: [users.id],
   }),
 }));
 
@@ -176,6 +193,7 @@ export const insertActivitySchema = createInsertSchema(activities)
   });
 export const insertActivitySubmissionSchema = createInsertSchema(activitySubmissions).omit({ id: true, submissionDate: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type User = typeof users.$inferSelect;
@@ -190,6 +208,9 @@ export type ActivitySubmission = typeof activitySubmissions.$inferSelect;
 export type InsertActivitySubmission = z.infer<typeof insertActivitySubmissionSchema>;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 
 export type ActivityLogWithUser = {
   id: number;

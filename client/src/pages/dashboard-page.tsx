@@ -136,7 +136,7 @@ export default function DashboardPage() {
 
     const handleNotificationClick = (notification: any) => {
         // Mark as read
-        markReadMutation.mutate(notification.id);
+        markReadMutation.mutate({ userId: user?.id, notificationId: notification.id });
         // Redirect based on notification type
         if (notification.content.includes('activity')) {
             setLocation('/calendar');

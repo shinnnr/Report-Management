@@ -1,5 +1,5 @@
-import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions } from "@shared/schema";
-import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission } from "@shared/schema";
+import { users, folders, reports, activities, activityLogs, notifications, userNotifications, activitySubmissions } from "@shared/schema";
+import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type UserNotification, type InsertUserNotification, type ActivitySubmission, type InsertActivitySubmission } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
 
@@ -44,9 +44,10 @@ export interface IStorage {
   createActivitySubmission(submission: InsertActivitySubmission): Promise<ActivitySubmission>;
 
   // Notifications
-  getNotifications(userId: number): Promise<Notification[]>;
+  getNotifications(userId: number): Promise<(Notification & { isRead: boolean; readAt?: Date })[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
-  markNotificationRead(id: number): Promise<void>;
+  createUserNotifications(notificationId: number, userIds: number[]): Promise<void>;
+  markNotificationRead(userId: number, notificationId: number): Promise<void>;
   deleteNotification(id: number): Promise<void>;
   deleteAllNotifications(userId: number): Promise<void>;
 
@@ -457,21 +458,23 @@ export class DatabaseStorage implements IStorage {
     ));
 
     for (const activity of upcoming) {
-      // Check if notification already exists
-      const [existing] = await db.select().from(notifications).where(and(
-        eq(notifications.activityId, activity.id),
-        eq(notifications.userId, activity.userId!)
-      ));
+      // Check if notification already exists for this user
+      const [existing] = await db.select().from(notifications)
+        .innerJoin(userNotifications, eq(notifications.id, userNotifications.notificationId))
+        .where(and(
+          eq(notifications.activityId, activity.id),
+          eq(userNotifications.userId, activity.userId!)
+        ));
 
       if (!existing) {
         const remainingDays = Math.ceil((activity.deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        await this.createNotification({
-          userId: activity.userId!,
+        const notification = await this.createNotification({
           activityId: activity.id,
           title: "Upcoming Deadline",
           content: `Activity "${activity.title}" is due on ${activity.deadlineDate.toLocaleDateString()}. ${remainingDays} days remaining.`,
-          isRead: false
+          type: "due_reminder"
         });
+        await this.createUserNotifications(notification.id, [activity.userId!]);
       }
     }
   }
@@ -497,8 +500,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Notifications
-  async getNotifications(userId: number): Promise<Notification[]> {
-    return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+  async getNotifications(userId: number): Promise<(Notification & { isRead: boolean; readAt?: Date })[]> {
+    const result = await db.select({
+      id: notifications.id,
+      activityId: notifications.activityId,
+      title: notifications.title,
+      content: notifications.content,
+      type: notifications.type,
+      createdAt: notifications.createdAt,
+      isRead: userNotifications.isRead,
+      readAt: userNotifications.readAt,
+    })
+    .from(notifications)
+    .innerJoin(userNotifications, eq(notifications.id, userNotifications.notificationId))
+    .where(eq(userNotifications.userId, userId))
+    .orderBy(desc(notifications.createdAt));
+
+    return result.map(item => ({
+      ...item,
+      readAt: item.readAt || undefined,
+    }));
   }
 
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
@@ -506,8 +527,33 @@ export class DatabaseStorage implements IStorage {
     return notification;
   }
 
-  async markNotificationRead(id: number): Promise<void> {
-    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  async createUserNotifications(notificationId: number, userIds: number[]): Promise<void> {
+    const values = userIds.map(userId => ({
+      notificationId,
+      userId,
+      isRead: false,
+    }));
+    await db.insert(userNotifications).values(values);
+  }
+
+  async markNotificationRead(userId: number, notificationId: number): Promise<void> {
+    await db.update(userNotifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(userNotifications.userId, userId),
+        eq(userNotifications.notificationId, notificationId)
+      ));
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.delete(userNotifications).where(eq(userNotifications.notificationId, id));
+      await tx.delete(notifications).where(eq(notifications.id, id));
+    });
+  }
+
+  async deleteAllNotifications(userId: number): Promise<void> {
+    await db.delete(userNotifications).where(eq(userNotifications.userId, userId));
   }
 
   // Logs
