@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -166,6 +167,10 @@ export default function ArchivesPage() {
               className="max-w-sm"
             />
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
         </div>
       </div>
 

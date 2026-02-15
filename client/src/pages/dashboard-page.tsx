@@ -1,5 +1,6 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
@@ -193,20 +194,22 @@ export default function DashboardPage() {
               Welcome back, {user?.fullName}. Here's what's happening today.
             </p>
           </div>
-          <div className="relative" ref={notificationRef}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="relative"
-              onClick={() => setShowNotifications(!showNotifications)}
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <div className="relative" ref={notificationRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Button>
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                 <div className="p-4">
@@ -256,6 +259,7 @@ export default function DashboardPage() {
                 </ScrollArea>
               </div>
             )}
+            </div>
           </div>
         </div>
       </header>
