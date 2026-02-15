@@ -1,6 +1,6 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
-import { Folder, FileText, Clock, AlertCircle, Activity } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
@@ -12,13 +12,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 export default function DashboardPage() {
-   const { user } = useAuth();
-   const { data: folders } = useFolders(null);
-   const { data: reports } = useReports();
-   const { data: activities } = useActivities();
-   const { data: logs } = useLogs();
+    const { user } = useAuth();
+    const { data: folders } = useFolders(null);
+    const { data: reports } = useReports();
+    const { data: activities } = useActivities();
+    const { data: logs } = useLogs();
 
-   const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+    const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+
+    const getActivityIcon = (action: string) => {
+        if (action.includes('create_report') || action.includes('upload')) return File;
+        if (action.includes('create_folder')) return Folder;
+        if (action.includes('update_report')) return Pencil;
+        if (action.includes('archive_report') || action.includes('archive_folder')) return Archive;
+        if (action.includes('restore_report')) return RotateCcw;
+        if (action.includes('delete')) return Trash2;
+        return Activity;
+    };
 
    // Calculate real storage usage
   const totalStorageBytes = 10 * 1024 * 1024 * 1024; // 10GB in bytes
@@ -166,38 +176,41 @@ export default function DashboardPage() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  {logs?.map((log) => (
-                    <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Activity className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{log.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
-                          </span>
+                  {logs?.map((log) => {
+                    const IconComponent = getActivityIcon(log.action);
+                    return (
+                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                          <IconComponent className="w-4 h-4 text-primary" />
                         </div>
-                        <div className="flex justify-between items-center mt-1">
-                          <p className="text-xs text-muted-foreground capitalize">
-                            Action: {log.action.replace('_', ' ')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            By: {log.userFullName || 'Unknown'}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{log.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-1">
+                            <p className="text-xs text-muted-foreground capitalize">
+                              Action: {log.action.replace('_', ' ')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              By: {log.userFullName || 'Unknown'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {!logs?.length && (
                     <div className="text-center py-10 text-muted-foreground">
                       No recent system activity found.

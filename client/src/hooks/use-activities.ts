@@ -63,5 +63,6 @@ export function useLogs() {
       if (!res.ok) throw new Error("Failed to fetch logs");
       return api.logs.list.responses[200].parse(await res.json());
     },
+    refetchInterval: 5000,
   });
 }
