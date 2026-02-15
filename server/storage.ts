@@ -187,18 +187,29 @@ export class DatabaseStorage implements IStorage {
           }
         }
 
-        // If this is a parent folder being restored, also restore its direct archived children
-        if (!restoreAsRoot) {
-          const archivedChildren = await tx.select().from(folders).where(
-            and(eq(folders.parentId, id), eq(folders.status, 'archived'))
-          );
-          for (const child of archivedChildren) {
-            await tx.update(folders).set({ status: 'active' }).where(eq(folders.id, child.id));
+        // Restore all subfolders and files recursively
+        const restoreSubfolders = async (parentId: number) => {
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, parentId));
+          for (const subfolder of subfolders) {
+            if (subfolder.status === 'archived') {
+              await tx.update(folders).set({ status: 'active' }).where(eq(folders.id, subfolder.id));
+              await restoreSubfolders(subfolder.id); // Recursive call
+            }
           }
-        }
+        };
+        await restoreSubfolders(id);
 
-        // Restore all files in this folder
-        await tx.update(reports).set({ status: 'active' }).where(eq(reports.folderId, id));
+        // Restore all files in this folder and subfolders
+        const restoreFiles = async (folderId: number) => {
+          await tx.update(reports).set({ status: 'active' }).where(eq(reports.folderId, folderId));
+
+          // Also restore files in subfolders
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, folderId));
+          for (const subfolder of subfolders) {
+            await restoreFiles(subfolder.id);
+          }
+        };
+        await restoreFiles(id);
       }
 
       return folder;

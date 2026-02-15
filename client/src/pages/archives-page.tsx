@@ -85,6 +85,7 @@ export default function ArchivesPage() {
     updateFolder.mutate({ id, status: 'active' }, {
       onSuccess: () => {
         toast({ title: "Restored", description: "Folder restored successfully" });
+        setLocation('/drive');
       }
     });
   };
@@ -93,6 +94,7 @@ export default function ArchivesPage() {
     updateReport.mutate({ id, status: 'active' }, {
       onSuccess: () => {
         toast({ title: "Restored", description: "File restored successfully" });
+        setLocation('/drive');
       }
     });
   };
