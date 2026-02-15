@@ -381,7 +381,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteReport(id: number): Promise<void> {
-    await db.delete(reports).where(eq(reports.id, id));
+    try {
+      // First delete any activity submissions for this report
+      await db.delete(activitySubmissions).where(eq(activitySubmissions.reportId, id));
+      await db.delete(reports).where(eq(reports.id, id));
+    } catch (error) {
+      console.error(`Error deleting report ${id}:`, error);
+      throw error;
+    }
   }
 
   // Activities
