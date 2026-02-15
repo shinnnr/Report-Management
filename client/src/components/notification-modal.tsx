@@ -132,17 +132,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     </div>
 
                     <div className="flex items-center gap-2 ml-4">
-                      {!notification.isRead && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => user?.id && markReadMutation.mutate({ userId: user.id, notificationId: notification.id })}
-                          disabled={markReadMutation.isPending}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      )}
-
                       {isAdmin && (
                         <>
                           <input
@@ -152,10 +141,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                             className="rounded"
                           />
                           <Button
-                            variant="destructive"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(notification.id)}
                             disabled={deleteMutation.isPending}
+                            className="p-0 h-auto text-destructive hover:text-destructive/80"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
