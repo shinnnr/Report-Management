@@ -159,6 +159,8 @@ export default function DrivePage() {
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [archiveFolderId, setArchiveFolderId] = useState<number | null>(null);
+  const [archiveFileId, setArchiveFileId] = useState<number | null>(null);
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
@@ -783,6 +785,55 @@ export default function DrivePage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!archiveFolderId} onOpenChange={() => setArchiveFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive this folder? It will be moved to the archives and can be restored later.
+              All files and subfolders inside will also be archived.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (archiveFolderId) {
+                  updateFolder.mutate({ id: archiveFolderId, status: 'archived' });
+                  setArchiveFolderId(null);
+                }
+              }}
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!archiveFileId} onOpenChange={() => setArchiveFileId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive this file? It will be moved to the archives and can be restored later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (archiveFileId) {
+                  updateReport.mutate({ id: archiveFileId, status: 'archived' });
+                  setArchiveFileId(null);
+                }
+              }}
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
@@ -826,7 +877,7 @@ export default function DrivePage() {
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateFolder.mutate({ id: f.id, status: 'archived' })}>Archive</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -901,7 +952,7 @@ export default function DrivePage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateReport.mutate({ id: r.id, status: 'archived' })}>Archive</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setArchiveFileId(r.id)}>Archive</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
