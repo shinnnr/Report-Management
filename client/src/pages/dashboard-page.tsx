@@ -307,7 +307,7 @@ export default function DashboardPage() {
             title="Total Activities"
             value={activities?.length || 0}
             icon={Activity}
-            color="accent"
+            color="secondary"
             trend="All tasks"
           />
         </div>
@@ -386,12 +386,12 @@ export default function DashboardPage() {
 
         {/* Quick Actions / Info */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-white shadow-xl shadow-primary/20">
+          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20">
             <h3 className="text-lg font-display font-bold mb-2">Need Help?</h3>
-            <p className="text-primary-foreground/80 text-sm mb-4">
+            <p className="text-sm mb-4">
               Contact the system administrator if you encounter any issues with file permissions.
             </p>
-            <div className="text-xs opacity-60">System Version 1.0.0</div>
+            <div className="text-xs opacity-80">System Version 1.0.0</div>
           </div>
 
           <Card className="border shadow-lg">

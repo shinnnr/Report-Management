@@ -7,6 +7,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -21,6 +31,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const [, setLocation] = useLocation();
 
   const [selectedNotifications, setSelectedNotifications] = useState<number[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
 
   const handleNotificationClick = (notification: any) => {
     markReadMutation.mutate(notification.id);
@@ -31,12 +43,30 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   };
 
   const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
+    setNotificationToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (notificationToDelete) {
+      deleteMutation.mutate(notificationToDelete);
+    }
+    setShowDeleteConfirm(false);
+    setNotificationToDelete(null);
   };
 
   const handleDeleteSelected = () => {
+    if (selectedNotifications.length > 0) {
+      setNotificationToDelete(null);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const handleConfirmDeleteSelected = () => {
     selectedNotifications.forEach(id => deleteMutation.mutate(id));
     setSelectedNotifications([]);
+    setShowDeleteConfirm(false);
+    setNotificationToDelete(null);
   };
 
   const toggleSelection = (id: number) => {
@@ -77,24 +107,24 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                  className={`p-4 rounded-lg border cursor-pointer hover:bg-muted transition-colors ${
+                    !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-card border-border'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1" onClick={() => handleNotificationClick(notification)}>
-                      <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'}`}>
+                      <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
                       </h4>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {notification.content}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Type: {notification.activityId ? 'Activity' : 'System'}</span>
                         <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a') : 'Unknown'}</span>
                         <span>{notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown'}</span>
                         <span className={`px-2 py-1 rounded text-xs ${
-                          notification.isRead ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
                         }`}>
                           {notification.isRead ? 'Read' : 'Unread'}
                         </span>
@@ -122,7 +152,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                             className="rounded"
                           />
                           <Button
-                            variant="ghost"
+                            variant="destructive"
                             size="sm"
                             onClick={() => handleDelete(notification.id)}
                             disabled={deleteMutation.isPending}
@@ -136,13 +166,37 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <p>No notifications found.</p>
               </div>
             )}
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              {notificationToDelete 
+                ? "Are you sure you want to delete this notification? This action cannot be undone."
+                : `Are you sure you want to delete ${selectedNotifications.length} notification(s)? This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={notificationToDelete ? handleConfirmDelete : handleConfirmDeleteSelected}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
