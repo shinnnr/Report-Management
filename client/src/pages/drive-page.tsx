@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
+import { NewFolderModal } from "@/components/new-folder-modal";
+import { UploadModal } from "@/components/upload-modal";
+import { DeleteConfirmationModal } from "@/components/delete-confirmation-modal";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -140,6 +143,12 @@ export default function DrivePage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  // Refs for modal trigger buttons (swoosh animation)
+  const newFolderButtonRef = useRef<HTMLButtonElement>(null);
+  const uploadButtonRef = useRef<HTMLButtonElement>(null);
+  const moveButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
@@ -465,63 +474,45 @@ export default function DrivePage() {
         <div className="flex items-center gap-3">
           {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
             <>
-              <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
+              <Button ref={moveButtonRef} variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                 <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
               </Button>
-              <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
+              <Button ref={deleteButtonRef} variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
                 <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
               </Button>
             </>
           )}
 
-          <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Plus className="w-4 h-4" /> New Folder
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Folder</DialogTitle>
-                <DialogDescription>Create a new folder in the current location.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-folder-name">Folder Name</Label>
-                  <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>Create</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button
+            ref={newFolderButtonRef}
+            variant="outline"
+            className="gap-2"
+            onClick={() => setIsNewFolderOpen(true)}
+          >
+            <Plus className="w-4 h-4" /> New Folder
+          </Button>
 
-          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-primary">
-                <UploadCloud className="w-4 h-4" /> Upload
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Files</DialogTitle>
-                <DialogDescription>Select and upload files to the current location.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="py-8 text-center border-2 border-dashed rounded-xl">
-                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
-                  <Label htmlFor="file-upload-multiple" className="cursor-pointer">
-                    <UploadCloud className="w-10 h-10 mx-auto mb-2" />
-                    <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
-                  </Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleUpload} disabled={createReport.isPending}>Upload</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <NewFolderModal
+            isOpen={isNewFolderOpen}
+            onClose={() => setIsNewFolderOpen(false)}
+            currentFolderId={currentFolderId}
+            triggerRef={newFolderButtonRef}
+          />
+
+          <Button
+            ref={uploadButtonRef}
+            className="gap-2 bg-primary"
+            onClick={() => setIsUploadOpen(true)}
+          >
+            <UploadCloud className="w-4 h-4" /> Upload
+          </Button>
+
+          <UploadModal
+            isOpen={isUploadOpen}
+            onClose={() => setIsUploadOpen(false)}
+            currentFolderId={currentFolderId}
+            triggerRef={uploadButtonRef}
+          />
         </div>
       </div>
 
@@ -766,27 +757,15 @@ export default function DrivePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Items</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedFiles.length + selectedFolders.length} item{selectedFiles.length + selectedFolders.length > 1 ? 's' : ''}?
-              {selectedFolders.length > 0 && " This will also delete all files and subfolders inside the selected folders."}
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBulkDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationModal
+        isOpen={isBulkDeleteOpen}
+        onClose={() => setIsBulkDeleteOpen(false)}
+        onConfirm={handleBulkDelete}
+        itemCount={selectedFiles.length + selectedFolders.length}
+        includeSubfolders={selectedFolders.length > 0}
+        isDeleting={deleteReport.isPending || deleteFolder.isPending}
+        triggerRef={deleteButtonRef}
+      />
 
       <AlertDialog open={!!archiveFolderId} onOpenChange={() => setArchiveFolderId(null)}>
         <AlertDialogContent>
