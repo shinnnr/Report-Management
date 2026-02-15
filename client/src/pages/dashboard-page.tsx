@@ -206,48 +206,52 @@ export default function DashboardPage() {
               )}
             </Button>
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                <div className="p-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Notifications</h3>
-                  {notifications && notifications.length > 0 ? (
-                    <div className="space-y-2">
-                      {notifications.slice(0, 10).map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors ${
-                            !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'
-                          }`}
-                          onClick={() => handleNotificationClick(notification)}
-                        >
-                          <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-gray-900`}>
-                            {notification.title}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {notification.content}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
-                      ))}
-                      {notifications.length > 10 && (
-                        <div className="border-t border-gray-200 pt-3 mt-3">
-                          <button
-                            onClick={() => {
-                              setShowNotifications(false);
-                              setShowNotificationModal(true);
-                            }}
-                            className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            View All Notifications
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No notifications</p>
-                  )}
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="p-4 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                 </div>
+                <ScrollArea className="h-96">
+                  <div className="p-4">
+                    {notifications && notifications.length > 0 ? (
+                      <div className="space-y-2">
+                        {notifications.slice(0, 10).map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors ${
+                              !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'
+                            }`}
+                            onClick={() => handleNotificationClick(notification)}
+                          >
+                            <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-gray-900`}>
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {notification.content}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                        ))}
+                        {notifications.length > 10 && (
+                          <div className="border-t border-gray-200 pt-3 mt-3">
+                            <button
+                              onClick={() => {
+                                setShowNotifications(false);
+                                setShowNotificationModal(true);
+                              }}
+                              className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              View All Notifications
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No notifications</p>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
             )}
           </div>
