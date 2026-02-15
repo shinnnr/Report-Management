@@ -104,8 +104,7 @@ export default function DashboardPage() {
                 value={activities?.length || 0}
                 icon={Activity}
                 color="accent"
-                trend={`${pendingActivities} pending`}
-                trendClassName="text-accent"
+                trend="All tasks"
               />
             </div>
           </HoverCardTrigger>
