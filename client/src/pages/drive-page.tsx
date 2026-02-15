@@ -249,7 +249,7 @@ export default function DrivePage() {
         }
       }
       toast({ title: "Archived", description: `${selectedFiles.length + selectedFolders.length} item(s) archived successfully` });
-      setLocation('/drive');
+      window.location.href = '/drive';
     } else {
       // Move items
       if (selectedFiles.length > 0) {
