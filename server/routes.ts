@@ -383,6 +383,19 @@ export async function registerRoutes(
       const activityData = { ...input, userId: (req.user as any).id };
       const activity = await storage.createActivity(activityData);
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
+
+      // Create notification for all users about new activity
+      const users = await storage.getUsers();
+      for (const user of users) {
+        await storage.createNotification({
+          userId: user.id,
+          activityId: activity.id,
+          title: "New Activity Added",
+          content: `New activity added: ${activity.title}`,
+          isRead: false
+        });
+      }
+
       res.status(201).json(activity);
     } catch (err) {
       if (err instanceof z.ZodError) {

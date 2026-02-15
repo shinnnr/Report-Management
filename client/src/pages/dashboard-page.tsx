@@ -9,8 +9,12 @@ import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
+import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notifications";
+import { formatDistanceToNow } from "date-fns";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -19,6 +23,8 @@ export default function DashboardPage() {
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
+    const { data: notifications } = useNotifications();
+    const markReadMutation = useMarkNotificationRead();
 
     const [hoverState, setHoverState] = useState<{
         visible: boolean;
@@ -27,6 +33,20 @@ export default function DashboardPage() {
         type: string;
         data: { items: any[]; total: number };
     } | null>(null);
+
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
+
+    // Close notifications when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
 
@@ -112,6 +132,18 @@ export default function DashboardPage() {
         }
     };
 
+    const handleNotificationClick = (notification: any) => {
+        // Mark as read
+        markReadMutation.mutate(notification.id);
+        // Redirect based on notification type
+        if (notification.content.includes('activity')) {
+            setLocation('/calendar');
+        }
+        setShowNotifications(false);
+    };
+
+    const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+
     const getActivityIcon = (action: string) => {
         const lowerAction = action.toLowerCase();
         if (lowerAction.includes('create') || lowerAction.includes('upload')) return Plus;
@@ -138,12 +170,68 @@ export default function DashboardPage() {
   return (
     <LayoutWrapper>
       <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <h1 className="text-3xl font-display font-bold text-primary mb-2">
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Welcome back, {user?.fullName}. Here's what's happening today.
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-primary mb-2">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user?.fullName}. Here's what's happening today.
+            </p>
+          </div>
+          <div className="relative" ref={notificationRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative"
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                <div className="p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Notifications</h3>
+                  {notifications && notifications.length > 0 ? (
+                    <div className="space-y-2">
+                      {notifications.slice(0, 10).map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors ${
+                            !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'
+                          }`}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-gray-900`}>
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {notification.content}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      ))}
+                      {notifications.length > 10 && (
+                        <p className="text-xs text-gray-500 text-center py-2">
+                          +{notifications.length - 10} more notifications
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No notifications</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* Stats Grid */}
