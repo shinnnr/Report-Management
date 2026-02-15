@@ -1,24 +1,25 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
-import { Folder, FileText, Clock, AlertCircle, Activity } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
 import { useActivities, useLogs } from "@/hooks/use-activities";
+import { useUsers } from "@/hooks/use-users";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const { data: folders } = useFolders(null);
-  const { data: reports } = useReports();
-  const { data: activities } = useActivities();
-  const { data: logs } = useLogs();
+   const { user } = useAuth();
+   const { data: folders } = useFolders(null);
+   const { data: reports } = useReports();
+   const { data: activities } = useActivities();
+   const { data: users } = useUsers();
+   const { data: logs } = useLogs();
 
-  const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
-  const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
 
   // Calculate real storage usage
   const totalStorageBytes = 10 * 1024 * 1024 * 1024; // 10GB in bytes
@@ -39,35 +40,119 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-        <StatCard
-          title="Total Folders"
-          value={folders?.length || 0}
-          icon={Folder}
-          color="primary"
-          trend="Root directories"
-        />
-        <StatCard
-          title="Total Files"
-          value={reports?.length || 0}
-          icon={FileText}
-          color="secondary"
-          trend="Across all folders"
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={pendingActivities}
-          icon={Clock}
-          color="accent"
-          trend={`${activities?.length || 0} total activities`}
-          trendClassName="text-accent"
-        />
-        <StatCard
-          title="Overdue"
-          value={overdueActivities}
-          icon={AlertCircle}
-          color="orange"
-          trend="Action required"
-        />
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div>
+              <StatCard
+                title="Total Folders"
+                value={folders?.length || 0}
+                icon={Folder}
+                color="primary"
+                trend="Root directories"
+              />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Folders</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {folders?.slice(0, 10).map((folder) => (
+                  <div key={folder.id} className="text-xs text-muted-foreground">
+                    {folder.name}
+                  </div>
+                ))}
+                {folders && folders.length > 10 && (
+                  <div className="text-xs text-muted-foreground">... and {folders.length - 10} more</div>
+                )}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div>
+              <StatCard
+                title="Total Reports"
+                value={reports?.length || 0}
+                icon={FileText}
+                color="secondary"
+                trend="Across all folders"
+              />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Recent Reports</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {reports?.slice(0, 10).map((report) => (
+                  <div key={report.id} className="text-xs text-muted-foreground">
+                    {report.title}
+                  </div>
+                ))}
+                {reports && reports.length > 10 && (
+                  <div className="text-xs text-muted-foreground">... and {reports.length - 10} more</div>
+                )}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div>
+              <StatCard
+                title="Total Activities"
+                value={activities?.length || 0}
+                icon={Activity}
+                color="accent"
+                trend={`${pendingActivities} pending`}
+                trendClassName="text-accent"
+              />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Activities</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {activities?.slice(0, 10).map((activity) => (
+                  <div key={activity.id} className="text-xs text-muted-foreground">
+                    {activity.title}
+                  </div>
+                ))}
+                {activities && activities.length > 10 && (
+                  <div className="text-xs text-muted-foreground">... and {activities.length - 10} more</div>
+                )}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div>
+              <StatCard
+                title="Total Users"
+                value={users?.length || 0}
+                icon={Users}
+                color="orange"
+                trend="Active accounts"
+              />
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent className="w-80">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Users</h4>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {users?.slice(0, 10).map((user) => (
+                  <div key={user.id} className="text-xs text-muted-foreground">
+                    {user.fullName} ({user.role})
+                  </div>
+                ))}
+                {users && users.length > 10 && (
+                  <div className="text-xs text-muted-foreground">... and {users.length - 10} more</div>
+                )}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">

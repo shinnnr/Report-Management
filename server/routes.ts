@@ -190,6 +190,12 @@ export async function registerRoutes(
     res.json(req.user);
   });
 
+  // --- User Routes ---
+  app.get(api.users.list.path, isAuthenticated, async (req, res) => {
+    const users = await storage.getUsers();
+    res.json(users);
+  });
+
   // --- Folder Routes ---
   app.get(api.folders.list.path, isAuthenticated, async (req, res) => {
     const parentIdStr = req.query.parentId as string | undefined;
