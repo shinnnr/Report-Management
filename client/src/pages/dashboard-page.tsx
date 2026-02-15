@@ -53,7 +53,7 @@ export default function DashboardPage() {
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
-        const data = getPreviewData(type);
+        const data: { items: any[]; total: number } = getPreviewData(type);
         setHoverState({
             visible: true,
             x: event.clientX + 15,
@@ -136,7 +136,9 @@ export default function DashboardPage() {
 
     const handleNotificationClick = (notification: any) => {
         // Mark as read
-        markReadMutation.mutate({ userId: user?.id, notificationId: notification.id });
+        if (user?.id) {
+            markReadMutation.mutate({ userId: user.id, notificationId: notification.id });
+        }
         // Redirect based on notification type
         if (notification.content.includes('activity')) {
             setLocation('/calendar');
@@ -207,7 +209,7 @@ export default function DashboardPage() {
             </Button>
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4">
                   <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                 </div>
                 <ScrollArea className="h-96">
@@ -229,12 +231,12 @@ export default function DashboardPage() {
                               {notification.content}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                              {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown time'}
                             </p>
                           </div>
                         ))}
                         {notifications.length > 10 && (
-                          <div className="border-t border-gray-200 pt-3 mt-3">
+                          <div className="pt-3 mt-3">
                             <button
                               onClick={() => {
                                 setShowNotifications(false);

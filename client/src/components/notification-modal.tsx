@@ -50,28 +50,30 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
-        <DialogHeader className="border-b border-gray-200 pb-4">
+        <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between">
             <span>All Notifications</span>
-            {isAdmin && selectedNotifications.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteSelected}
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete Selected ({selectedNotifications.length})
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {isAdmin && selectedNotifications.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected ({selectedNotifications.length})
+                </Button>
+              )}
+            </div>
           </DialogTitle>
           <DialogDescription>
             View and manage all your notifications. Select notifications to delete them.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[500px] pr-4">
-          <div className="space-y-4">
+        <ScrollArea className="h-[500px]">
+          <div className="space-y-4 pr-4">
             {notifications && notifications.length > 0 ? (
               notifications.map((notification) => (
                 <div
