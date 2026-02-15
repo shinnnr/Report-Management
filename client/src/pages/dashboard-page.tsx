@@ -15,6 +15,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
+import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -35,6 +36,7 @@ export default function DashboardPage() {
     } | null>(null);
 
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showNotificationModal, setShowNotificationModal] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
 
     // Close notifications when clicking outside
@@ -219,9 +221,17 @@ export default function DashboardPage() {
                         </div>
                       ))}
                       {notifications.length > 10 && (
-                        <p className="text-xs text-gray-500 text-center py-2">
-                          +{notifications.length - 10} more notifications
-                        </p>
+                        <div className="border-t border-gray-200 pt-3 mt-3">
+                          <button
+                            onClick={() => {
+                              setShowNotifications(false);
+                              setShowNotificationModal(true);
+                            }}
+                            className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View All Notifications
+                          </button>
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -462,6 +472,11 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </LayoutWrapper>
   );
 }

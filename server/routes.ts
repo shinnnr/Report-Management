@@ -547,6 +547,18 @@ export async function registerRoutes(
     res.json({ message: "Notification marked as read" });
   });
 
+  app.delete("/api/notifications/:id", isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    await storage.deleteNotification(id);
+    res.json({ message: "Notification deleted" });
+  });
+
+  app.delete("/api/notifications", isAuthenticated, async (req, res) => {
+    const userId = (req.user as any).id;
+    await storage.deleteAllNotifications(userId);
+    res.json({ message: "All notifications deleted" });
+  });
+
   // --- Logs ---
   app.get(api.logs.list.path, isAuthenticated, async (req, res) => {
     const logs = await storage.getLogs();
