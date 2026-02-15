@@ -211,9 +211,9 @@ export default function DashboardPage() {
                 )}
               </Button>
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50">
                 <div className="p-4">
-                  <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+                  <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
                 </div>
                 <ScrollArea className="h-96">
                   <div className="p-4">
@@ -222,18 +222,18 @@ export default function DashboardPage() {
                         {notifications.slice(0, 10).map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors ${
-                              !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'
+                            className={`p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors ${
+                              !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-card border-border'
                             }`}
                             onClick={() => handleNotificationClick(notification)}
                           >
-                            <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-gray-900`}>
+                            <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                               {notification.title}
                             </p>
-                            <p className="text-xs text-gray-600 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {notification.content}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown time'}
                             </p>
                           </div>
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                                 setShowNotifications(false);
                                 setShowNotificationModal(true);
                               }}
-                              className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              className="w-full text-sm text-primary hover:text-primary/80 font-medium"
                             >
                               View All Notifications
                             </button>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No notifications</p>
+                      <p className="text-sm text-muted-foreground">No notifications</p>
                     )}
                   </div>
                 </ScrollArea>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         {/* Recent Activity Logs */}
         <div className="lg:col-span-2">
-          <Card className="border-none shadow-lg">
+          <Card className="border shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
@@ -394,7 +394,7 @@ export default function DashboardPage() {
             <div className="text-xs opacity-60">System Version 1.0.0</div>
           </div>
 
-          <Card className="border-none shadow-lg">
+          <Card className="border shadow-lg">
             <CardHeader>
               <CardTitle>Storage Usage</CardTitle>
             </CardHeader>
@@ -433,14 +433,14 @@ export default function DashboardPage() {
       {/* Floating Hover Tooltip */}
       {hoverState?.visible && (
         <div
-          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs pointer-events-none transition-opacity duration-200"
+          className="fixed z-50 bg-popover border rounded-lg shadow-lg p-4 max-w-xs pointer-events-none transition-opacity duration-200"
           style={{
             left: hoverState.type === 'overdue' ? hoverState.x : Math.min(hoverState.x, window.innerWidth - 320),
             top: Math.min(hoverState.y, window.innerHeight - 200),
           }}
         >
           <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-900">
+            <h4 className="text-sm font-semibold text-foreground">
               {hoverState.type === 'folders' && 'Recent Folders'}
               {hoverState.type === 'reports' && 'Recent Reports'}
               {hoverState.type === 'activities' && 'Active Activities'}
@@ -450,43 +450,43 @@ export default function DashboardPage() {
               {hoverState.data.items.length > 0 ? (
                 <>
                   {hoverState.data.items.map((item: any, index: number) => (
-                    <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 last:border-b-0">
+                    <div key={index} className="text-xs text-muted-foreground border-b border-border pb-1 last:border-b-0">
                       {hoverState.type === 'folders' && (
                         <div>
                           <div className="font-medium">{item.name}</div>
-                          <div className="text-gray-500">Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                          <div className="text-muted-foreground">Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
                         </div>
                       )}
                       {hoverState.type === 'reports' && (
                         <div>
                           <div className="font-medium">{item.title}</div>
-                          <div className="text-gray-500">Uploaded: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                          <div className="text-muted-foreground">Uploaded: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
                         </div>
                       )}
                       {hoverState.type === 'activities' && (
                         <div>
                           <div className="font-medium">{item.title}</div>
-                          <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
-                          <div className="text-gray-500 capitalize">Status: {item.status}</div>
+                          <div className="text-muted-foreground">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                          <div className="text-muted-foreground capitalize">Status: {item.status}</div>
                         </div>
                       )}
                       {hoverState.type === 'overdue' && (
                         <div>
                           <div className="font-medium">{item.title}</div>
-                          <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
-                          <div className="text-red-500">{item.daysOverdue} days overdue</div>
+                          <div className="text-muted-foreground">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                          <div className="text-destructive">{item.daysOverdue} days overdue</div>
                         </div>
                       )}
                     </div>
                   ))}
                   {hoverState.data.total > 3 && (
-                    <div className="text-xs text-gray-500 pt-1">
+                    <div className="text-xs text-muted-foreground pt-1">
                       +{hoverState.data.total - 3} more...
                     </div>
                   )}
                 </>
               ) : (
-                <div className="text-xs text-gray-500">No records available.</div>
+                <div className="text-xs text-muted-foreground">No records available.</div>
               )}
             </div>
           </div>

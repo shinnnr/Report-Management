@@ -27,7 +27,7 @@ export function StatCard({ title, value, icon: Icon, trend, color = "primary", t
 
   return (
     <div className={cn(
-      "rounded-2xl p-6 border shadow-sm transition-all duration-300 hover:shadow-md bg-white",
+      "rounded-2xl p-6 border shadow-sm transition-all duration-300 hover:shadow-md bg-card",
       colors[color]
     )}>
       <div className="flex items-start justify-between">
