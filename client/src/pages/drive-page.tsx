@@ -347,7 +347,7 @@ export default function DrivePage() {
 
   const isDescendant = (folderId: number | null, ancestorId: number): boolean => {
     if (folderId === null) return false;
-    let current = folderId;
+    let current: number | null = folderId;
     while (current !== null) {
       const folder = allFoldersData?.find(f => f.id === current);
       if (!folder) break;
@@ -799,7 +799,11 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFolderId) {
-                  updateFolder.mutate({ id: archiveFolderId, status: 'archived' });
+                  updateFolder.mutate({ id: archiveFolderId, status: 'archived' }, {
+                    onSuccess: () => {
+                      toast({ title: "Archived", description: "Folder archived successfully" });
+                    }
+                  });
                   setArchiveFolderId(null);
                 }
               }}
@@ -823,7 +827,11 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFileId) {
-                  updateReport.mutate({ id: archiveFileId, status: 'archived' });
+                  updateReport.mutate({ id: archiveFileId, status: 'archived' }, {
+                    onSuccess: () => {
+                      toast({ title: "Archived", description: "File archived successfully" });
+                    }
+                  });
                   setArchiveFileId(null);
                 }
               }}
@@ -877,6 +885,7 @@ export default function DrivePage() {
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -952,6 +961,7 @@ export default function DrivePage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {setSelectedFiles([r.id]); setSelectedFolders([]); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setArchiveFileId(r.id)}>Archive</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
