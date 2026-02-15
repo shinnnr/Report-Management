@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DrivePage() {
   const { user } = useAuth();
@@ -463,6 +464,7 @@ export default function DrivePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
             <>
               <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
