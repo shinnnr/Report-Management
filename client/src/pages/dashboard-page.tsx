@@ -1,6 +1,6 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
@@ -21,12 +21,19 @@ export default function DashboardPage() {
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
 
     const getActivityIcon = (action: string) => {
-        if (action.includes('create_report') || action.includes('upload')) return File;
-        if (action.includes('create_folder')) return Folder;
-        if (action.includes('update_report')) return Pencil;
-        if (action.includes('archive_report') || action.includes('archive_folder')) return Archive;
-        if (action.includes('restore_report')) return RotateCcw;
-        if (action.includes('delete')) return Trash2;
+        const lowerAction = action.toLowerCase();
+        if (lowerAction.includes('create') || lowerAction.includes('upload')) return Plus;
+        if (lowerAction.includes('update') || lowerAction.includes('update_profile')) return Pencil;
+        if (lowerAction.includes('delete')) return Trash2;
+        if (lowerAction.includes('move')) return ArrowRightLeft;
+        if (lowerAction.includes('archive')) return Archive;
+        if (lowerAction.includes('restore')) return RotateCcw;
+        if (lowerAction.includes('login')) return LogIn;
+        if (lowerAction.includes('logout')) return LogOut;
+        if (lowerAction.includes('password')) return Key;
+        if (lowerAction.includes('settings')) return Settings;
+        if (lowerAction.includes('report')) return File;
+        if (lowerAction.includes('folder')) return Folder;
         return Activity;
     };
 
@@ -195,18 +202,14 @@ export default function DashboardPage() {
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
-                            </span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                              <span>{format(new Date(log.timestamp!), 'MMM d, h:mm a')}</span>
+                              <span>By: {log.userFullName || 'Unknown'}</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <p className="text-xs text-muted-foreground capitalize">
-                              Action: {log.action.replace('_', ' ')}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              By: {log.userFullName || 'Unknown'}
-                            </p>
-                          </div>
+                          <p className="text-xs text-muted-foreground capitalize mt-1">
+                            Action: {log.action.replace('_', ' ')}
+                          </p>
                         </div>
                       </div>
                     );

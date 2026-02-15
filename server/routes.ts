@@ -292,8 +292,13 @@ export async function registerRoutes(
 
   app.delete(api.folders.delete.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id as string);
+    const folder = await storage.getFolder(id);
+    if (!folder) {
+      return res.status(404).json({ error: "Folder not found" });
+    }
     await storage.deleteFolder(id);
-    await storage.createLog((req.user as any).id, "DELETE_FOLDER", `Deleted folder ID: ${id}`);
+    const truncatedName = folder.name.length > 20 ? folder.name.substring(0, 20) + "..." : folder.name;
+    await storage.createLog((req.user as any).id, "DELETE_FOLDER", `Deleted folder ${truncatedName}`);
     res.json({ message: "Folder deleted" });
   });
 
@@ -355,8 +360,13 @@ export async function registerRoutes(
 
   app.delete(api.reports.delete.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id as string);
+    const report = await storage.getReport(id);
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
     await storage.deleteReport(id);
-    await storage.createLog((req.user as any).id, "DELETE_REPORT", `Deleted report ID: ${id}`);
+    const truncatedTitle = report.title.length > 20 ? report.title.substring(0, 20) + "..." : report.title;
+    await storage.createLog((req.user as any).id, "DELETE_REPORT", `Deleted report ${truncatedTitle}`);
     res.json({ message: "Report deleted" });
   });
 
