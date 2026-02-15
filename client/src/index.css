@@ -87,10 +87,12 @@
 @layer base {
   * {
     @apply border-border;
+    @apply transition-colors duration-200 ease-in-out;
   }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
+    @apply transition-colors duration-200 ease-in-out;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);

@@ -1,5 +1,4 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useActivities, useCreateActivity, useDeleteActivity } from "@/hooks/use-activities";
 import { 
   startOfMonth, 
@@ -185,9 +184,7 @@ export default function CalendarPage() {
           <p className="text-muted-foreground">Manage your schedule and deadlines.</p>
         </div>
         
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
+        <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
           <DialogTrigger asChild>
             <Button
               className="gap-2 shadow-lg shadow-primary/20 bg-primary"
