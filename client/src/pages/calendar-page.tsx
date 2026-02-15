@@ -369,8 +369,7 @@ export default function CalendarPage() {
               )}
             </DialogFooter>
           </DialogContent>
-        </Dialog>
-        </div>
+        The user wants me to fix the calendar-page.tsx file by removing the extra closing </Dialog>
 
         {/* Delete Confirmation Modal */}
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
