@@ -38,8 +38,6 @@ export default function DashboardPage() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
-    const notificationButtonRef = useRef<HTMLButtonElement>(null);
-    const viewAllNotificationsRef = useRef<HTMLButtonElement>(null);
 
     // Close notifications when clicking outside
     useEffect(() => {
@@ -197,7 +195,6 @@ export default function DashboardPage() {
           </div>
           <div className="relative" ref={notificationRef}>
             <Button
-              ref={notificationButtonRef}
               variant="ghost"
               size="sm"
               className="relative"
@@ -241,7 +238,6 @@ export default function DashboardPage() {
                         {notifications.length > 10 && (
                           <div className="pt-3 mt-3">
                             <button
-                              ref={viewAllNotificationsRef}
                               onClick={() => {
                                 setShowNotifications(false);
                                 setShowNotificationModal(true);
@@ -496,7 +492,6 @@ export default function DashboardPage() {
       <NotificationModal
         isOpen={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
-        triggerRef={viewAllNotificationsRef}
       />
     </LayoutWrapper>
   );
