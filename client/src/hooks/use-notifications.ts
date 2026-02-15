@@ -10,7 +10,7 @@ export function useNotifications() {
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return api.notifications.list.responses[200].parse(await res.json());
     },
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 5000, // Poll every 5 seconds for real-time updates
   });
 }
 
