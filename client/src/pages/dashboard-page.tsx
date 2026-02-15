@@ -9,7 +9,8 @@ import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useState } from "react";
+import { useLocation } from "wouter";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -17,8 +18,90 @@ export default function DashboardPage() {
     const { data: reports } = useReports();
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
+    const [, setLocation] = useLocation();
+
+    const [hoverState, setHoverState] = useState<{
+        visible: boolean;
+        x: number;
+        y: number;
+        type: string;
+        data: any[];
+    } | null>(null);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+
+    const handleMouseEnter = (type: string, event: React.MouseEvent) => {
+        const data = getPreviewData(type);
+        setHoverState({
+            visible: true,
+            x: event.clientX + 15,
+            y: event.clientY + 15,
+            type,
+            data
+        });
+    };
+
+    const handleMouseMove = (event: React.MouseEvent) => {
+        if (hoverState) {
+            setHoverState(prev => prev ? {
+                ...prev,
+                x: event.clientX + 15,
+                y: event.clientY + 15
+            } : null);
+        }
+    };
+
+    const handleMouseLeave = () => {
+        setHoverState(null);
+    };
+
+    const getPreviewData = (type: string) => {
+        switch (type) {
+            case 'folders':
+                return folders?.slice(0, 5).map(folder => ({
+                    name: folder.name,
+                    createdAt: folder.createdAt,
+                    fileCount: 0 // Would need to calculate
+                })) || [];
+            case 'reports':
+                return reports?.slice(0, 5).map(report => ({
+                    title: report.title,
+                    uploadedBy: report.uploadedBy,
+                    createdAt: report.createdAt
+                })) || [];
+            case 'activities':
+                return activities?.slice(0, 5).map(activity => ({
+                    title: activity.title,
+                    deadlineDate: activity.deadlineDate,
+                    status: activity.status
+                })) || [];
+            case 'overdue':
+                return activities?.filter(a => a.status === 'overdue').slice(0, 5).map(activity => ({
+                    title: activity.title,
+                    deadlineDate: activity.deadlineDate,
+                    daysOverdue: Math.floor((new Date().getTime() - new Date(activity.deadlineDate).getTime()) / (1000 * 60 * 60 * 24))
+                })) || [];
+            default:
+                return [];
+        }
+    };
+
+    const handleCardClick = (type: string) => {
+        switch (type) {
+            case 'folders':
+                setLocation('/drive');
+                break;
+            case 'reports':
+                setLocation('/drive');
+                break;
+            case 'activities':
+                setLocation('/calendar');
+                break;
+            case 'overdue':
+                setLocation('/calendar');
+                break;
+        }
+    };
 
     const getActivityIcon = (action: string) => {
         const lowerAction = action.toLowerCase();
@@ -56,118 +139,66 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <div>
-              <StatCard
-                title="Total Folders"
-                value={folders?.length || 0}
-                icon={Folder}
-                color="primary"
-                trend="Root directories"
-              />
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-white border-primary/20">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Folders</h4>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {folders?.slice(0, 10).map((folder) => (
-                  <div key={folder.id} className="text-xs text-muted-foreground">
-                    {folder.name}
-                  </div>
-                ))}
-                {folders && folders.length > 10 && (
-                  <div className="text-xs text-muted-foreground">... and {folders.length - 10} more</div>
-                )}
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <div>
-              <StatCard
-                title="Total Reports"
-                value={reports?.length || 0}
-                icon={FileText}
-                color="secondary"
-                trend="Across all folders"
-              />
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-white border-secondary/20">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Recent Reports</h4>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {reports?.slice(0, 10).map((report) => (
-                  <div key={report.id} className="text-xs text-muted-foreground">
-                    {report.title}
-                  </div>
-                ))}
-                {reports && reports.length > 10 && (
-                  <div className="text-xs text-muted-foreground">... and {reports.length - 10} more</div>
-                )}
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <div>
-              <StatCard
-                title="Total Activities"
-                value={activities?.length || 0}
-                icon={Activity}
-                color="accent"
-                trend="All tasks"
-              />
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-white border-accent/20">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Activities</h4>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {activities?.slice(0, 10).map((activity) => (
-                  <div key={activity.id} className="text-xs text-muted-foreground">
-                    {activity.title}
-                  </div>
-                ))}
-                {activities && activities.length > 10 && (
-                  <div className="text-xs text-muted-foreground">... and {activities.length - 10} more</div>
-                )}
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <div>
-              <StatCard
-                title="Overdue"
-                value={overdueActivities}
-                icon={AlertCircle}
-                color="orange"
-                trend="Action required"
-              />
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-white border-orange-200">
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Overdue Activities</h4>
-              <div className="max-h-32 overflow-y-auto space-y-1">
-                {activities?.filter(a => a.status === 'overdue').slice(0, 10).map((activity) => (
-                  <div key={activity.id} className="text-xs text-muted-foreground">
-                    {activity.title}
-                  </div>
-                ))}
-                {activities && activities.filter(a => a.status === 'overdue').length > 10 && (
-                  <div className="text-xs text-muted-foreground">... and {activities.filter(a => a.status === 'overdue').length - 10} more</div>
-                )}
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
+        <div
+          onMouseEnter={(e) => handleMouseEnter('folders', e)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => handleCardClick('folders')}
+          className="cursor-pointer"
+        >
+          <StatCard
+            title="Total Folders"
+            value={folders?.length || 0}
+            icon={Folder}
+            color="primary"
+            trend="Root directories"
+          />
+        </div>
+        <div
+          onMouseEnter={(e) => handleMouseEnter('reports', e)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => handleCardClick('reports')}
+          className="cursor-pointer"
+        >
+          <StatCard
+            title="Total Reports"
+            value={reports?.length || 0}
+            icon={FileText}
+            color="secondary"
+            trend="Across all folders"
+          />
+        </div>
+        <div
+          onMouseEnter={(e) => handleMouseEnter('activities', e)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => handleCardClick('activities')}
+          className="cursor-pointer"
+        >
+          <StatCard
+            title="Total Activities"
+            value={activities?.length || 0}
+            icon={Activity}
+            color="accent"
+            trend="All tasks"
+          />
+        </div>
+        <div
+          onMouseEnter={(e) => handleMouseEnter('overdue', e)}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          onClick={() => handleCardClick('overdue')}
+          className="cursor-pointer"
+        >
+          <StatCard
+            title="Overdue"
+            value={overdueActivities}
+            icon={AlertCircle}
+            color="orange"
+            trend="Action required"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
@@ -271,6 +302,62 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Floating Hover Tooltip */}
+      {hoverState?.visible && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs pointer-events-none transition-opacity duration-200"
+          style={{
+            left: Math.min(hoverState.x, window.innerWidth - 320),
+            top: Math.min(hoverState.y, window.innerHeight - 200),
+          }}
+        >
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-900">
+              {hoverState.type === 'folders' && 'Recent Folders'}
+              {hoverState.type === 'reports' && 'Recent Reports'}
+              {hoverState.type === 'activities' && 'Active Activities'}
+              {hoverState.type === 'overdue' && 'Overdue Activities'}
+            </h4>
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {hoverState.data.length > 0 ? (
+                hoverState.data.map((item: any, index: number) => (
+                  <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 last:border-b-0">
+                    {hoverState.type === 'folders' && (
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-gray-500">Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                      </div>
+                    )}
+                    {hoverState.type === 'reports' && (
+                      <div>
+                        <div className="font-medium">{item.title}</div>
+                        <div className="text-gray-500">Uploaded: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                      </div>
+                    )}
+                    {hoverState.type === 'activities' && (
+                      <div>
+                        <div className="font-medium">{item.title}</div>
+                        <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                        <div className="text-gray-500 capitalize">Status: {item.status}</div>
+                      </div>
+                    )}
+                    {hoverState.type === 'overdue' && (
+                      <div>
+                        <div className="font-medium">{item.title}</div>
+                        <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                        <div className="text-red-500">{item.daysOverdue} days overdue</div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-gray-500">No records available.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </LayoutWrapper>
   );
 }
