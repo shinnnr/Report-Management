@@ -386,7 +386,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions / Info */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-primary to-primary/70 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-primary/90 dark:to-primary/60">
+          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-[#022420] dark:to-[#023020]">
             <h3 className="text-lg font-display font-bold mb-2">Need Help?</h3>
             <p className="text-sm mb-4">
               Contact the system administrator if you encounter any issues with file permissions.
