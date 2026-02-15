@@ -202,14 +202,15 @@ export default function DashboardPage() {
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                              <span>{format(new Date(log.timestamp!), 'MMM d, h:mm a')}</span>
-                              <span>By: {log.userFullName || 'Unknown'}</span>
-                            </div>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground capitalize mt-1">
-                            Action: {log.action.replace('_', ' ')}
-                          </p>
+                          <div className="ml-4 mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {log.userFullName || 'Unknown'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
