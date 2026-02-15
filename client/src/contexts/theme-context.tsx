@@ -18,8 +18,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored === "light" || stored === "dark") {
       return stored;
     }
-    // Default to dark if no preference stored
-    return "dark";
+    // Default to light if no preference stored
+    return "light";
   });
 
   useEffect(() => {
