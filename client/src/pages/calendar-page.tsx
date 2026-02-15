@@ -75,9 +75,9 @@ export default function CalendarPage() {
 
   const getStatusColor = (status: string | null) => {
     switch(status) {
-      case 'completed': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'overdue': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default: return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'completed': return 'bg-green-100 text-green-700 border-green-200';
+      case 'overdue': return 'bg-red-100 text-red-700 border-red-200';
+      default: return 'bg-orange-100 text-orange-700 border-orange-200';
     }
   };
 
@@ -401,11 +401,11 @@ export default function CalendarPage() {
         </Dialog>
       </div>
 
-      <div className="bg-slate-900 rounded-xl shadow-lg border border-slate-700 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <div className="bg-white rounded-xl shadow-lg border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800/50">
+        <div className="flex items-center justify-between p-6 border-b bg-muted/20">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold font-display text-white">
+            <h2 className="text-xl font-bold font-display text-primary">
               {format(currentDate, 'MMMM yyyy')}
             </h2>
             <div className="flex gap-1">
@@ -417,15 +417,15 @@ export default function CalendarPage() {
               </Button>
             </div>
           </div>
-          <div className="text-sm text-slate-400 font-medium">
+          <div className="text-sm text-muted-foreground font-medium">
             {activities?.length} Scheduled Activities
           </div>
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 border-b border-slate-700">
+        <div className="grid grid-cols-7 border-b">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="py-3 text-center text-sm font-semibold text-slate-400 border-r last:border-r-0 bg-slate-800/50">
+            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5">
               {day}
             </div>
           ))}
@@ -433,7 +433,7 @@ export default function CalendarPage() {
 
         <div className="grid grid-cols-7 min-h-[600px] auto-rows-fr" onClick={() => setSelectedDate(null)}>
           {paddingDays.map((_, i) => (
-            <div key={`padding-${i}`} className="bg-slate-800/30 border-b border-r last:border-r-0 border-slate-700" />
+            <div key={`padding-${i}`} className="bg-muted/5 border-b border-r last:border-r-0" />
           ))}
 
           {daysInMonth.map((date) => {
@@ -443,9 +443,9 @@ export default function CalendarPage() {
               <div
                 key={date.toISOString()}
                 className={cn(
-                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-slate-800/50 border-slate-700 bg-slate-900/30",
-                  isToday(date) && "bg-slate-800/50",
-                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-slate-800"
+                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10",
+                  isToday(date) && "bg-accent/5",
+                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -458,7 +458,7 @@ export default function CalendarPage() {
               >
                 <div className={cn(
                   "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
-                  isToday(date) ? "bg-primary text-white shadow-sm" : "text-slate-400"
+                  isToday(date) ? "bg-accent text-white shadow-sm" : "text-muted-foreground"
                 )}>
                   {format(date, 'd')}
                 </div>

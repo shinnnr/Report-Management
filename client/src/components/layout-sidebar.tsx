@@ -38,7 +38,7 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="h-screen w-64 bg-slate-900 text-white flex flex-col shadow-2xl z-20">
+    <div className="h-screen w-64 bg-primary text-primary-foreground flex flex-col shadow-2xl z-20">
       <div className="p-6">
         <div className="flex items-center gap-3 mb-8">
           <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
@@ -55,8 +55,8 @@ export function Sidebar() {
                 <div className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200",
                   isActive 
-                    ? "bg-slate-700 text-white font-medium shadow-inner border border-slate-600" 
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                    ? "bg-white/10 text-white font-medium shadow-inner border border-white/5" 
+                    : "text-primary-foreground/70 hover:bg-white/5 hover:text-white"
                 )}>
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -67,14 +67,14 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-slate-700 bg-slate-950">
+      <div className="mt-auto p-6 border-t border-white/10 bg-black/10">
         <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm">
             {user?.fullName?.charAt(0) || 'U'}
           </div>
           <div className="overflow-hidden">
             <p className="font-medium text-sm truncate">{user?.fullName}</p>
-            <p className="text-xs text-slate-400 capitalize">{user?.role}</p>
+            <p className="text-xs text-primary-foreground/60 capitalize">{user?.role}</p>
           </div>
         </div>
         
@@ -82,7 +82,7 @@ export function Sidebar() {
           <AlertDialogTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800"
+              className="w-full justify-start text-primary-foreground/70 hover:text-white hover:bg-white/5"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Log Out
