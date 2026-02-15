@@ -14,6 +14,7 @@ import {
   Home,
   ChevronRight,
   Search,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,24 +34,44 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 export default function ArchivesPage() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const search = useSearch();
+
+  const searchParams = new URLSearchParams(search);
+  const currentFolderId = searchParams.get("folder") ? parseInt(searchParams.get("folder")!) : null;
 
   const [archivesSearchQuery, setArchivesSearchQuery] = useState("");
 
-  const { data: archivedFolders } = useFolders('all', 'archived');
-  const { data: archivedReports, isLoading: reportsLoading } = useReports(undefined, 'archived');
+  const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived');
+  const { data: allArchivedFolders } = useFolders('all', 'archived');
+  const { data: archivedReports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived');
   const { toast } = useToast();
 
-  const foldersLoading = !archivedFolders;
+  const foldersLoading = !currentArchivedFolders;
   const isLoading = foldersLoading || reportsLoading;
 
-  const filteredArchivedFolders = archivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [];
+  const filteredArchivedFolders = currentArchivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [];
   const filteredArchivedReports = archivedReports?.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [];
+
+  // Sync navigation on folder click
+  const handleFolderClick = (id: number) => {
+    setLocation(`/archives?folder=${id}`);
+  };
+
+  const breadcrumbs = [];
+  let tempId = currentFolderId;
+  while (tempId && allArchivedFolders) {
+    const folder = allArchivedFolders.find(f => f.id === tempId);
+    if (folder) {
+      breadcrumbs.unshift(folder);
+      tempId = folder.parentId;
+    } else break;
+  }
 
   const updateFolder = useUpdateFolder();
   const updateReport = useUpdateReport();
@@ -76,6 +97,43 @@ export default function ArchivesPage() {
     });
   };
 
+  const createBlobUrl = (dataUrl: string) => {
+    if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+
+    try {
+      const [mimeType, base64Data] = dataUrl.split(',');
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType.split(':')[1].split(';')[0] });
+      return URL.createObjectURL(blob);
+    } catch (error) {
+      console.error('Error creating blob URL:', error);
+      return dataUrl;
+    }
+  };
+
+  const handleFileClick = (fileData: string, fileName: string) => {
+    const blobUrl = createBlobUrl(fileData);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the blob URL after a delay to allow the tab to open
+    setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  };
+
   return (
     <LayoutWrapper>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -84,6 +142,22 @@ export default function ArchivesPage() {
             <Archive className="w-8 h-8" /> Archives
           </h1>
           <p className="text-muted-foreground mb-4">View and manage archived documents.</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button onClick={() => setLocation("/archives")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
+              <Home className="w-4 h-4" /> Home
+            </button>
+            {breadcrumbs.map((crumb) => (
+              <div key={crumb.id} className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4" />
+                <button
+                  onClick={() => setLocation(`/archives?folder=${crumb.id}`)}
+                  className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
+                >
+                  {crumb.name}
+                </button>
+              </div>
+            ))}
+          </div>
           <div className="mt-4">
             <Input
               placeholder="Search archived folders and files..."
@@ -146,7 +220,7 @@ export default function ArchivesPage() {
       </AlertDialog>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
@@ -155,7 +229,7 @@ export default function ArchivesPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredArchivedFolders.map(f => (
                   <div key={f.id} className="relative p-4 rounded-xl border border-border">
-                    <div className="flex items-center gap-3 pt-4">
+                    <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                       <FolderIcon className="w-10 h-10 text-secondary" />
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -204,7 +278,7 @@ export default function ArchivesPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4" />
-                            <span className="hover:text-primary">{r.fileName}</span>
+                            <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>

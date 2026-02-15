@@ -3,6 +3,7 @@ import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Folder as FolderIcon,
   FileText,
@@ -60,6 +61,7 @@ import { queryClient } from "@/lib/queryClient";
 
 export default function DrivePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -802,9 +804,9 @@ export default function DrivePage() {
                   updateFolder.mutate({ id: archiveFolderId, status: 'archived' }, {
                     onSuccess: () => {
                       toast({ title: "Archived", description: "Folder archived successfully" });
+                      setArchiveFolderId(null);
                     }
                   });
-                  setArchiveFolderId(null);
                 }
               }}
             >
@@ -951,7 +953,7 @@ export default function DrivePage() {
                             {isSelectMode ? (
                               <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             ) : (
-                              <span onClick={() => handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                              <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             )}
                           </div>
                         </td>
