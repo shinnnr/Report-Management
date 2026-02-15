@@ -3,7 +3,7 @@ import { useNotifications, useMarkNotificationRead, useDeleteNotification } from
 import { formatDistanceToNow, format } from "date-fns";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -65,6 +65,9 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
               </Button>
             )}
           </DialogTitle>
+          <DialogDescription>
+            View and manage all your notifications. Select notifications to delete them.
+          </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="h-[500px] pr-4">
@@ -87,8 +90,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                         <span>Type: {notification.activityId ? 'Activity' : 'System'}</span>
-                        <span>{format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a')}</span>
-                        <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                        <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a') : 'Unknown'}</span>
+                        <span>{notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown'}</span>
                         <span className={`px-2 py-1 rounded text-xs ${
                           notification.isRead ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }`}>
@@ -102,7 +105,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => markReadMutation.mutate({ userId: user?.id, notificationId: notification.id })}
+                          onClick={() => user?.id && markReadMutation.mutate({ userId: user.id, notificationId: notification.id })}
                           disabled={markReadMutation.isPending}
                         >
                           <Check className="h-4 w-4" />
