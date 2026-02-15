@@ -360,8 +360,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateReport(id: number, updates: Partial<InsertReport>): Promise<Report> {
-    const [report] = await db.update(reports).set(updates).where(eq(reports.id, id)).returning();
-    return report;
+    return await db.transaction(async (tx) => {
+      // Get the report before updating
+      const currentReport = await tx.select().from(reports).where(eq(reports.id, id)).limit(1);
+      if (!currentReport.length) throw new Error("Report not found");
+
+      // If restoring a report
+      if (updates.status === 'active' && currentReport[0].folderId !== null) {
+        // Check if the report's folder is archived
+        const folder = await tx.select().from(folders).where(eq(folders.id, currentReport[0].folderId!)).limit(1);
+        if (folder.length > 0 && folder[0].status === 'archived') {
+          // Folder is still archived, move report to root
+          updates.folderId = null;
+        }
+      }
+
+      const [report] = await tx.update(reports).set(updates).where(eq(reports.id, id)).returning();
+      return report;
+    });
   }
 
   async deleteReport(id: number): Promise<void> {
