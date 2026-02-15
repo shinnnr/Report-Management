@@ -48,7 +48,7 @@ export default function AuthPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left: Branding */}
       <div className="hidden lg:flex flex-col justify-between bg-primary p-12 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
         
         <div className="relative z-10">
