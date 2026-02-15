@@ -249,7 +249,6 @@ export default function DrivePage() {
         }
       }
       toast({ title: "Archived", description: `${selectedFiles.length + selectedFolders.length} item(s) archived successfully` });
-      setLocation('/archives');
     } else {
       // Move items
       if (selectedFiles.length > 0) {
@@ -267,6 +266,9 @@ export default function DrivePage() {
     setSelectedFolders([]);
     setIsMoveOpen(false);
     setIsSelectMode(false); // Exit select mode after successful move
+    if (targetFolderId === -1) {
+      setLocation('/archives');
+    }
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`); // Navigate to destination folder
     }
