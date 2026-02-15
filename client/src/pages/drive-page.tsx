@@ -267,7 +267,9 @@ export default function DrivePage() {
     setIsMoveOpen(false);
     setIsSelectMode(false); // Exit select mode after successful move
     if (targetFolderId === -1) {
-      setLocation('/archives');
+      setLocation('/drive');
+    } else if (targetFolderId !== null) {
+      setLocation(`/drive?folder=${targetFolderId}`);
     }
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`); // Navigate to destination folder
