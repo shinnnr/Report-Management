@@ -4,7 +4,7 @@ import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveF
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   Folder as FolderIcon,
   FileText,
   MoreVertical,
@@ -18,6 +18,7 @@ import {
   Edit2,
   MoveHorizontal,
   Search,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -248,6 +249,7 @@ export default function DrivePage() {
         }
       }
       toast({ title: "Archived", description: `${selectedFiles.length + selectedFolders.length} item(s) archived successfully` });
+      setLocation('/archives');
     } else {
       // Move items
       if (selectedFiles.length > 0) {
@@ -702,7 +704,7 @@ export default function DrivePage() {
                       onClick={() => setSelectedDestination(-1)}
                       title="Click to archive selected items"
                     >
-                      <FolderIcon className="w-4 h-4 text-orange-500" />
+                      <Archive className="w-4 h-4 text-orange-500" />
                       <span className="text-sm font-medium text-orange-600">Archive</span>
                     </div>
                   )}
