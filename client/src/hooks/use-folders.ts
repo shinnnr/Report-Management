@@ -3,18 +3,19 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertFolder } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useFolders(parentId: number | null | 'all' = null) {
+export function useFolders(parentId: number | null | 'all' = null, status: string = 'active') {
   return useQuery({
-    queryKey: [api.folders.list.path, parentId],
+    queryKey: [api.folders.list.path, parentId, status],
     queryFn: async () => {
-      let params = '';
+      const params = new URLSearchParams();
       if (parentId === 'all') {
-        params = '?parentId=all';
+        params.append('parentId', 'all');
       } else if (parentId !== null) {
-        params = `?parentId=${parentId}`;
+        params.append('parentId', parentId.toString());
       }
-      // no params for root folders
-      const url = `${api.folders.list.path}${params}`;
+      if (status) params.append('status', status);
+
+      const url = `${api.folders.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
@@ -122,6 +123,28 @@ export function useDeleteFolder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       toast({ title: "Deleted", description: "Folder deleted successfully" });
+    },
+  });
+}
+
+export function useUpdateFolder() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: number } & Partial<InsertFolder>) => {
+      const url = buildUrl(api.folders.update.path, { id });
+      const res = await fetch(url, {
+        method: api.folders.update.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update folder");
+      return api.folders.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
     },
   });
 }

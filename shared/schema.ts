@@ -20,6 +20,7 @@ export const folders = pgTable("folders", {
   name: text("name").notNull(),
   parentId: integer("parent_id"), // Nullable for root folders
   createdBy: integer("created_by").references(() => users.id),
+  status: text("status").default("active"), // 'active', 'archived', 'deleted'
   createdAt: timestamp("created_at").defaultNow(),
 });
 

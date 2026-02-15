@@ -193,17 +193,18 @@ export async function registerRoutes(
   // --- Folder Routes ---
   app.get(api.folders.list.path, isAuthenticated, async (req, res) => {
     const parentIdStr = req.query.parentId as string | undefined;
+    const status = req.query.status as string | undefined;
 
     // If no parentId specified, return root folders
     if (!parentIdStr) {
-      const folders = await storage.getFolders(null);
+      const folders = await storage.getFolders(null, status);
       res.json(folders);
       return;
     }
 
     // If parentId is 'all', return all folders (for breadcrumbs)
     if (parentIdStr === 'all') {
-      const folders = await storage.getFolders(undefined);
+      const folders = await storage.getFolders(undefined, status);
       res.json(folders);
       return;
     }
@@ -217,7 +218,7 @@ export async function registerRoutes(
       if (isNaN(parentId)) parentId = null;
     }
 
-    const folders = await storage.getFolders(parentId);
+    const folders = await storage.getFolders(parentId, status);
     res.json(folders);
   });
 
@@ -264,6 +265,21 @@ export async function registerRoutes(
       await storage.createLog((req.user as any).id, "MOVE_FOLDER", `Moved folder: ${folder.name}`);
       res.json(folder);
     } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch(api.folders.update.path, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const updates = api.folders.update.input.parse(req.body);
+      const folder = await storage.updateFolder(id, updates);
+      await storage.createLog((req.user as any).id, "UPDATE_FOLDER", `Updated folder: ${folder.name}`);
+      res.json(folder);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
       res.status(400).json({ message: err.message });
     }
   });

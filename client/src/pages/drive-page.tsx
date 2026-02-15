@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
-import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder } from "@/hooks/use-folders";
-import { useReports, useCreateReport, useDeleteReport, useMoveReports } from "@/hooks/use-reports";
+import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
+import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
 import { 
   Folder as FolderIcon,
@@ -128,9 +128,11 @@ export default function DrivePage() {
   const deleteFolder = useDeleteFolder();
   const renameFolder = useRenameFolder();
   const moveFolder = useMoveFolder();
+  const updateFolder = useUpdateFolder();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
   const moveReports = useMoveReports();
+  const updateReport = useUpdateReport();
 
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -824,6 +826,7 @@ export default function DrivePage() {
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateFolder.mutate({ id: f.id, status: 'archived' })}>Archive</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -898,6 +901,7 @@ export default function DrivePage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateReport.mutate({ id: r.id, status: 'archived' })}>Archive</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

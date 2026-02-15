@@ -10,11 +10,12 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Folders
-  getFolders(parentId?: number): Promise<Folder[]>;
+  getFolders(parentId?: number | null, status?: string): Promise<Folder[]>;
   getFolder(id: number): Promise<Folder | undefined>;
   getFolderPath(id: number): Promise<Folder[]>;
   getFolderByNameAndParent(name: string, parentId: number | null): Promise<Folder | undefined>;
   createFolder(folder: InsertFolder): Promise<Folder>;
+  updateFolder(id: number, updates: Partial<InsertFolder>): Promise<Folder>;
   renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
   moveFolder(id: number, targetParentId: number | null): Promise<Folder>;
@@ -69,14 +70,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Folders
-  async getFolders(parentId?: number | null): Promise<Folder[]> {
+  async getFolders(parentId?: number | null, status?: string): Promise<Folder[]> {
+    let query = db.select().from(folders);
+
+    if (status) {
+      query = query.where(eq(folders.status, status));
+    }
+
     if (parentId === undefined) {
-      return db.select().from(folders);
+      return query;
     }
     if (parentId === null || parentId === 0) {
-      return db.select().from(folders).where(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
+      return query.where(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
     }
-    return db.select().from(folders).where(sql`${folders.parentId}::text = ${parentId.toString()}`);
+    return query.where(sql`${folders.parentId}::text = ${parentId.toString()}`);
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
@@ -125,6 +132,12 @@ export class DatabaseStorage implements IStorage {
       const [folder] = await tx.insert(folders).values(insertFolder).returning();
       return folder;
     });
+  }
+
+  async updateFolder(id: number, updates: Partial<InsertFolder>): Promise<Folder> {
+    const [folder] = await db.update(folders).set(updates).where(eq(folders.id, id)).returning();
+    if (!folder) throw new Error("Folder not found");
+    return folder;
   }
 
   async renameFolder(id: number, name: string): Promise<Folder> {

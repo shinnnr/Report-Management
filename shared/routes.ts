@@ -53,6 +53,7 @@ export const api = {
       path: '/api/folders',
       input: z.object({
         parentId: z.string().optional().transform(val => val === 'null' ? null : val ? parseInt(val) : null),
+        status: z.string().optional(),
       }).optional(),
       responses: {
         200: z.array(z.custom<typeof folders.$inferSelect>()),
@@ -95,6 +96,15 @@ export const api = {
       responses: {
         200: z.custom<typeof folders.$inferSelect>(),
         400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/folders/:id',
+      input: insertFolderSchema.partial(),
+      responses: {
+        200: z.custom<typeof folders.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
