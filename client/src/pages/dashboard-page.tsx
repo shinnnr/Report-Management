@@ -1,11 +1,10 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
-import { Folder, FileText, Clock, AlertCircle, Activity, Users } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
 import { useActivities, useLogs } from "@/hooks/use-activities";
-import { useUsers } from "@/hooks/use-users";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +16,11 @@ export default function DashboardPage() {
    const { data: folders } = useFolders(null);
    const { data: reports } = useReports();
    const { data: activities } = useActivities();
-   const { data: users } = useUsers();
    const { data: logs } = useLogs();
 
+   const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
 
-  // Calculate real storage usage
+   // Calculate real storage usage
   const totalStorageBytes = 10 * 1024 * 1024 * 1024; // 10GB in bytes
   const usedStorageBytes = reports?.reduce((total, report) => total + (report.fileSize || 0), 0) || 0;
   const usedStorageGB = usedStorageBytes / (1024 * 1024 * 1024);
@@ -52,7 +51,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-primary/5 border-primary/20">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Folders</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -80,7 +79,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-secondary/5 border-secondary/20">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Recent Reports</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -108,7 +107,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-accent/5 border-accent/20">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Activities</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -128,25 +127,25 @@ export default function DashboardPage() {
           <HoverCardTrigger asChild>
             <div>
               <StatCard
-                title="Total Users"
-                value={users?.length || 0}
-                icon={Users}
+                title="Overdue"
+                value={overdueActivities}
+                icon={AlertCircle}
                 color="orange"
-                trend="Active accounts"
+                trend="Action required"
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80 shadow-lg rounded-lg">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg bg-orange-500/5 border-orange-200">
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Users</h4>
+              <h4 className="text-sm font-semibold">Overdue Activities</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
-                {users?.slice(0, 10).map((user) => (
-                  <div key={user.id} className="text-xs text-muted-foreground">
-                    {user.fullName} ({user.role})
+                {activities?.filter(a => a.status === 'overdue').slice(0, 10).map((activity) => (
+                  <div key={activity.id} className="text-xs text-muted-foreground">
+                    {activity.title}
                   </div>
                 ))}
-                {users && users.length > 10 && (
-                  <div className="text-xs text-muted-foreground">... and {users.length - 10} more</div>
+                {activities && activities.filter(a => a.status === 'overdue').length > 10 && (
+                  <div className="text-xs text-muted-foreground">... and {activities.filter(a => a.status === 'overdue').length - 10} more</div>
                 )}
               </div>
             </div>
