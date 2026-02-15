@@ -401,9 +401,9 @@ export default function CalendarPage() {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-muted/20">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold font-display text-primary">
               {format(currentDate, 'MMMM yyyy')}
@@ -423,9 +423,9 @@ export default function CalendarPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="grid grid-cols-7 border-b">
+        <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5">
+            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20">
               {day}
             </div>
           ))}
@@ -433,7 +433,7 @@ export default function CalendarPage() {
 
         <div className="grid grid-cols-7 min-h-[600px] auto-rows-fr" onClick={() => setSelectedDate(null)}>
           {paddingDays.map((_, i) => (
-            <div key={`padding-${i}`} className="bg-muted/5 border-b border-r last:border-r-0" />
+            <div key={`padding-${i}`} className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800" />
           ))}
 
           {daysInMonth.map((date) => {
@@ -443,8 +443,8 @@ export default function CalendarPage() {
               <div
                 key={date.toISOString()}
                 className={cn(
-                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10",
-                  isToday(date) && "bg-accent/5",
+                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800",
+                  isToday(date) && "bg-accent/5 dark:bg-accent/10",
                   selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
                 )}
                 onClick={(e) => {
