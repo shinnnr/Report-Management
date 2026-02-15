@@ -3,6 +3,7 @@ import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import {
   Folder as FolderIcon,
   FileText,
@@ -43,6 +44,7 @@ export default function ArchivesPage() {
 
   const { data: archivedFolders } = useFolders('all', 'archived');
   const { data: archivedReports, isLoading: reportsLoading } = useReports(undefined, 'archived');
+  const { toast } = useToast();
 
   const foldersLoading = !archivedFolders;
   const isLoading = foldersLoading || reportsLoading;

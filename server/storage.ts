@@ -71,19 +71,21 @@ export class DatabaseStorage implements IStorage {
 
   // Folders
   async getFolders(parentId?: number | null, status?: string): Promise<Folder[]> {
-    let query = db.select().from(folders);
+    let conditions = [];
 
     if (status) {
-      query = query.where(eq(folders.status, status));
+      conditions.push(eq(folders.status, status));
     }
 
     if (parentId === undefined) {
-      return query;
+      return db.select().from(folders).where(and(...conditions));
     }
     if (parentId === null || parentId === 0) {
-      return query.where(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
+      conditions.push(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
+      return db.select().from(folders).where(and(...conditions));
     }
-    return query.where(sql`${folders.parentId}::text = ${parentId.toString()}`);
+    conditions.push(sql`${folders.parentId}::text = ${parentId.toString()}`);
+    return db.select().from(folders).where(and(...conditions));
   }
 
   async getFolder(id: number): Promise<Folder | undefined> {
@@ -135,9 +137,61 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFolder(id: number, updates: Partial<InsertFolder>): Promise<Folder> {
-    const [folder] = await db.update(folders).set(updates).where(eq(folders.id, id)).returning();
-    if (!folder) throw new Error("Folder not found");
-    return folder;
+    return await db.transaction(async (tx) => {
+      const [folder] = await tx.update(folders).set(updates).where(eq(folders.id, id)).returning();
+      if (!folder) throw new Error("Folder not found");
+
+      // If archiving a folder, also archive all subfolders and files recursively
+      if (updates.status === 'archived') {
+        // Archive all subfolders recursively
+        const archiveSubfolders = async (parentId: number) => {
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, parentId));
+          for (const subfolder of subfolders) {
+            await tx.update(folders).set({ status: 'archived' }).where(eq(folders.id, subfolder.id));
+            await archiveSubfolders(subfolder.id); // Recursive call
+          }
+        };
+        await archiveSubfolders(id);
+
+        // Archive all files in this folder and subfolders
+        const archiveFiles = async (folderId: number) => {
+          await tx.update(reports).set({ status: 'archived' }).where(eq(reports.folderId, folderId));
+
+          // Also archive files in subfolders
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, folderId));
+          for (const subfolder of subfolders) {
+            await archiveFiles(subfolder.id);
+          }
+        };
+        await archiveFiles(id);
+      }
+      // If restoring a folder, also restore all subfolders and files recursively
+      else if (updates.status === 'active') {
+        // Restore all subfolders recursively
+        const restoreSubfolders = async (parentId: number) => {
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, parentId));
+          for (const subfolder of subfolders) {
+            await tx.update(folders).set({ status: 'active' }).where(eq(folders.id, subfolder.id));
+            await restoreSubfolders(subfolder.id); // Recursive call
+          }
+        };
+        await restoreSubfolders(id);
+
+        // Restore all files in this folder and subfolders
+        const restoreFiles = async (folderId: number) => {
+          await tx.update(reports).set({ status: 'active' }).where(eq(reports.folderId, folderId));
+
+          // Also restore files in subfolders
+          const subfolders = await tx.select().from(folders).where(eq(folders.parentId, folderId));
+          for (const subfolder of subfolders) {
+            await restoreFiles(subfolder.id);
+          }
+        };
+        await restoreFiles(id);
+      }
+
+      return folder;
+    });
   }
 
   async renameFolder(id: number, name: string): Promise<Folder> {
