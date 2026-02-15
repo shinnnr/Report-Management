@@ -25,7 +25,7 @@ export default function DashboardPage() {
         x: number;
         y: number;
         type: string;
-        data: any[];
+        data: { items: any[]; total: number };
     } | null>(null);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
@@ -56,34 +56,43 @@ export default function DashboardPage() {
     };
 
     const getPreviewData = (type: string) => {
+        let data;
         switch (type) {
             case 'folders':
-                return folders?.slice(0, 5).map(folder => ({
+                data = folders?.map(folder => ({
                     name: folder.name,
                     createdAt: folder.createdAt,
                     fileCount: 0 // Would need to calculate
                 })) || [];
+                break;
             case 'reports':
-                return reports?.slice(0, 5).map(report => ({
+                data = reports?.map(report => ({
                     title: report.title,
                     uploadedBy: report.uploadedBy,
                     createdAt: report.createdAt
                 })) || [];
+                break;
             case 'activities':
-                return activities?.slice(0, 5).map(activity => ({
+                data = activities?.map(activity => ({
                     title: activity.title,
                     deadlineDate: activity.deadlineDate,
                     status: activity.status
                 })) || [];
+                break;
             case 'overdue':
-                return activities?.filter(a => a.status === 'overdue').slice(0, 5).map(activity => ({
+                data = activities?.filter(a => a.status === 'overdue').map(activity => ({
                     title: activity.title,
                     deadlineDate: activity.deadlineDate,
                     daysOverdue: Math.floor((new Date().getTime() - new Date(activity.deadlineDate).getTime()) / (1000 * 60 * 60 * 24))
                 })) || [];
+                break;
             default:
-                return [];
+                data = [];
         }
+        return {
+            items: data.slice(0, 3),
+            total: data.length
+        };
     };
 
     const handleCardClick = (type: string) => {
@@ -308,7 +317,7 @@ export default function DashboardPage() {
         <div
           className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-xs pointer-events-none transition-opacity duration-200"
           style={{
-            left: Math.min(hoverState.x, window.innerWidth - 320),
+            left: hoverState.type === 'overdue' ? hoverState.x : Math.min(hoverState.x, window.innerWidth - 320),
             top: Math.min(hoverState.y, window.innerHeight - 200),
           }}
         >
@@ -319,38 +328,45 @@ export default function DashboardPage() {
               {hoverState.type === 'activities' && 'Active Activities'}
               {hoverState.type === 'overdue' && 'Overdue Activities'}
             </h4>
-            <div className="max-h-40 overflow-y-auto space-y-1">
-              {hoverState.data.length > 0 ? (
-                hoverState.data.map((item: any, index: number) => (
-                  <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 last:border-b-0">
-                    {hoverState.type === 'folders' && (
-                      <div>
-                        <div className="font-medium">{item.name}</div>
-                        <div className="text-gray-500">Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
-                      </div>
-                    )}
-                    {hoverState.type === 'reports' && (
-                      <div>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-gray-500">Uploaded: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
-                      </div>
-                    )}
-                    {hoverState.type === 'activities' && (
-                      <div>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
-                        <div className="text-gray-500 capitalize">Status: {item.status}</div>
-                      </div>
-                    )}
-                    {hoverState.type === 'overdue' && (
-                      <div>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
-                        <div className="text-red-500">{item.daysOverdue} days overdue</div>
-                      </div>
-                    )}
-                  </div>
-                ))
+            <div className="space-y-1">
+              {hoverState.data.items.length > 0 ? (
+                <>
+                  {hoverState.data.items.map((item: any, index: number) => (
+                    <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 last:border-b-0">
+                      {hoverState.type === 'folders' && (
+                        <div>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-gray-500">Created: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                        </div>
+                      )}
+                      {hoverState.type === 'reports' && (
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-gray-500">Uploaded: {format(new Date(item.createdAt), 'MMM d, yyyy')}</div>
+                        </div>
+                      )}
+                      {hoverState.type === 'activities' && (
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                          <div className="text-gray-500 capitalize">Status: {item.status}</div>
+                        </div>
+                      )}
+                      {hoverState.type === 'overdue' && (
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-gray-500">Deadline: {format(new Date(item.deadlineDate), 'MMM d, yyyy')}</div>
+                          <div className="text-red-500">{item.daysOverdue} days overdue</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {hoverState.data.total > 3 && (
+                    <div className="text-xs text-gray-500 pt-1">
+                      +{hoverState.data.total - 3} more...
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-xs text-gray-500">No records available.</div>
               )}
