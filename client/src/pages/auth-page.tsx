@@ -83,7 +83,7 @@ export default function AuthPage() {
                   name="username"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel className="text-gray-900">Username</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter Username"
@@ -101,7 +101,7 @@ export default function AuthPage() {
                   name="password"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-gray-900">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
