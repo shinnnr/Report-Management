@@ -52,7 +52,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Folders</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -80,7 +80,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Recent Reports</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -108,7 +108,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Activities</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
@@ -136,7 +136,7 @@ export default function DashboardPage() {
               />
             </div>
           </HoverCardTrigger>
-          <HoverCardContent className="w-80">
+          <HoverCardContent className="w-80 shadow-lg rounded-lg">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Users</h4>
               <div className="max-h-32 overflow-y-auto space-y-1">
