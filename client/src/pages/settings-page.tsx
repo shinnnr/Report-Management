@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +28,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, Check, X, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, Check, X, Eye, EyeOff, User, Lock, Users, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -187,36 +189,73 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">Manage your account settings and user permissions</p>
+        </div>
       </div>
 
+      <Separator />
+
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          {isAdmin && <TabsTrigger value="users">User Management</TabsTrigger>}
+        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            Security
+          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Profile Tab - Change Username */}
-        <TabsContent value="profile">
+        <TabsContent value="profile" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Change Username</CardTitle>
-              <CardDescription>Update your username used to log in</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profile Information
+              </CardTitle>
+              <CardDescription>Update your personal information and username</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Current User Info */}
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
+                </div>
+                <div>
+                  <p className="text-lg font-medium">{currentUser?.fullName}</p>
+                  <p className="text-muted-foreground">@{currentUser?.username}</p>
+                  <Badge variant={currentUser?.role === "admin" ? "default" : "secondary"} className="mt-1">
+                    {currentUser?.role === "admin" ? "Administrator" : "Assistant"}
+                  </Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Change Username Form */}
               <form onSubmit={handleUpdateUsername} className="space-y-4">
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="currentUsername">Current Username</Label>
                   <Input
                     id="currentUsername"
                     value={currentUser?.username || ""}
                     disabled
+                    className="bg-muted"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="newUsername">New Username</Label>
                   <Input
                     id="newUsername"
@@ -225,7 +264,7 @@ export default function SettingsPage() {
                     placeholder="Enter new username"
                   />
                 </div>
-                <Button type="submit" disabled={updateUsernameMutation.isPending || !username.trim()}>
+                <Button type="submit" disabled={updateUsernameMutation.isPending || !username.trim()} className="w-full sm:w-auto">
                   {updateUsernameMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Username
                 </Button>
@@ -235,15 +274,18 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Security Tab - Change Password */}
-        <TabsContent value="security">
+        <TabsContent value="security" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Password Security
+              </CardTitle>
+              <CardDescription>Update your password to keep your account secure. Make sure to use a strong password.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <form onSubmit={handleUpdatePassword} className="space-y-4">
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
                   <div className="relative">
                     <Input
@@ -252,19 +294,21 @@ export default function SettingsPage() {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
+                      className="pr-10"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-2">
+
+                <div className="grid gap-2">
                   <Label htmlFor="newPassword">New Password</Label>
                   <Input
                     id="newPassword"
@@ -273,18 +317,9 @@ export default function SettingsPage() {
                     onChange={(e) => handleNewPasswordChange(e.target.value)}
                     placeholder="Enter new password"
                   />
-                  {passwordErrors.length > 0 && (
-                    <ul className="text-sm text-destructive space-y-1">
-                      {passwordErrors.map((error, index) => (
-                        <li key={index} className="flex items-center gap-1">
-                          <X className="h-3 w-3" />
-                          {error}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
-                <div className="space-y-2">
+
+                <div className="grid gap-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <Input
                     id="confirmPassword"
@@ -300,31 +335,48 @@ export default function SettingsPage() {
                     </p>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Password requirements:</p>
-                  <ul className="space-y-1 ml-4">
-                    <li className={newPassword.length >= 8 ? "text-green-600" : ""}>
+
+                {/* Password Requirements */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <p className="text-sm font-medium">Password Requirements:</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <div className={newPassword.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
                       {newPassword.length >= 8 ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
                       At least 8 characters
-                    </li>
-                    <li className={/[A-Z]/.test(newPassword) ? "text-green-600" : ""}>
+                    </div>
+                    <div className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
                       {/[A-Z]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
                       One uppercase letter
-                    </li>
-                    <li className={/[a-z]/.test(newPassword) ? "text-green-600" : ""}>
+                    </div>
+                    <div className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
                       {/[a-z]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
                       One lowercase letter
-                    </li>
-                    <li className={/[0-9]/.test(newPassword) ? "text-green-600" : ""}>
+                    </div>
+                    <div className={/[0-9]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
                       {/[0-9]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
                       One number
-                    </li>
-                    <li className={/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword) ? "text-green-600" : ""}>
+                    </div>
+                    <div className={/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
                       {/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
                       One special character
-                    </li>
-                  </ul>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Password Errors */}
+                {passwordErrors.length > 0 && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <ul className="text-sm text-destructive space-y-1">
+                      {passwordErrors.map((error, index) => (
+                        <li key={index} className="flex items-center gap-1">
+                          <X className="h-3 w-3" />
+                          {error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
                   disabled={
@@ -335,6 +387,7 @@ export default function SettingsPage() {
                     passwordErrors.length > 0 ||
                     newPassword !== confirmPassword
                   }
+                  className="w-full sm:w-auto"
                 >
                   {updatePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Password
@@ -346,12 +399,15 @@ export default function SettingsPage() {
 
         {/* User Management Tab (Admin Only) */}
         {isAdmin && (
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>Manage user accounts and permissions</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    User Management
+                  </CardTitle>
+                  <CardDescription>Manage user accounts, roles, and permissions</CardDescription>
                 </div>
                 <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
                   <DialogTrigger asChild>
@@ -367,13 +423,15 @@ export default function SettingsPage() {
                     </DialogHeader>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                       {newUserErrors.length > 0 && (
-                        <ul className="text-sm text-destructive space-y-1">
-                          {newUserErrors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
+                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                          <ul className="text-sm text-destructive space-y-1">
+                            {newUserErrors.map((error, index) => (
+                              <li key={index}>{error}</li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="newUsername">Username</Label>
                         <Input
                           id="newUsername"
@@ -382,7 +440,7 @@ export default function SettingsPage() {
                           placeholder="Enter username"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="newFullName">Full Name</Label>
                         <Input
                           id="newFullName"
@@ -391,7 +449,7 @@ export default function SettingsPage() {
                           placeholder="Enter full name"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="newUserRole">Role</Label>
                         <select
                           id="newUserRole"
@@ -403,7 +461,7 @@ export default function SettingsPage() {
                           <option value="admin">Admin</option>
                         </select>
                       </div>
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="newPassword">Password</Label>
                         <Input
                           id="newPassword"
@@ -413,7 +471,7 @@ export default function SettingsPage() {
                           placeholder="Enter password"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="grid gap-2">
                         <Label htmlFor="newConfirmPassword">Confirm Password</Label>
                         <Input
                           id="newConfirmPassword"
@@ -442,72 +500,74 @@ export default function SettingsPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {users?.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="font-medium">{user.fullName?.charAt(0) || 'U'}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium">{user.fullName}</p>
-                            <p className="text-sm text-muted-foreground">@{user.username}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                            {user.role === "admin" ? (
-                              <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
-                            ) : (
-                              <><Shield className="mr-1 h-3 w-3" /> Assistant</>
-                            )}
-                          </Badge>
-                          <Badge variant="outline">
-                            {user.status}
-                          </Badge>
-                          {user.id !== currentUser?.id && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleUpdateRole(user.id, user.role === "admin" ? "assistant" : "admin")}
-                                disabled={updateUserMutation.isPending}
-                              >
-                                {user.role === "admin" ? "Remove Admin" : "Make Admin"}
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" size="sm" disabled={deleteUserMutation.isPending}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete {user.fullName}? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteUser(user.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div className="space-y-3">
+                      {users?.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
-                          )}
+                            <div>
+                              <p className="font-medium">{user.fullName}</p>
+                              <p className="text-sm text-muted-foreground">@{user.username}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                              {user.role === "admin" ? (
+                                <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
+                              ) : (
+                                <><Shield className="mr-1 h-3 w-3" /> Assistant</>
+                              )}
+                            </Badge>
+                            <Badge variant="outline">
+                              {user.status}
+                            </Badge>
+                            {user.id !== currentUser?.id && (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, user.role === "admin" ? "assistant" : "admin")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  {user.role === "admin" ? "Remove Admin" : "Make Admin"}
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm" disabled={deleteUserMutation.isPending}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete {user.fullName}? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 )}
               </CardContent>
             </Card>
