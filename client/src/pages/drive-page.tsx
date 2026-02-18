@@ -19,7 +19,7 @@ import {
   Edit2,
   MoveHorizontal,
   Search,
-  ArrowDown,
+  ChevronDown,
   Filter,
   FolderOpen,
 } from "lucide-react";
@@ -243,7 +243,7 @@ export default function DrivePage() {
   const [archiveFolderId, setArchiveFolderId] = useState<number | null>(null);
   const [archiveFileId, setArchiveFileId] = useState<number | null>(null);
 
-  const handleRenameFile = () => {
+  const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
     
     // Show success message immediately and close modal
@@ -251,19 +251,15 @@ export default function DrivePage() {
     setIsRenameFileOpen(false);
     toast({ title: "Updated", description: "File renamed successfully" });
     
-    // Optimistically update the cache
-    const folderKey = currentFolderId === null ? "root" : currentFolderId;
-    queryClient.setQueryData(["/api/reports", folderKey, "active"], (old: any) => {
-      if (!old) return old;
-      return old.map((report: any) =>
-        report.id === renameFileId ? { ...report, title: renameFileName, fileName: renameFileName } : report
-      );
-    });
-    
-    // Do the mutation in the background, suppress default toast
-    updateReport.mutate({ id: renameFileId, title: renameFileName, fileName: renameFileName }, {
-      onSuccess: () => {}, // Override default toast
-    });
+    try {
+      // Wait for the mutation to complete - the hook's onSuccess will invalidate reports
+      await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
+      // Also invalidate activities to show the rename activity
+      await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+    } catch (error) {
+      // Handle error if needed
+      console.error("Failed to rename file:", error);
+    }
   };
 
   const handleCreateFolder = async () => {
@@ -278,7 +274,7 @@ export default function DrivePage() {
     setIsNewFolderOpen(false);
   };
 
-  const handleRenameFolder = () => {
+  const handleRenameFolder = async () => {
     if (!renameName.trim() || !renameId) return;
     
     // Show success message immediately and close modal
@@ -286,18 +282,15 @@ export default function DrivePage() {
     setIsRenameOpen(false);
     toast({ title: "Updated", description: "Folder renamed successfully" });
     
-    // Optimistically update the cache
-    queryClient.setQueryData(["/api/folders", currentFolderId, "active"], (old: any) => {
-      if (!old) return old;
-      return old.map((folder: any) =>
-        folder.id === renameId ? { ...folder, name: renameName } : folder
-      );
-    });
-    
-    // Do the mutation in the background, suppress default toast
-    renameFolder.mutate({ id: renameId, name: renameName }, {
-      onSuccess: () => {}, // Override default toast
-    });
+    try {
+      // Wait for the mutation to complete - the hook's onSuccess will invalidate folders
+      await renameFolder.mutateAsync({ id: renameId, name: renameName });
+      // Also invalidate activities to show the rename activity
+      await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+    } catch (error) {
+      // Handle error if needed
+      console.error("Failed to rename folder:", error);
+    }
   };
 
   const handleUpload = async () => {
@@ -1052,7 +1045,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1127,7 +1120,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1202,7 +1195,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
@@ -1232,7 +1225,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">

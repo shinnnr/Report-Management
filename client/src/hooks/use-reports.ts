@@ -16,7 +16,6 @@ export function useReports(folderId?: number | "root", status: string = 'active'
       if (!res.ok) throw new Error("Failed to fetch reports");
       return api.reports.list.responses[200].parse(await res.json());
     },
-    refetchInterval: 5000,
   });
 }
 
