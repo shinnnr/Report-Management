@@ -137,7 +137,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                           type="checkbox"
                           checked={selectedNotifications.includes(notification.id)}
                           onChange={() => toggleSelection(notification.id)}
-                          className="rounded"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity rounded"
                         />
                       )}
                       <button

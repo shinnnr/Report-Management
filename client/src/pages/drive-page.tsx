@@ -877,13 +877,13 @@ export default function DrivePage() {
             {filteredFolders && filteredFolders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredFolders.map(f => (
-                  <div key={f.id} className={`relative p-4 rounded-xl border ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
+                  <div key={f.id} className={`relative p-4 rounded-xl border group ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
                     {isSelectMode && <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
                     <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                       <FolderIcon className="w-10 h-10 text-secondary" />
                       <span className="truncate">{f.name}</span>
                     </div>
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -961,7 +961,7 @@ export default function DrivePage() {
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
