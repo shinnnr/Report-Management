@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/contexts/theme-context";
 
 type AuthContextType = {
   user: User | null;
@@ -71,6 +72,7 @@ export function useLoginMutation() {
 export function useLogoutMutation() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { resetTheme } = useTheme();
 
   return useMutation({
     mutationFn: async () => {
@@ -82,6 +84,7 @@ export function useLogoutMutation() {
     },
     onSuccess: () => {
       queryClient.setQueryData([api.auth.me.path], null);
+      resetTheme();
       toast({ title: "Logged out", description: "See you next time!" });
     },
   });

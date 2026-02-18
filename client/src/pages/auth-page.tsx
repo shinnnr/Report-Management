@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTheme } from "@/contexts/theme-context";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -26,7 +27,25 @@ import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
 export default function AuthPage() {
   const { user, loginMutation } = useAuth();
+  const { theme, resetTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Force light mode on auth page
+  useEffect(() => {
+    // Store current theme to restore after unmount
+    const currentTheme = theme;
+    // Force light mode
+    document.documentElement.classList.remove("dark");
+    sessionStorage.setItem("theme-preference", "light");
+
+    // Restore on unmount
+    return () => {
+      if (currentTheme === "dark") {
+        document.documentElement.classList.add("dark");
+        sessionStorage.setItem("theme-preference", "dark");
+      }
+    };
+  }, []);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),

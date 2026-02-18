@@ -5,6 +5,7 @@ type Theme = "light" | "dark";
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  resetTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -13,8 +14,8 @@ const THEME_KEY = "theme-preference";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const stored = localStorage.getItem(THEME_KEY);
+    // Check sessionStorage first
+    const stored = sessionStorage.getItem(THEME_KEY);
     if (stored === "light" || stored === "dark") {
       return stored;
     }
@@ -30,16 +31,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-    // Save to localStorage
-    localStorage.setItem(THEME_KEY, theme);
+    // Save to sessionStorage
+    sessionStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
+  const resetTheme = () => {
+    setTheme("light");
+    sessionStorage.removeItem(THEME_KEY);
+    document.documentElement.classList.remove("dark");
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, resetTheme }}>
       {children}
     </ThemeContext.Provider>
   );
