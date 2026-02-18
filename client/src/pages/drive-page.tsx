@@ -1008,8 +1008,7 @@ export default function DrivePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            {filteredReports && filteredReports.length > 0 ? (
-              <div className="bg-card rounded-xl border overflow-hidden">
+            <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -1020,13 +1019,13 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <Filter className="h-3 w-3" />
+                                <ArrowDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
                               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Name</div>
                               <DropdownMenuCheckboxItem
-                                checked={nameFilter.length === 0 || nameFilter.includes('0-9')}
+                                checked={nameFilter.includes('0-9')}
                                 onCheckedChange={() => {
                                   if (nameFilter.includes('0-9')) {
                                     setNameFilter(nameFilter.filter(f => f !== '0-9'));
@@ -1038,7 +1037,7 @@ export default function DrivePage() {
                                 0-9
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={nameFilter.length === 0 || nameFilter.includes('A-H')}
+                                checked={nameFilter.includes('A-H')}
                                 onCheckedChange={() => {
                                   if (nameFilter.includes('A-H')) {
                                     setNameFilter(nameFilter.filter(f => f !== 'A-H'));
@@ -1050,7 +1049,7 @@ export default function DrivePage() {
                                 A-H
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={nameFilter.length === 0 || nameFilter.includes('I-P')}
+                                checked={nameFilter.includes('I-P')}
                                 onCheckedChange={() => {
                                   if (nameFilter.includes('I-P')) {
                                     setNameFilter(nameFilter.filter(f => f !== 'I-P'));
@@ -1062,7 +1061,7 @@ export default function DrivePage() {
                                 I-P
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={nameFilter.length === 0 || nameFilter.includes('Q-Z')}
+                                checked={nameFilter.includes('Q-Z')}
                                 onCheckedChange={() => {
                                   if (nameFilter.includes('Q-Z')) {
                                     setNameFilter(nameFilter.filter(f => f !== 'Q-Z'));
@@ -1074,7 +1073,7 @@ export default function DrivePage() {
                                 Q-Z
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={nameFilter.length === 0 || nameFilter.includes('Other')}
+                                checked={nameFilter.includes('Other')}
                                 onCheckedChange={() => {
                                   if (nameFilter.includes('Other')) {
                                     setNameFilter(nameFilter.filter(f => f !== 'Other'));
@@ -1095,13 +1094,13 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <Filter className="h-3 w-3" />
+                                <ArrowDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
                               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Date</div>
                               <DropdownMenuCheckboxItem
-                                checked={dateFilter.length === 0 || dateFilter.includes('A long time ago')}
+                                checked={dateFilter.includes('A long time ago')}
                                 onCheckedChange={() => {
                                   if (dateFilter.includes('A long time ago')) {
                                     setDateFilter(dateFilter.filter(f => f !== 'A long time ago'));
@@ -1113,7 +1112,7 @@ export default function DrivePage() {
                                 A long time ago
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={dateFilter.length === 0 || dateFilter.includes('Last month')}
+                                checked={dateFilter.includes('Last month')}
                                 onCheckedChange={() => {
                                   if (dateFilter.includes('Last month')) {
                                     setDateFilter(dateFilter.filter(f => f !== 'Last month'));
@@ -1125,7 +1124,7 @@ export default function DrivePage() {
                                 Last month
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={dateFilter.length === 0 || dateFilter.includes('Earlier this month')}
+                                checked={dateFilter.includes('Earlier this month')}
                                 onCheckedChange={() => {
                                   if (dateFilter.includes('Earlier this month')) {
                                     setDateFilter(dateFilter.filter(f => f !== 'Earlier this month'));
@@ -1137,7 +1136,7 @@ export default function DrivePage() {
                                 Earlier this month
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={dateFilter.length === 0 || dateFilter.includes('Last week')}
+                                checked={dateFilter.includes('Last week')}
                                 onCheckedChange={() => {
                                   if (dateFilter.includes('Last week')) {
                                     setDateFilter(dateFilter.filter(f => f !== 'Last week'));
@@ -1149,7 +1148,7 @@ export default function DrivePage() {
                                 Last week
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={dateFilter.length === 0 || dateFilter.includes('Earlier this week')}
+                                checked={dateFilter.includes('Earlier this week')}
                                 onCheckedChange={() => {
                                   if (dateFilter.includes('Earlier this week')) {
                                     setDateFilter(dateFilter.filter(f => f !== 'Earlier this week'));
@@ -1170,7 +1169,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <Filter className="h-3 w-3" />
+                                <ArrowDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
@@ -1178,7 +1177,7 @@ export default function DrivePage() {
                               {fileTypes.map(type => (
                                 <DropdownMenuCheckboxItem
                                   key={type}
-                                  checked={typeFilter.length === 0 || typeFilter.includes(type)}
+                                  checked={typeFilter.includes(type)}
                                   onCheckedChange={() => {
                                     if (typeFilter.includes(type)) {
                                       setTypeFilter(typeFilter.filter(f => f !== type));
@@ -1200,13 +1199,13 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <Filter className="h-3 w-3" />
+                                <ArrowDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Size</div>
                               <DropdownMenuCheckboxItem
-                                checked={sizeFilter.length === 0 || sizeFilter.includes('tiny')}
+                                checked={sizeFilter.includes('tiny')}
                                 onCheckedChange={() => {
                                   if (sizeFilter.includes('tiny')) {
                                     setSizeFilter(sizeFilter.filter(f => f !== 'tiny'));
@@ -1218,7 +1217,7 @@ export default function DrivePage() {
                                 Tiny (&lt;10 KB)
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={sizeFilter.length === 0 || sizeFilter.includes('small')}
+                                checked={sizeFilter.includes('small')}
                                 onCheckedChange={() => {
                                   if (sizeFilter.includes('small')) {
                                     setSizeFilter(sizeFilter.filter(f => f !== 'small'));
@@ -1230,7 +1229,7 @@ export default function DrivePage() {
                                 Small (10-100 KB)
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={sizeFilter.length === 0 || sizeFilter.includes('medium')}
+                                checked={sizeFilter.includes('medium')}
                                 onCheckedChange={() => {
                                   if (sizeFilter.includes('medium')) {
                                     setSizeFilter(sizeFilter.filter(f => f !== 'medium'));
@@ -1242,7 +1241,7 @@ export default function DrivePage() {
                                 Medium (100 KB - 1 MB)
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={sizeFilter.length === 0 || sizeFilter.includes('large')}
+                                checked={sizeFilter.includes('large')}
                                 onCheckedChange={() => {
                                   if (sizeFilter.includes('large')) {
                                     setSizeFilter(sizeFilter.filter(f => f !== 'large'));
@@ -1254,7 +1253,7 @@ export default function DrivePage() {
                                 Large (1-10 MB)
                               </DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem
-                                checked={sizeFilter.length === 0 || sizeFilter.includes('huge')}
+                                checked={sizeFilter.includes('huge')}
                                 onCheckedChange={() => {
                                   if (sizeFilter.includes('huge')) {
                                     setSizeFilter(sizeFilter.filter(f => f !== 'huge'));
@@ -1273,8 +1272,8 @@ export default function DrivePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {filteredReports.map(r => (
-                      <tr key={r.id} className="hover:bg-muted/20 group">
+                    {filteredReports?.map(r => (
+                        <tr key={r.id} className="hover:bg-muted/20 group">
                         {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -1310,16 +1309,15 @@ export default function DrivePage() {
                     ))}
                   </tbody>
                 </table>
+                {filteredReports && filteredReports.length === 0 && (
+                  <div className="text-center py-12 border-t">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FolderOpen className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No files found</p>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-20 border-2 border-dashed rounded-xl">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground">No files found</h3>
-                <p className="text-muted-foreground">Upload your first file to get started.</p>
-              </div>
-            )}
           </section>
         </div>
       )}
