@@ -1,14 +1,13 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useSettings, useUserManagement, validatePasswordStrength } from "@/hooks/use-settings";
+import { useSettings, useUserManagement } from "@/hooks/use-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, Check, X, Eye, EyeOff, User, Lock, Users } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -40,11 +39,12 @@ function SettingsContent() {
   const { toast } = useToast();
 
   const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [passwordError, setPasswordError] = useState("");
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
     username: "",
@@ -73,24 +73,42 @@ function SettingsContent() {
     }
   };
 
+  // Update full name
+  const handleUpdateFullName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !fullName.trim()) {
+      toast({ title: "Error", description: "Please enter a name", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await updateUserMutation.mutateAsync({ 
+        userId: currentUser.id, 
+        updates: { fullName: fullName.trim() } 
+      });
+      setFullName("");
+    } catch (error) {
+      // Error handled in mutation
+    }
+  };
+
   // Update password
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
 
-    // Validate password strength
-    const validation = validatePasswordStrength(newPassword);
-    if (!validation.isValid) {
-      setPasswordErrors(validation.errors);
+    // Validate password length only (at least 8 characters)
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters long");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordErrors(["Passwords do not match"]);
+      setPasswordError("Passwords do not match");
       return;
     }
 
-    setPasswordErrors([]);
+    setPasswordError("");
 
     try {
       await updatePasswordMutation.mutateAsync({
@@ -106,17 +124,6 @@ function SettingsContent() {
     }
   };
 
-  // Handle new password change for validation
-  const handleNewPasswordChange = (value: string) => {
-    setNewPassword(value);
-    if (value) {
-      const validation = validatePasswordStrength(value);
-      setPasswordErrors(validation.errors);
-    } else {
-      setPasswordErrors([]);
-    }
-  };
-
   // Create new user
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,9 +133,8 @@ function SettingsContent() {
     if (!newUserData.fullName.trim()) errors.push("Full name is required");
     if (!newUserData.password) errors.push("Password is required");
     
-    const passwordValidation = validatePasswordStrength(newUserData.password);
-    if (!passwordValidation.isValid) {
-      errors.push(...passwordValidation.errors);
+    if (newUserData.password.length < 8) {
+      errors.push("Password must be at least 8 characters long");
     }
 
     if (newUserData.password !== newUserData.confirmPassword) {
@@ -198,8 +204,6 @@ function SettingsContent() {
         </div>
       </div>
 
-      <Separator />
-
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
           <TabsTrigger value="profile" className="flex items-center gap-2">
@@ -218,9 +222,9 @@ function SettingsContent() {
           )}
         </TabsList>
 
-        {/* Profile Tab - Change Username */}
+        {/* Profile Tab - Change Username and Full Name */}
         <TabsContent value="profile" className="space-y-4">
-          <Card>
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -243,7 +247,31 @@ function SettingsContent() {
                 </div>
               </div>
 
-              <Separator />
+              {/* Change Full Name Form */}
+              <form onSubmit={handleUpdateFullName} className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="currentFullName">Current Name</Label>
+                  <Input
+                    id="currentFullName"
+                    value={currentUser?.fullName || ""}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="newFullName">New Name</Label>
+                  <Input
+                    id="newFullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter new name"
+                  />
+                </div>
+                <Button type="submit" disabled={updateUserMutation.isPending || !fullName.trim()} className="w-full sm:w-auto">
+                  {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Name
+                </Button>
+              </form>
 
               {/* Change Username Form */}
               <form onSubmit={handleUpdateUsername} className="space-y-4">
@@ -276,13 +304,13 @@ function SettingsContent() {
 
         {/* Security Tab - Change Password */}
         <TabsContent value="security" className="space-y-4">
-          <Card>
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5" />
                 Password Security
               </CardTitle>
-              <CardDescription>Update your password to keep your account secure. Make sure to use a strong password.</CardDescription>
+              <CardDescription>Update your password to keep your account secure.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <form onSubmit={handleUpdatePassword} className="space-y-4">
@@ -315,8 +343,8 @@ function SettingsContent() {
                     id="newPassword"
                     type={showPassword ? "text" : "password"}
                     value={newPassword}
-                    onChange={(e) => handleNewPasswordChange(e.target.value)}
-                    placeholder="Enter new password"
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 8 characters)"
                   />
                 </div>
 
@@ -329,52 +357,15 @@ function SettingsContent() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
                   />
-                  {confirmPassword && newPassword !== confirmPassword && (
+                </div>
+
+                {/* Password Error */}
+                {passwordError && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <X className="h-3 w-3" />
-                      Passwords do not match
+                      {passwordError}
                     </p>
-                  )}
-                </div>
-
-                {/* Password Requirements */}
-                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                  <p className="text-sm font-medium">Password Requirements:</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <div className={newPassword.length >= 8 ? "text-green-600" : "text-muted-foreground"}>
-                      {newPassword.length >= 8 ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
-                      At least 8 characters
-                    </div>
-                    <div className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
-                      {/[A-Z]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
-                      One uppercase letter
-                    </div>
-                    <div className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
-                      {/[a-z]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
-                      One lowercase letter
-                    </div>
-                    <div className={/[0-9]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
-                      {/[0-9]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
-                      One number
-                    </div>
-                    <div className={/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword) ? "text-green-600" : "text-muted-foreground"}>
-                      {/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword) ? <Check className="inline h-3 w-3 mr-1" /> : <X className="inline h-3 w-3 mr-1" />}
-                      One special character
-                    </div>
-                  </div>
-                </div>
-
-                {/* Password Errors */}
-                {passwordErrors.length > 0 && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <ul className="text-sm text-destructive space-y-1">
-                      {passwordErrors.map((error, index) => (
-                        <li key={index} className="flex items-center gap-1">
-                          <X className="h-3 w-3" />
-                          {error}
-                        </li>
-                      ))}
-                    </ul>
                   </div>
                 )}
 
@@ -384,9 +375,7 @@ function SettingsContent() {
                     updatePasswordMutation.isPending || 
                     !currentPassword || 
                     !newPassword || 
-                    !confirmPassword ||
-                    passwordErrors.length > 0 ||
-                    newPassword !== confirmPassword
+                    !confirmPassword
                   }
                   className="w-full sm:w-auto"
                 >
@@ -401,7 +390,7 @@ function SettingsContent() {
         {/* User Management Tab (Admin Only) */}
         {isAdmin && (
           <TabsContent value="users" className="space-y-4">
-            <Card>
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
@@ -469,7 +458,7 @@ function SettingsContent() {
                           type="password"
                           value={newUserData.password}
                           onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                          placeholder="Enter password"
+                          placeholder="Enter password (min 8 characters)"
                         />
                       </div>
                       <div className="grid gap-2">
