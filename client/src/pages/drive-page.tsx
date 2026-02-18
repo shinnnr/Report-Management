@@ -240,9 +240,7 @@ export default function DrivePage() {
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
-    const { apiRequest } = await import("@/lib/queryClient");
-    await apiRequest("PATCH", `/api/reports/${renameFileId}`, { title: renameFileName, fileName: renameFileName });
-    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
     setRenameFileName("");
     setIsRenameFileOpen(false);
   };
