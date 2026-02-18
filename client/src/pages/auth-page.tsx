@@ -102,9 +102,10 @@ export default function AuthPage() {
                   name="username"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-900">Username</FormLabel>
+                      <FormLabel htmlFor="username" className="text-gray-900">Username</FormLabel>
                       <FormControl>
                         <Input
+                          id="username"
                           placeholder="Enter Username"
                           autoComplete="username"
                           {...field}
@@ -120,15 +121,16 @@ export default function AuthPage() {
                   name="password"
                   render={({ field, fieldState }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-900">Password</FormLabel>
+                      <FormLabel htmlFor="password" className="text-gray-900">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
+                            id="password"
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter Password"
                             autoComplete="current-password"
                             {...field}
-                            className={`h-12 text-base pr-10 ${fieldState.error ? 'border-red-500 focus:border-red-500' : ''}`}
+                            className="h-12 text-base pr-10"
                           />
                           <Button
                             type="button"
