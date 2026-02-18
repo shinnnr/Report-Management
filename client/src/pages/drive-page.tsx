@@ -256,6 +256,7 @@ export default function DrivePage() {
       await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
       // Force refetch to get fresh data from database
       await queryClient.refetchQueries({ queryKey: ["/api/reports"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/activities"] });
     } catch (error) {
       // Handle error if needed
       console.error("Failed to rename file:", error);
@@ -287,6 +288,7 @@ export default function DrivePage() {
       await renameFolder.mutateAsync({ id: renameId, name: renameName });
       // Force refetch to get fresh data from database
       await queryClient.refetchQueries({ queryKey: ["/api/folders"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/activities"] });
     } catch (error) {
       // Handle error if needed
       console.error("Failed to rename folder:", error);
