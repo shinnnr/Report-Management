@@ -20,8 +20,6 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
     },
-    staleTime: 5000, 
-    refetchInterval: 5000,
   });
 }
 
