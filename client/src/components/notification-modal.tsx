@@ -107,7 +107,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 rounded-lg border cursor-pointer hover:bg-muted transition-colors ${
+                  className={`p-4 rounded-lg border cursor-pointer hover:bg-muted transition-colors group ${
                     !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-card border-border'
                   }`}
                 >
@@ -133,24 +133,21 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
                     <div className="flex items-center gap-2 ml-4">
                       {isAdmin && (
-                        <>
-                          <input
-                            type="checkbox"
-                            checked={selectedNotifications.includes(notification.id)}
-                            onChange={() => toggleSelection(notification.id)}
-                            className="rounded"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(notification.id)}
-                            disabled={deleteMutation.isPending}
-                            className="p-0 h-auto text-destructive hover:text-destructive/80"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <input
+                          type="checkbox"
+                          checked={selectedNotifications.includes(notification.id)}
+                          onChange={() => toggleSelection(notification.id)}
+                          className="rounded"
+                        />
                       )}
+                      <button
+                        onClick={() => handleDelete(notification.id)}
+                        disabled={deleteMutation.isPending}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded text-destructive hover:text-destructive"
+                        title="Delete notification"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>

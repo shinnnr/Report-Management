@@ -14,7 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNotifications, useMarkNotificationRead } from "@/hooks/use-notifications";
+import { useNotifications, useMarkNotificationRead, useDeleteNotification } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
 
@@ -27,6 +27,7 @@ export default function DashboardPage() {
     const [, setLocation] = useLocation();
     const { data: notifications } = useNotifications();
     const markReadMutation = useMarkNotificationRead();
+    const deleteNotificationMutation = useDeleteNotification();
 
     const [hoverState, setHoverState] = useState<{
         visible: boolean;
@@ -222,20 +223,34 @@ export default function DashboardPage() {
                         {notifications.slice(0, 10).map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors ${
+                            className={`p-3 rounded-lg border cursor-pointer hover:bg-muted transition-colors group relative ${
                               !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-card border-border'
                             }`}
                             onClick={() => handleNotificationClick(notification)}
                           >
-                            <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
-                              {notification.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {notification.content}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown time'}
-                            </p>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {notification.content}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown time'}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotificationMutation.mutate(notification.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                                title="Delete notification"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                         {notifications.length > 10 && (
