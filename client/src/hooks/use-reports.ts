@@ -16,6 +16,7 @@ export function useReports(folderId?: number | "root", status: string = 'active'
       if (!res.ok) throw new Error("Failed to fetch reports");
       return api.reports.list.responses[200].parse(await res.json());
     },
+    staleTime: 60000, // Data stays fresh for 1 minute
     refetchInterval: 5000,
   });
 }
@@ -103,7 +104,6 @@ export function useUpdateReport() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Updated", description: "File updated successfully" });
     },
   });
 }

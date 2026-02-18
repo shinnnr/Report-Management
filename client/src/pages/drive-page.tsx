@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
@@ -18,7 +19,7 @@ import {
   Edit2,
   MoveHorizontal,
   Search,
-  ArrowDown,
+  ChevronDown,
   Filter,
   FolderOpen,
 } from "lucide-react";
@@ -67,6 +68,7 @@ import { format, formatDistanceToNow } from "date-fns";
 export default function DrivePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -243,9 +245,21 @@ export default function DrivePage() {
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
-    await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
+    
+    // Show success message immediately and close modal
     setRenameFileName("");
     setIsRenameFileOpen(false);
+    toast({ title: "Updated", description: "File renamed successfully" });
+    
+    try {
+      // Wait for the mutation to complete and save to database
+      await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
+      // Invalidate queries to fetch fresh data from database
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    } catch (error) {
+      // Handle error if needed
+      console.error("Failed to rename file:", error);
+    }
   };
 
   const handleCreateFolder = async () => {
@@ -262,9 +276,21 @@ export default function DrivePage() {
 
   const handleRenameFolder = async () => {
     if (!renameName.trim() || !renameId) return;
-    await renameFolder.mutateAsync({ id: renameId, name: renameName });
+    
+    // Show success message immediately and close modal
     setRenameName("");
     setIsRenameOpen(false);
+    toast({ title: "Updated", description: "Folder renamed successfully" });
+    
+    try {
+      // Wait for the mutation to complete and save to database
+      await renameFolder.mutateAsync({ id: renameId, name: renameName });
+      // Invalidate queries to fetch fresh data from database
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    } catch (error) {
+      // Handle error if needed
+      console.error("Failed to rename folder:", error);
+    }
   };
 
   const handleUpload = async () => {
@@ -1019,7 +1045,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1094,7 +1120,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1169,7 +1195,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
@@ -1199,7 +1225,7 @@ export default function DrivePage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
-                                <ArrowDown className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">

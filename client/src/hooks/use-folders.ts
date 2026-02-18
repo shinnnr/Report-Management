@@ -20,6 +20,7 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
       if (!res.ok) throw new Error("Failed to fetch folders");
       return api.folders.list.responses[200].parse(await res.json());
     },
+    staleTime: 60000, // Data stays fresh for 1 minute
     refetchInterval: 5000,
   });
 }
@@ -74,7 +75,6 @@ export function useRenameFolder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Updated", description: "Folder renamed successfully" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
