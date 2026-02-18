@@ -252,11 +252,10 @@ export default function DrivePage() {
     toast({ title: "Updated", description: "File renamed successfully" });
     
     try {
-      // Wait for the mutation to complete and save to database
+      // Wait for the mutation to complete - the hook's onSuccess will invalidate reports
       await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
-      // Force refetch to get fresh data from database
-      await queryClient.refetchQueries({ queryKey: ["/api/reports"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/activities"] });
+      // Also invalidate activities to show the rename activity
+      await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     } catch (error) {
       // Handle error if needed
       console.error("Failed to rename file:", error);
@@ -284,11 +283,10 @@ export default function DrivePage() {
     toast({ title: "Updated", description: "Folder renamed successfully" });
     
     try {
-      // Wait for the mutation to complete and save to database
+      // Wait for the mutation to complete - the hook's onSuccess will invalidate folders
       await renameFolder.mutateAsync({ id: renameId, name: renameName });
-      // Force refetch to get fresh data from database
-      await queryClient.refetchQueries({ queryKey: ["/api/folders"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/activities"] });
+      // Also invalidate activities to show the rename activity
+      await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     } catch (error) {
       // Handle error if needed
       console.error("Failed to rename folder:", error);
