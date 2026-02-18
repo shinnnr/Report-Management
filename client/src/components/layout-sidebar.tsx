@@ -35,6 +35,7 @@ export function Sidebar() {
     { icon: FolderOpen, label: "My Drive", href: "/drive" },
     { icon: CalendarDays, label: "Activities", href: "/calendar" },
     { icon: Archive, label: "Archives", href: "/archives" },
+    { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
   return (

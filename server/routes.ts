@@ -10,7 +10,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { userSessions } from "@shared/schema";
+import { userSessions, type User } from "@shared/schema";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -194,6 +194,151 @@ export async function registerRoutes(
   app.get(api.users.list.path, isAuthenticated, async (req, res) => {
     const users = await storage.getUsers();
     res.json(users);
+  });
+
+  // Create user (Admin only)
+  app.post(api.users.create.path, isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is admin
+      const currentUser = req.user as any;
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can create users" });
+      }
+
+      const input = api.users.create.input.parse(req.body);
+      
+      // Hash the password
+      const hashedPassword = await hashPassword(input.password);
+      
+      const user = await storage.createUser({
+        username: input.username,
+        password: hashedPassword,
+        role: input.role || 'assistant',
+        fullName: input.fullName,
+        status: 'active'
+      });
+      
+      await storage.createLog(currentUser.id, "CREATE_USER", `Created user: ${user.username}`);
+      res.status(201).json(user);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      if (err.message.includes('unique') || err.message.includes('duplicate')) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Update user (Admin can update any user, users can update their own profile)
+  app.patch(api.users.update.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id as string);
+      const currentUser = req.user as any;
+      
+      // Check if user has permission: admin or own profile
+      if (currentUser.role !== 'admin' && currentUser.id !== userId) {
+        return res.status(403).json({ message: "You can only update your own profile" });
+      }
+
+      const input = api.users.update.input.parse(req.body);
+      
+      // If not admin, restrict what fields can be updated
+      if (currentUser.role !== 'admin') {
+        // Non-admins can only update username and fullName
+        const allowedUpdates: Partial<User> = {};
+        if (input.username) allowedUpdates.username = input.username;
+        if (input.fullName) allowedUpdates.fullName = input.fullName;
+        
+        const user = await storage.updateUser(userId, allowedUpdates);
+        await storage.createLog(currentUser.id, "UPDATE_PROFILE", `Updated own profile`);
+        return res.json(user);
+      }
+
+      // Admin can update all fields
+      const user = await storage.updateUser(userId, input);
+      await storage.createLog(currentUser.id, "UPDATE_USER", `Updated user: ${user.username}`);
+      res.json(user);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      if (err.message.includes('unique') || err.message.includes('duplicate')) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Delete user (Admin only)
+  app.delete(api.users.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id as string);
+      const currentUser = req.user as any;
+      
+      // Check if user is admin
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete users" });
+      }
+
+      // Prevent admin from deleting themselves
+      if (currentUser.id === userId) {
+        return res.status(400).json({ message: "You cannot delete your own account" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      await storage.deleteUser(userId);
+      await storage.createLog(currentUser.id, "DELETE_USER", `Deleted user: ${user.username}`);
+      res.json({ message: "User deleted successfully" });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  // Update password
+  app.post(api.users.updatePassword.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id as string);
+      const currentUser = req.user as any;
+      
+      // Check if user has permission: admin or own profile
+      if (currentUser.role !== 'admin' && currentUser.id !== userId) {
+        return res.status(403).json({ message: "You can only change your own password" });
+      }
+
+      const { currentPassword, newPassword } = api.users.updatePassword.input.parse(req.body);
+      
+      // Get the user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const isValid = await comparePassword(currentPassword, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(userId, { password: hashedPassword });
+      await storage.createLog(currentUser.id, "CHANGE_PASSWORD", `Changed password`);
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: err.message });
+    }
   });
 
   // --- Folder Routes ---

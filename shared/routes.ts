@@ -55,6 +55,53 @@ export const api = {
         200: z.array(z.custom<typeof users.$inferSelect>()),
       },
     },
+    create: {
+      method: 'POST' as const,
+      path: '/api/users',
+      input: insertUserSchema.extend({
+        password: z.string().min(8),
+      }),
+      responses: {
+        201: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/users/:id',
+      input: z.object({
+        username: z.string().optional(),
+        fullName: z.string().optional(),
+        role: z.enum(['admin', 'assistant']).optional(),
+        status: z.enum(['active', 'inactive']).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/users/:id',
+      responses: {
+        200: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
+      },
+    },
+    updatePassword: {
+      method: 'POST' as const,
+      path: '/api/users/:id/password',
+      input: z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8),
+      }),
+      responses: {
+        200: z.object({ message: z.string() }),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
   },
   folders: {
     list: {

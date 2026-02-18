@@ -12,6 +12,7 @@ import DashboardPage from "@/pages/dashboard-page";
 import DrivePage from "@/pages/drive-page";
 import CalendarPage from "@/pages/calendar-page";
 import ArchivesPage from "@/pages/archives-page";
+import SettingsPage from "@/pages/settings-page";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, path }: { component: React.ComponentType<any>; path: string }) {
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/drive" component={DrivePage} />
       <ProtectedRoute path="/calendar" component={CalendarPage} />
       <ProtectedRoute path="/archives" component={ArchivesPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       
       <Route path="/">
         <Redirect to="/dashboard" />
