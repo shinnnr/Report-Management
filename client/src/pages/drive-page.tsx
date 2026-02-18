@@ -934,7 +934,7 @@ export default function DrivePage() {
               </DropdownMenu>
             </div>
             {filteredReports && filteredReports.length > 0 ? (
-              <div className="bg-white rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
