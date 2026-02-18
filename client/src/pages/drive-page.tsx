@@ -135,9 +135,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders } = useFolders(currentFolderId);
-  const { data: allFoldersData } = useFolders('all'); // For breadcrumbs and dropdowns
-  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId);
+  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId);
+  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all'); // For breadcrumbs and dropdowns
+  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId);
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -150,55 +150,64 @@ export default function DrivePage() {
     return Array.from(types).sort();
   }, [reports]);
 
-  const foldersLoading = !currentFolders;
-  const isLoading = foldersLoading || reportsLoading;
+  // Only show loading on initial load - use cached data after
+  const isLoading = foldersLoading || allFoldersLoading || reportsLoading;
 
-  const filteredFolders = (currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || []).sort((a, b) => {
-    switch (sortBy) {
-      case 'name':
-        return a.name.localeCompare(b.name);
-      case 'date':
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-      case 'size':
-        // Folders don't have size, so sort by name for folders
-        return a.name.localeCompare(b.name);
-      default:
-        return 0;
-    }
-  });
-  const filteredReports = (reports?.filter(r => {
-    // Search query filter
-    const matchesSearch = r.title.toLowerCase().includes(driveSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(driveSearchQuery.toLowerCase());
+  // Memoize filtered folders to avoid recalculating on every render
+  const filteredFolders = useMemo(() => {
+    const folders = currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
+    return folders.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'size':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+  }, [currentFolders, driveSearchQuery, sortBy]);
+
+  // Memoize filtered reports to avoid recalculating on every render
+  const filteredReports = useMemo(() => {
+    const items = reports?.filter(r => {
+      // Search query filter
+      const matchesSearch = r.title.toLowerCase().includes(driveSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(driveSearchQuery.toLowerCase());
+      
+      // Name filter
+      const nameCategory = getNameCategory(r.fileName);
+      const matchesName = nameFilter.length === 0 || nameFilter.includes(nameCategory);
+      
+      // Date filter
+      const dateCategory = getDateCategory(r.createdAt);
+      const matchesDate = dateFilter.length === 0 || dateFilter.includes(dateCategory);
+      
+      // Type filter
+      const fileExt = r.fileType?.toLowerCase() || 'other';
+      const matchesType = typeFilter.length === 0 || typeFilter.includes(fileExt);
+      
+      // Size filter
+      const sizeCategory = getSizeCategory(r.fileSize);
+      const matchesSize = sizeFilter.length === 0 || sizeFilter.includes(sizeCategory);
+      
+      return matchesSearch && matchesName && matchesDate && matchesType && matchesSize;
+    }) || [];
     
-    // Name filter
-    const nameCategory = getNameCategory(r.fileName);
-    const matchesName = nameFilter.length === 0 || nameFilter.includes(nameCategory);
-    
-    // Date filter
-    const dateCategory = getDateCategory(r.createdAt);
-    const matchesDate = dateFilter.length === 0 || dateFilter.includes(dateCategory);
-    
-    // Type filter
-    const fileExt = r.fileType?.toLowerCase() || 'other';
-    const matchesType = typeFilter.length === 0 || typeFilter.includes(fileExt);
-    
-    // Size filter
-    const sizeCategory = getSizeCategory(r.fileSize);
-    const matchesSize = sizeFilter.length === 0 || sizeFilter.includes(sizeCategory);
-    
-    return matchesSearch && matchesName && matchesDate && matchesType && matchesSize;
-  }) || []).sort((a, b) => {
-    switch (sortBy) {
-      case 'name':
-        return a.fileName.localeCompare(b.fileName);
-      case 'date':
-        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-      case 'size':
-        return b.fileSize - a.fileSize;
-      default:
-        return 0;
-    }
-  });
+    return items.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.fileName.localeCompare(b.fileName);
+        case 'date':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        case 'size':
+          return b.fileSize - a.fileSize;
+        default:
+          return 0;
+      }
+    });
+  }, [reports, driveSearchQuery, nameFilter, dateFilter, typeFilter, sizeFilter, sortBy]);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {

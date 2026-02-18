@@ -16,6 +16,10 @@ export function useReports(folderId?: number | "root", status: string = 'active'
       if (!res.ok) throw new Error("Failed to fetch reports");
       return api.reports.list.responses[200].parse(await res.json());
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnMount: false, // Don't refetch on mount if cached
+    refetchOnWindowFocus: false,
   });
 }
 
