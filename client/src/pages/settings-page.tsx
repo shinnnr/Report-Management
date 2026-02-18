@@ -1,3 +1,4 @@
+import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement, validatePasswordStrength } from "@/hooks/use-settings";
@@ -28,11 +29,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, Check, X, Eye, EyeOff, User, Lock, Users, ArrowRight } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, Check, X, Eye, EyeOff, User, Lock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user } = useAuth();
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
@@ -575,5 +576,13 @@ export default function SettingsPage() {
         )}
       </Tabs>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <LayoutWrapper>
+      <SettingsContent />
+    </LayoutWrapper>
   );
 }
