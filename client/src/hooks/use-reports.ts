@@ -104,8 +104,19 @@ export function useUpdateReport() {
       if (!res.ok) throw new Error("Failed to update report");
       return api.reports.update.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update the cache immediately for all folder queries
+      queryClient.setQueriesData({ queryKey: [api.reports.list.path] }, (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map((report: any) => {
+          if (report.id === data.id) {
+            return { ...report, ...data };
+          }
+          return report;
+        });
+      });
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      toast({ title: "Success", description: "File renamed successfully" });
     },
   });
 }

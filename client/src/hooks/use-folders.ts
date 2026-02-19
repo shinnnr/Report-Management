@@ -146,8 +146,19 @@ export function useUpdateFolder() {
       if (!res.ok) throw new Error("Failed to update folder");
       return api.folders.update.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update the cache immediately
+      queryClient.setQueriesData({ queryKey: [api.folders.list.path] }, (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map((folder: any) => {
+          if (folder.id === data.id) {
+            return { ...folder, ...data };
+          }
+          return folder;
+        });
+      });
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      toast({ title: "Success", description: "Folder renamed successfully" });
     },
   });
 }
