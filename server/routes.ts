@@ -565,7 +565,7 @@ export async function registerRoutes(
             userId: user.id,
             activityId: activity.id,
             title: "New Activity Added",
-            content: `New Activity Added\n${activity.title}\nAdded by: ${creatorUser?.fullName || "Unknown"} | ${userRole}\nless than a minute ago`,
+            content: `New Activity Added\n\n${activity.title}\nAdded by: ${creatorUser?.fullName || "Unknown"} | ${userRole}\n\nless than a minute ago`,
             isRead: false
           });
         }

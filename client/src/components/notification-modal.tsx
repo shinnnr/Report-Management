@@ -116,14 +116,16 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
                       </h4>
-                      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {notification.content}
                       </p>
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Type: {notification.activityId ? 'Activity' : 'System'}</span>
-                        <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM dd, yyyy h:mm a') : 'Unknown'}</span>
+                        <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a') : 'Unknown'}</span>
                         <span>{notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown'}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'}`}>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                        }`}>
                           {notification.isRead ? 'Read' : 'Unread'}
                         </span>
                       </div>
