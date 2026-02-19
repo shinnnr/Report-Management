@@ -11,6 +11,7 @@ export function useActivities() {
       if (!res.ok) throw new Error("Failed to fetch activities");
       return api.activities.list.responses[200].parse(await res.json());
     },
+    refetchInterval: 10000, // Poll every 10 seconds to check for new activities
   });
 }
 
