@@ -204,12 +204,14 @@ function SettingsContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and user permissions</p>
+          <p className="text-muted-foreground">
+            {isAdmin ? "Manage your account settings and user permissions" : "Manage your account settings"}
+          </p>
         </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+        <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-2"} max-w-[400px]`}>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
