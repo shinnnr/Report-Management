@@ -521,7 +521,7 @@ export class DatabaseStorage implements IStorage {
             userId: user.id,
             activityId: activity.id,
             title: "Incoming Deadline",
-            content: `Incoming Deadline\n${activity.title}\n${remainingDays} day(s) remaining\nless than a minute ago`,
+            content: `${activity.title}\n${remainingDays} day(s) remaining\nless than a minute ago`,
             isRead: false
           });
         }

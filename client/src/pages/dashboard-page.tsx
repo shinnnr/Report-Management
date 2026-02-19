@@ -231,14 +231,8 @@ export default function DashboardPage() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
-                                  {notification.title}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground mt-1 whitespace-pre-line">
                                   {notification.content}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown time'}
                                 </p>
                               </div>
                               <button

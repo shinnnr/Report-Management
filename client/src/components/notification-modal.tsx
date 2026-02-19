@@ -113,9 +113,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1" onClick={() => handleNotificationClick(notification)}>
-                      <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
-                        {notification.title}
-                      </h4>
                       <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                         {notification.content}
                       </p>
