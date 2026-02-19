@@ -560,11 +560,12 @@ export async function registerRoutes(
       for (const user of users) {
         // Exclude the creator from receiving notification
         if (user.id !== (req.user as any).id) {
+          const userRole = user.role === "admin" ? "Admin" : "Assistant";
           await storage.createNotification({
             userId: user.id,
             activityId: activity.id,
             title: "New Activity Added",
-            content: `New Activity Added\n${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\n${format(new Date(), "MMM dd, yyyy h:mm a")}`,
+            content: `New Activity Added\n\n${activity.title}\nAdded by: ${creatorUser?.fullName || "Unknown"} | ${userRole}\n\nless than a minute ago`,
             isRead: false
           });
         }
