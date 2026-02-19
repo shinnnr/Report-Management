@@ -513,17 +513,26 @@ function SettingsContent() {
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
                     <div className="space-y-3">
-                      {users?.map((user) => (
+                      {/* Sort users: current logged-in user first */}
+                      {users?.sort((a, b) => {
+                        if (a.id === currentUser?.id) return -1;
+                        if (b.id === currentUser?.id) return 1;
+                        return 0;
+                      }).map((user) => (
                         <div
                           key={user.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                          className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                            user.id === currentUser?.id 
+                              ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
+                              : "hover:bg-muted/50"
+                          }`}
                         >
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
                             <div>
-                              <p className="font-medium">{user.fullName}</p>
+                              <p className="font-medium">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
