@@ -90,7 +90,6 @@ export function useDeleteReport() {
 
 export function useUpdateReport() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertReport>) => {
@@ -116,7 +115,6 @@ export function useUpdateReport() {
         });
       });
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Success", description: "File renamed successfully" });
     },
   });
 }
