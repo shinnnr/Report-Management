@@ -11,6 +11,7 @@ import { promisify } from "util";
 import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { userSessions, type User } from "@shared/schema";
+import { format } from "date-fns";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -547,18 +548,26 @@ export async function registerRoutes(
       // Override userId with authenticated user for security
       const activityData = { ...input, userId: (req.user as any).id };
       const activity = await storage.createActivity(activityData);
+      
+      // Get creator's user info for notification
+      const [creator] = await storage.getUsers();
+      const creatorUser = creator.id === (req.user as any).id ? creator : await storage.getUser((req.user as any).id);
+      
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
 
-      // Create notification for all users about new activity
+      // Create notification for all OTHER users about new activity
       const users = await storage.getUsers();
       for (const user of users) {
-        await storage.createNotification({
-          userId: user.id,
-          activityId: activity.id,
-          title: "New Activity Added",
-          content: `New activity added: ${activity.title}`,
-          isRead: false
-        });
+        // Exclude the creator from receiving notification
+        if (user.id !== (req.user as any).id) {
+          await storage.createNotification({
+            userId: user.id,
+            activityId: activity.id,
+            title: "New Activity Added",
+            content: `New Activity Added\n${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\n${format(new Date(), "MMM dd, yyyy h:mm a")}`,
+            isRead: false
+          });
+        }
       }
 
       res.status(201).json(activity);

@@ -2,6 +2,7 @@ import { users, folders, reports, activities, activityLogs, notifications, activ
 import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
+import { format } from "date-fns";
 
 export interface IStorage {
   // Users
@@ -459,7 +460,13 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
 
-    // 1. Mark overdue activities
+    // 1. Mark overdue activities and notify all users
+    const overdueActivities = await db.select().from(activities).where(and(
+      lt(activities.deadlineDate, now),
+      sql`${activities.status} NOT IN ('completed', 'overdue')`
+    ));
+
+    // Update status to overdue
     await db.update(activities)
       .set({ status: 'overdue' })
       .where(and(
@@ -467,7 +474,31 @@ export class DatabaseStorage implements IStorage {
         sql`${activities.status} NOT IN ('completed', 'overdue')`
       ));
 
-    // 2. Notify for upcoming deadlines (within 3 days)
+    // Notify all users about overdue activities
+    const allUsers = await this.getUsers();
+    for (const activity of overdueActivities) {
+      for (const user of allUsers) {
+        // Check if notification already exists
+        const [existing] = await db.select().from(notifications)
+          .where(and(
+            eq(notifications.activityId, activity.id),
+            eq(notifications.userId, user.id),
+            eq(notifications.title, "Activity Overdue")
+          ));
+
+        if (!existing) {
+          await this.createNotification({
+            userId: user.id,
+            activityId: activity.id,
+            title: "Activity Overdue",
+            content: `Activity Overdue\n${activity.title}\nDeadline: ${activity.deadlineDate.toLocaleDateString()}\n${format(new Date(), "MMM dd, yyyy h:mm a")}`,
+            isRead: false
+          });
+        }
+      }
+    }
+
+    // 2. Notify ALL users for upcoming deadlines (within 3 days) - not just owner
     const upcoming = await db.select().from(activities).where(and(
       gte(activities.deadlineDate, now),
       lt(activities.deadlineDate, threeDaysLater),
@@ -475,22 +506,25 @@ export class DatabaseStorage implements IStorage {
     ));
 
     for (const activity of upcoming) {
-      // Check if notification already exists for this user
-      const [existing] = await db.select().from(notifications)
-        .where(and(
-          eq(notifications.activityId, activity.id),
-          eq(notifications.userId, activity.userId!)
-        ));
+      for (const user of allUsers) {
+        // Check if notification already exists for this user for this activity
+        const [existing] = await db.select().from(notifications)
+          .where(and(
+            eq(notifications.activityId, activity.id),
+            eq(notifications.userId, user.id),
+            eq(notifications.title, "Incoming Deadline")
+          ));
 
-      if (!existing) {
-        const remainingDays = Math.ceil((activity.deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        await this.createNotification({
-          userId: activity.userId!,
-          activityId: activity.id,
-          title: "Upcoming Deadline",
-          content: `Activity "${activity.title}" is due on ${activity.deadlineDate.toLocaleDateString()}. ${remainingDays} days remaining.`,
-          isRead: false
-        });
+        if (!existing) {
+          const remainingDays = Math.ceil((activity.deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          await this.createNotification({
+            userId: user.id,
+            activityId: activity.id,
+            title: "Incoming Deadline",
+            content: `Incoming Deadline\n${activity.title}\nDate: ${activity.deadlineDate.toLocaleDateString()}\n${remainingDays} days remaining\n${format(new Date(), "MMM dd, yyyy h:mm a")}`,
+            isRead: false
+          });
+        }
       }
     }
   }
