@@ -491,7 +491,7 @@ export class DatabaseStorage implements IStorage {
             userId: user.id,
             activityId: activity.id,
             title: "Activity Overdue",
-            content: `Activity Overdue\n${activity.title}\nDeadline: ${activity.deadlineDate.toLocaleDateString()}\nless than a minute ago`,
+            content: `${activity.title}\nDeadline: ${activity.deadlineDate.toLocaleDateString()}`,
             isRead: false
           });
         }
@@ -521,7 +521,7 @@ export class DatabaseStorage implements IStorage {
             userId: user.id,
             activityId: activity.id,
             title: "Incoming Deadline",
-            content: `Incoming Deadline\n${activity.title}\n${remainingDays} day(s) remaining\nless than a minute ago`,
+            content: `${activity.title}\n${remainingDays} day(s) remaining`,
             isRead: false
           });
         }
