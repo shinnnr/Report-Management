@@ -11,6 +11,7 @@ export function useActivities() {
       if (!res.ok) throw new Error("Failed to fetch activities");
       return api.activities.list.responses[200].parse(await res.json());
     },
+    staleTime: 0, // Always fetch fresh data
     refetchInterval: 10000, // Poll every 10 seconds to check for new activities
   });
 }
@@ -64,5 +65,7 @@ export function useLogs() {
       if (!res.ok) throw new Error("Failed to fetch logs");
       return api.logs.list.responses[200].parse(await res.json());
     },
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 5000, // Poll every 5 seconds to check for new activity logs
   });
 }
