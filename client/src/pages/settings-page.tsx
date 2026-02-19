@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -203,7 +203,10 @@ function SettingsContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <Settings className="w-8 h-8" />
+            Settings
+          </h1>
           <p className="text-muted-foreground">
             {isAdmin ? "Manage your account settings and user permissions" : "Manage your account settings"}
           </p>

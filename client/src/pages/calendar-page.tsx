@@ -180,7 +180,10 @@ export default function CalendarPage() {
     <LayoutWrapper>
       <div className="flex items-center justify-between mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2">Activity Calendar</h1>
+          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <CalendarIcon className="w-8 h-8" />
+            Activity Calendar
+          </h1>
           <p className="text-muted-foreground">Manage your schedule and deadlines.</p>
         </div>
         

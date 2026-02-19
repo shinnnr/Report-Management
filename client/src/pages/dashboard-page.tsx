@@ -1,7 +1,7 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
@@ -188,7 +188,8 @@ export default function DashboardPage() {
       <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-display font-bold text-primary mb-2">
+            <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+              <LayoutDashboard className="w-8 h-8" />
               Dashboard
             </h1>
             <p className="text-muted-foreground">

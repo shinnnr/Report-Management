@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/contexts/theme-context";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -28,6 +29,7 @@ import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const { resetTheme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   const menuItems = [
@@ -99,7 +101,10 @@ export function Sidebar() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => logoutMutation.mutate()}
+                onClick={() => {
+                  resetTheme();
+                  logoutMutation.mutate();
+                }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 Log Out

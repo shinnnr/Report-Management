@@ -544,7 +544,10 @@ export default function DrivePage() {
     <LayoutWrapper>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2">My Drive</h1>
+          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <FolderOpen className="w-8 h-8" />
+            My Drive
+          </h1>
           <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <button onClick={() => setLocation("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
