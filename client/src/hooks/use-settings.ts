@@ -33,7 +33,12 @@ export function useSettings() {
       }
       return api.users.update.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Update the current user cache immediately
+      queryClient.setQueryData([api.auth.me.path], (old: User | null) => {
+        if (old) return { ...old, username: data.username };
+        return old;
+      });
       queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
       toast({ title: "Username updated", description: "Your username has been updated successfully." });
     },
@@ -126,8 +131,16 @@ export function useUserManagement() {
       }
       return api.users.update.responses[200].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update the current user cache immediately if fullName was updated
+      if (variables.updates.fullName) {
+        queryClient.setQueryData([api.auth.me.path], (old: User | null) => {
+          if (old) return { ...old, fullName: variables.updates.fullName };
+          return old;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
       toast({ title: "User updated", description: "User has been updated successfully." });
     },
     onError: (error: Error) => {

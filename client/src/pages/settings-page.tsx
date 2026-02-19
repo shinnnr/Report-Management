@@ -43,7 +43,9 @@ function SettingsContent() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
@@ -53,7 +55,6 @@ function SettingsContent() {
     fullName: "",
     role: "assistant" as "admin" | "assistant",
   });
-  const [newUserErrors, setNewUserErrors] = useState<string[]>([]);
 
   const isAdmin = user?.role === "admin";
 
@@ -99,12 +100,14 @@ function SettingsContent() {
 
     // Validate password length only (at least 8 characters)
     if (newPassword.length < 8) {
-      setPasswordError("Password must be at least 8 characters long");
+      setPasswordError("");
+      toast({ title: "Error", description: "Password must be at least 8 characters long", variant: "destructive" });
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match");
+      setPasswordError("");
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
     }
 
@@ -142,11 +145,12 @@ function SettingsContent() {
     }
 
     if (errors.length > 0) {
-      setNewUserErrors(errors);
+      // Show all errors as toast notifications
+      errors.forEach((error) => {
+        toast({ title: "Error", description: error, variant: "destructive" });
+      });
       return;
     }
-
-    setNewUserErrors([]);
 
     try {
       await createUserMutation.mutateAsync({
@@ -319,7 +323,7 @@ function SettingsContent() {
                   <div className="relative">
                     <Input
                       id="currentPassword"
-                      type={showPassword ? "text" : "password"}
+                      type={showCurrentPassword ? "text" : "password"}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
@@ -330,36 +334,60 @@ function SettingsContent() {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                      {showCurrentPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password (min 8 characters)"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 8 characters)"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
+                  </div>
                 </div>
 
-                {/* Password Error */}
+                {/* Password Error - now shown via toast, kept for mutation errors */}
                 {passwordError && (
                   <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                     <p className="text-sm text-destructive flex items-center gap-1">
@@ -412,15 +440,6 @@ function SettingsContent() {
                       <DialogDescription>Add a new user to the system</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleCreateUser} className="space-y-4">
-                      {newUserErrors.length > 0 && (
-                        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                          <ul className="text-sm text-destructive space-y-1">
-                            {newUserErrors.map((error, index) => (
-                              <li key={index}>{error}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                       <div className="grid gap-2">
                         <Label htmlFor="newUsername">Username</Label>
                         <Input
