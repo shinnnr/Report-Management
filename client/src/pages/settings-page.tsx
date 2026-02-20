@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -455,15 +456,18 @@ function SettingsContent() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="newUserRole">Role</Label>
-                        <select
-                          id="newUserRole"
+                        <Select
                           value={newUserData.role}
-                          onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as "admin" | "assistant" })}
-                          className="w-full border border-input bg-background px-3 py-2 rounded-md"
+                          onValueChange={(value) => setNewUserData({ ...newUserData, role: value as "admin" | "assistant" })}
                         >
-                          <option value="assistant">Assistant</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                          <SelectTrigger id="newUserRole">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="assistant">Assistant</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="newPassword">Password</Label>
