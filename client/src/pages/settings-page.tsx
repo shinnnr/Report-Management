@@ -1,5 +1,5 @@
 import { LayoutWrapper } from "@/components/layout-wrapper";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement } from "@/hooks/use-settings";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,14 @@ function SettingsContent() {
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+
+  // Initialize username and fullName with current user's values
+  useEffect(() => {
+    if (currentUser) {
+      setUsername(currentUser.username || "");
+      setFullName(currentUser.fullName || "");
+    }
+  }, [currentUser]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -259,21 +267,12 @@ function SettingsContent() {
               {/* Change Full Name Form */}
               <form onSubmit={handleUpdateFullName} className="space-y-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="currentFullName">Current Name</Label>
+                  <Label htmlFor="currentFullName">Name</Label>
                   <Input
                     id="currentFullName"
-                    value={currentUser?.fullName || ""}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="newFullName">New Name</Label>
-                  <Input
-                    id="newFullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter new name"
+                    placeholder="Enter your name"
                   />
                 </div>
                 <Button type="submit" disabled={updateUserMutation.isPending || !fullName.trim()} className="w-full sm:w-auto">
@@ -285,21 +284,12 @@ function SettingsContent() {
               {/* Change Username Form */}
               <form onSubmit={handleUpdateUsername} className="space-y-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="currentUsername">Current Username</Label>
+                  <Label htmlFor="currentUsername">Username</Label>
                   <Input
                     id="currentUsername"
-                    value={currentUser?.username || ""}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="newUsername">New Username</Label>
-                  <Input
-                    id="newUsername"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter new username"
+                    placeholder="Enter your username"
                   />
                 </div>
                 <Button type="submit" disabled={updateUsernameMutation.isPending || !username.trim()} className="w-full sm:w-auto">
