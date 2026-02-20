@@ -35,7 +35,9 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
 
   const handleNotificationClick = (notification: any) => {
-    markReadMutation.mutate(notification.id);
+    if (user?.id) {
+      markReadMutation.mutate({ userId: user.id, notificationId: notification.id });
+    }
     if (notification.content.includes('activity') || notification.activityId) {
       const activityId = notification.activityId;
       if (activityId) {
