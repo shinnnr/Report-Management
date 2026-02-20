@@ -564,7 +564,7 @@ export async function registerRoutes(
             userId: user.id,
             activityId: activity.id,
             title: "New Activity Added",
-            content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}`,
+            content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'} | ${creatorUser?.role === 'admin' ? 'Admin' : 'Assistant'}`,
             isRead: false
           });
         }
