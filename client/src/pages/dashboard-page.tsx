@@ -387,7 +387,7 @@ export default function DashboardPage() {
                           </div>
                           <div className="ml-4 mt-1">
                             <p className="text-xs text-muted-foreground">
-                              {log.userFullName || 'Unknown'}
+                              {log.userFullName || 'Unknown'}{log.userRole && ` | ${log.userRole === 'admin' ? 'Admin' : 'Assistant'}`}
                             </p>
                           </div>
                         </div>

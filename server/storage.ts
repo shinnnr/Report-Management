@@ -580,6 +580,7 @@ export class DatabaseStorage implements IStorage {
       description: activityLogs.description,
       timestamp: activityLogs.timestamp,
       userFullName: users.fullName,
+      userRole: users.role,
     }).from(activityLogs).leftJoin(users, eq(activityLogs.userId, users.id)).orderBy(desc(activityLogs.timestamp)).limit(10);
   }
 
