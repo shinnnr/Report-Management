@@ -36,8 +36,13 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
   const handleNotificationClick = (notification: any) => {
     markReadMutation.mutate(notification.id);
-    if (notification.content.includes('activity')) {
-      setLocation('/calendar');
+    if (notification.content.includes('activity') || notification.activityId) {
+      const activityId = notification.activityId;
+      if (activityId) {
+        setLocation(`/calendar?activityId=${activityId}`);
+      } else {
+        setLocation('/calendar');
+      }
     }
     onClose();
   };

@@ -9,7 +9,8 @@ import {
   isToday,
   isSameDay
 } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import {
@@ -34,6 +35,7 @@ export default function CalendarPage() {
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
@@ -48,6 +50,25 @@ export default function CalendarPage() {
   // Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+
+  // Handle activityId from URL query parameter (when clicking from notification)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const activityId = params.get('activityId');
+    
+    if (activityId && activities) {
+      const activity = activities.find(a => a.id === parseInt(activityId));
+      if (activity) {
+        setSelectedActivity(activity);
+        setIsActivityModalOpen(true);
+        // Navigate to the month of the activity's deadline
+        const activityDate = new Date(activity.deadlineDate);
+        setCurrentDate(activityDate);
+        // Clear the URL parameter after handling
+        setLocation('/calendar', { replace: true });
+      }
+    }
+  }, [activities, setLocation]);
 
   const daysInMonth = eachDayOfInterval({
     start: startOfMonth(currentDate),
@@ -476,7 +497,8 @@ export default function CalendarPage() {
                       }}
                       className={cn(
                         "text-xs p-1.5 rounded-md border truncate font-medium text-left w-full",
-                        getStatusColor(activity.status)
+                        getStatusColor(activity.status),
+                        selectedActivity?.id === activity.id && "ring-2 ring-primary ring-offset-1"
                       )}
                     >
                       {activity.title}

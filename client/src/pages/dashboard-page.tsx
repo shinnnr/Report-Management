@@ -141,9 +141,14 @@ export default function DashboardPage() {
         if (user?.id) {
             markReadMutation.mutate({ userId: user.id, notificationId: notification.id });
         }
-        // Redirect based on notification type
-        if (notification.content.includes('activity')) {
-            setLocation('/calendar');
+        // Redirect based on notification type with activityId if available
+        if (notification.content.includes('activity') || notification.activityId) {
+            const activityId = notification.activityId;
+            if (activityId) {
+                setLocation(`/calendar?activityId=${activityId}`);
+            } else {
+                setLocation('/calendar');
+            }
         }
         setShowNotifications(false);
     };
