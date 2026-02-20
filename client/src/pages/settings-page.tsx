@@ -55,6 +55,8 @@ function SettingsContent() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCreateUserPassword, setShowCreateUserPassword] = useState(false);
+  const [showCreateUserConfirmPassword, setShowCreateUserConfirmPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
@@ -471,23 +473,47 @@ function SettingsContent() {
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="newPassword">Password</Label>
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          value={newUserData.password}
-                          onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                          placeholder="Enter password (min 8 characters)"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showCreateUserPassword ? "text" : "password"}
+                            value={newUserData.password}
+                            onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                            placeholder="Enter password (min 8 characters)"
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowCreateUserPassword(!showCreateUserPassword)}
+                          >
+                            {showCreateUserPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="newConfirmPassword">Confirm Password</Label>
-                        <Input
-                          id="newConfirmPassword"
-                          type="password"
-                          value={newUserData.confirmPassword}
-                          onChange={(e) => setNewUserData({ ...newUserData, confirmPassword: e.target.value })}
-                          placeholder="Confirm password"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="newConfirmPassword"
+                            type={showCreateUserConfirmPassword ? "text" : "password"}
+                            value={newUserData.confirmPassword}
+                            onChange={(e) => setNewUserData({ ...newUserData, confirmPassword: e.target.value })}
+                            placeholder="Confirm password"
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                            onClick={() => setShowCreateUserConfirmPassword(!showCreateUserConfirmPassword)}
+                          >
+                            {showCreateUserConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
+                        </div>
                       </div>
                       <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setIsCreateUserOpen(false)}>
