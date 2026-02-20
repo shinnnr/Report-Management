@@ -3,7 +3,7 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertFolder } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useFolders(parentId: number | null | 'all' = null, status: string = 'active') {
+export function useFolders(parentId: number | null | 'all' = null, status: string = 'active', refetchInterval?: number) {
   return useQuery({
     queryKey: [api.folders.list.path, parentId, status],
     queryFn: async () => {
@@ -24,6 +24,7 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
+    refetchInterval: refetchInterval,
   });
 }
 

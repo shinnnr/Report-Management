@@ -47,9 +47,9 @@ export default function ArchivesPage() {
 
   const [archivesSearchQuery, setArchivesSearchQuery] = useState("");
 
-  const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived');
-  const { data: allArchivedFolders } = useFolders('all', 'archived');
-  const { data: archivedReports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived');
+  const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived', 5000);
+  const { data: allArchivedFolders } = useFolders('all', 'archived', 5000);
+  const { data: archivedReports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived', 5000);
   const { toast } = useToast();
 
   const foldersLoading = !currentArchivedFolders;

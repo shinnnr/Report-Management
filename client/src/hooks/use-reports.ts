@@ -3,7 +3,7 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useReports(folderId?: number | "root", status: string = 'active') {
+export function useReports(folderId?: number | "root", status: string = 'active', refetchInterval?: number) {
   return useQuery({
     queryKey: [api.reports.list.path, folderId, status],
     queryFn: async () => {
@@ -20,6 +20,7 @@ export function useReports(folderId?: number | "root", status: string = 'active'
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
+    refetchInterval: refetchInterval,
   });
 }
 
