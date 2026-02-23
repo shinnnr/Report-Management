@@ -229,6 +229,8 @@ export default function DrivePage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFilesCount, setSelectedFilesCount] = useState(0);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
@@ -321,10 +323,13 @@ export default function DrivePage() {
       })
     );
 
-    // Step 2: Upload all files in parallel (much faster than sequential)
+    // Step 2: Upload all files in parallel using direct API calls (bypasses hook toast for single message)
     const uploadPromises = fileDataArray.map(async ({ file, base64 }) => {
-      try {
-        await createReport.mutateAsync({
+      const res = await fetch(api.reports.create.path, {
+        method: api.reports.create.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({
           title: file.name,
           fileName: file.name,
           fileType: file.type,
@@ -334,16 +339,21 @@ export default function DrivePage() {
           description: "Uploaded file",
           year: new Date().getFullYear(),
           month: new Date().getMonth() + 1,
-        });
-      } catch (error) {
-        console.error("Upload failed:", error);
-      }
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to upload file");
+      return res.json();
     });
 
     await Promise.all(uploadPromises);
 
+    // Clear the file input
+    fileInput.value = '';
     setUploadFile(null);
     setIsUploadOpen(false);
+    
+    // Invalidate queries to refresh the list
+    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
     
     // Show single success toast for all files
     const fileCount = files.length;
@@ -608,6 +618,8 @@ export default function DrivePage() {
           </div>
           <div className="mt-4">
             <Input
+              id="drive-search"
+              name="drive-search"
               placeholder="Search folders and files..."
               value={driveSearchQuery}
               onChange={(e) => setDriveSearchQuery(e.target.value)}
@@ -654,7 +666,13 @@ export default function DrivePage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+          <Dialog open={isUploadOpen} onOpenChange={(open) => {
+            setIsUploadOpen(open);
+            if (!open) {
+              setSelectedFilesCount(0);
+              setUploadFile(null);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2 bg-primary">
                 <UploadCloud className="w-4 h-4" /> Upload
@@ -663,19 +681,47 @@ export default function DrivePage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
-                <DialogDescription>Select and upload files to the current location.</DialogDescription>
+                <DialogDescription>Select or drag and drop files to upload to the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="py-8 text-center border-2 border-dashed rounded-xl">
-                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+                <div 
+                  className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                      const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement;
+                      const dataTransfer = new DataTransfer();
+                      Array.from(files).forEach(file => dataTransfer.items.add(file));
+                      fileInput.files = dataTransfer.files;
+                      setSelectedFilesCount(files.length);
+                      setUploadFile(files[0] || null);
+                    }
+                  }}
+                >
+                  <Input 
+                    type="file" 
+                    name="files" 
+                    className="hidden" 
+                    id="file-upload-multiple" 
+                    multiple 
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      setUploadFile(e.target.files?.[0] || null);
+                      setSelectedFilesCount(files?.length || 0);
+                    }} 
+                  />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
-                    <UploadCloud className="w-10 h-10 mx-auto mb-2" />
-                    <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
+                    <UploadCloud className={`w-10 h-10 mx-auto mb-2 ${isDragging ? 'text-primary' : ''}`} />
+                    <span>{selectedFilesCount > 0 ? `${selectedFilesCount} files selected` : "Click to select or drag files here"}</span>
                   </Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleUpload} disabled={createReport.isPending}>
+                <Button onClick={handleUpload} disabled={createReport.isPending || selectedFilesCount === 0}>
                   {createReport.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {createReport.isPending ? "Uploading..." : "Upload"}
                 </Button>

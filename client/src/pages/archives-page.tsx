@@ -160,6 +160,8 @@ export default function ArchivesPage() {
           </div>
           <div className="mt-4">
             <Input
+              id="archives-search"
+              name="archives-search"
               placeholder="Search archived folders and files..."
               value={archivesSearchQuery}
               onChange={(e) => setArchivesSearchQuery(e.target.value)}

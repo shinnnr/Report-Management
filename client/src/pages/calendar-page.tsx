@@ -46,6 +46,7 @@ export default function CalendarPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -326,10 +327,28 @@ export default function CalendarPage() {
               {/* File Upload Section */}
               {selectedActivity?.status !== 'completed' && (
                 <div className="space-y-4">
-                  <div className="text-center">
+                  <div 
+                    className={`text-center border-2 border-dashed rounded-lg p-4 transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      const files = Array.from(e.dataTransfer.files).filter(f => 
+                        ['.pdf', '.doc', '.docx'].some(ext => f.name.toLowerCase().endsWith(ext)) ||
+                        f.type === 'application/pdf' ||
+                        f.type === 'application/msword' ||
+                        f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                      );
+                      if (files.length > 0) {
+                        setSelectedFiles(prev => [...prev, ...files]);
+                      }
+                    }}
+                  >
                     <input
                       type="file"
                       id="activity-file-upload"
+                      name="activity-file-upload"
                       className="hidden"
                       accept=".pdf,.doc,.docx"
                       multiple
@@ -340,8 +359,11 @@ export default function CalendarPage() {
                       className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 transition-colors"
                     >
                       <Upload className="w-4 h-4" />
-                      Choose File
+                      {isDragging ? "Drop files here" : "Choose File"}
                     </label>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      or drag and drop files here
+                    </p>
                   </div>
 
                   {selectedFiles.length > 0 && (
