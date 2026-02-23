@@ -29,7 +29,8 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
         return json;
       }
     },
-    staleTime: 5 * 60 * 1000,
+    networkMode: 'always',
+    staleTime: 0,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
