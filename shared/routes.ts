@@ -282,6 +282,13 @@ export const api = {
         200: z.array(z.custom<ActivityLogWithUser>()),
       },
     },
+    deleteAll: {
+      method: 'DELETE' as const,
+      path: '/api/logs',
+      responses: {
+        200: z.object({ message: z.string() }),
+      },
+    },
   },
 };
 

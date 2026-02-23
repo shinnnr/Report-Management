@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/contexts/theme-context";
+import * as React from "react";
+import { createPortal } from "react-dom";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -11,18 +13,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { useState } from "react";
 
 import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
@@ -30,7 +20,57 @@ export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { resetTheme } = useTheme();
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [isClosing, setIsClosing] = React.useState(false);
+  const [buttonPosition, setButtonPosition] = React.useState({ x: 0, y: 0 });
+  const logoutButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  // Handle body scroll lock
+  React.useEffect(() => {
+    if (showLogoutDialog) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [showLogoutDialog]);
+
+  // Track button position and open modal
+  const handleLogoutClick = () => {
+    if (logoutButtonRef.current) {
+      const rect = logoutButtonRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      setButtonPosition({ x: centerX, y: centerY });
+    }
+    setIsClosing(false);
+    setShowLogoutDialog(true);
+  };
+
+  // Handle modal close with animation
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setShowLogoutDialog(false);
+      setIsClosing(false);
+    }, 250);
+  };
+
+  // Handle confirm logout
+  const handleConfirmLogout = () => {
+    handleClose();
+    resetTheme();
+    logoutMutation.mutate();
+  };
+
+  // Calculate transform translate delta for stretching effect
+  // Delta is the offset from center to button position
+  const viewportCenterX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+  const viewportCenterY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+  const swooshDeltaX = buttonPosition.x > 0 ? `${buttonPosition.x - viewportCenterX}px` : '0px';
+  const swooshDeltaY = buttonPosition.y > 0 ? `${buttonPosition.y - viewportCenterY}px` : '0px';
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -81,37 +121,64 @@ export function Sidebar() {
           </div>
         </div>
         
-        <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-primary-foreground/70 dark:text-gray-300 hover:text-white hover:bg-white/5"
+        {/* Custom Logout Button */}
+        <Button
+          ref={logoutButtonRef}
+          variant="ghost"
+          className="w-full justify-start text-primary-foreground/70 dark:text-gray-300 hover:text-white hover:bg-white/5"
+          onClick={handleLogoutClick}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Log Out
+        </Button>
+
+        {/* Custom Swoosh Modal - Rendered via Portal */}
+        {showLogoutDialog && typeof document !== 'undefined' && createPortal(
+          <>
+            {/* Custom Overlay */}
+            <div
+              className={cn(
+                "fixed inset-0 z-50 bg-black/80",
+                isClosing ? "swoosh-modal-overlay closing" : "swoosh-modal-overlay"
+              )}
+              onClick={handleClose}
+            />
+            {/* Custom Content */}
+            <div
+              className={cn(
+                "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg",
+                isClosing ? "swoosh-modal-content closing" : "swoosh-modal-content"
+              )}
+              style={{
+                '--swoosh-delta-x': swooshDeltaX,
+                '--swoosh-delta-y': swooshDeltaY,
+              } as React.CSSProperties}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Log Out
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to log out? You will need to sign in again to access your account.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  resetTheme();
-                  logoutMutation.mutate();
-                }}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Log Out
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              <div className="flex flex-col space-y-2 text-center sm:text-left">
+                <h2 className="text-lg font-semibold">Confirm Logout</h2>
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to log out? You will need to sign in again to access your account.
+                </p>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="mt-2 sm:mt-0"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmLogout}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Log Out
+                </Button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
       </div>
     </div>
   );

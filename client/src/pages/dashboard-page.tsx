@@ -5,7 +5,7 @@ import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, 
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
-import { useActivities, useLogs } from "@/hooks/use-activities";
+import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,16 @@ import { Button } from "@/components/ui/button";
 import { useNotifications, useMarkNotificationRead, useDeleteNotification } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function DashboardPage() {
     const { user } = useAuth();
@@ -24,10 +34,13 @@ export default function DashboardPage() {
     const { data: reports } = useReports();
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
+    const deleteAllLogsMutation = useDeleteAllLogs();
     const [, setLocation] = useLocation();
     const { data: notifications } = useNotifications();
     const markReadMutation = useMarkNotificationRead();
     const deleteNotificationMutation = useDeleteNotification();
+
+    const [showDeleteLogsConfirm, setShowDeleteLogsConfirm] = useState(false);
 
     const [hoverState, setHoverState] = useState<{
         visible: boolean;
@@ -354,10 +367,23 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                Recent System Activity
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  Recent System Activity
+                </CardTitle>
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setShowDeleteLogsConfirm(true)}
+                    title="Delete all activity logs"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
@@ -518,6 +544,29 @@ export default function DashboardPage() {
         isOpen={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
       />
+
+      <AlertDialog open={showDeleteLogsConfirm} onOpenChange={setShowDeleteLogsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Activity Logs</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all activity logs? This action cannot be undone and all system activity history will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteAllLogsMutation.mutate();
+                setShowDeleteLogsConfirm(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </LayoutWrapper>
   );
 }

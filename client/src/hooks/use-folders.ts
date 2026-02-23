@@ -7,24 +7,53 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
   return useQuery({
     queryKey: [api.folders.list.path, parentId, status],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (parentId === 'all') {
-        params.append('parentId', 'all');
-      } else if (parentId !== null) {
-        params.append('parentId', parentId.toString());
-      }
-      if (status) params.append('status', status);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      try {
+        const params = new URLSearchParams();
+        if (parentId === 'all') {
+          params.append('parentId', 'all');
+        } else if (parentId !== null) {
+          params.append('parentId', parentId.toString());
+        }
+        if (status) params.append('status', status);
 
-      const url = `${api.folders.list.path}?${params.toString()}`;
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to fetch folders");
-      return api.folders.list.responses[200].parse(await res.json());
+        const url = `${api.folders.list.path}?${params.toString()}`;
+        const res = await fetch(url, { 
+          credentials: 'include',
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
+        }
+        const json = await res.json();
+        try {
+          return api.folders.list.responses[200].parse(json);
+        } catch (parseError) {
+          console.error('Zod parse error for folders:', parseError);
+          return json;
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        throw error;
+      }
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnMount: false, // Don't refetch on mount if cached
+    networkMode: 'always',
+    staleTime: 0,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -124,9 +153,11 @@ export function useDeleteFolder() {
       const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete folder");
     },
-    onSuccess: () => {
+    onSuccess: (_data, _variables, context?: { skipToast?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Deleted", description: "Folder deleted successfully" });
+      if (!context?.skipToast) {
+        toast({ title: "Deleted", description: "Folder deleted successfully" });
+      }
     },
   });
 }
