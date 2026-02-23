@@ -17,12 +17,21 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
 
       const url = `${api.folders.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to fetch folders");
-      return api.folders.list.responses[200].parse(await res.json());
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
+      }
+      const json = await res.json();
+      try {
+        return api.folders.list.responses[200].parse(json);
+      } catch (parseError) {
+        console.error('Zod parse error for folders:', parseError);
+        return json;
+      }
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnMount: false, // Don't refetch on mount if cached
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
   });

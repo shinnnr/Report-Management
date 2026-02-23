@@ -13,12 +13,21 @@ export function useReports(folderId?: number | "root", status: string = 'active'
 
       const url = `${api.reports.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to fetch reports");
-      return api.reports.list.responses[200].parse(await res.json());
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
+      }
+      const json = await res.json();
+      try {
+        return api.reports.list.responses[200].parse(json);
+      } catch (parseError) {
+        console.error('Zod parse error for reports:', parseError);
+        return json;
+      }
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    refetchOnMount: false, // Don't refetch on mount if cached
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
   });

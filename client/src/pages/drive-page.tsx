@@ -136,9 +136,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders, isLoading: foldersLoading } = useFolders(currentFolderId, 'active');
+  const { data: currentFolders, isLoading: foldersLoading, isError: foldersError, error: foldersErrorMsg } = useFolders(currentFolderId, 'active');
   const { data: allFoldersData, isLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns - loaded lazily
-  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
+  const { data: reports, isLoading: reportsLoading, isError: reportsError, error: reportsErrorMsg } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -1065,7 +1065,15 @@ export default function DrivePage() {
       </AlertDialog>
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading files and folders...</p>
+        </div>
+      ) : foldersError || reportsError ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <p className="text-destructive mb-2">Error loading content</p>
+          <p className="text-muted-foreground text-sm">{foldersError?.message || reportsError?.message || 'Please try again'}</p>
+        </div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
