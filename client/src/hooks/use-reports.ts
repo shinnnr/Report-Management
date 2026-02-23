@@ -7,49 +7,20 @@ export function useReports(folderId?: number | "root", status: string = 'active'
   return useQuery({
     queryKey: [api.reports.list.path, folderId, status],
     queryFn: async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      try {
-        const params = new URLSearchParams();
-        if (folderId) params.append("folderId", folderId.toString());
-        if (status) params.append("status", status);
+      const params = new URLSearchParams();
+      if (folderId) params.append("folderId", folderId.toString());
+      if (status) params.append("status", status);
 
-        const url = `${api.reports.list.path}?${params.toString()}`;
-        const res = await fetch(url, { 
-          credentials: 'include',
-          signal: controller.signal 
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
-        }
-        const json = await res.json();
-        try {
-          return api.reports.list.responses[200].parse(json);
-        } catch (parseError) {
-          console.error('Zod parse error for reports:', parseError);
-          return json;
-        }
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out. Please try again.');
-        }
-        throw error;
-      }
+      const url = `${api.reports.list.path}?${params.toString()}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error("Failed to fetch reports");
+      return api.reports.list.responses[200].parse(await res.json());
     },
-    networkMode: 'always',
-    staleTime: 0,
-    gcTime: 30 * 60 * 1000,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -111,11 +82,9 @@ export function useDeleteReport() {
       const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete report");
     },
-    onSuccess: (_data, _variables, context?: { skipToast?: boolean }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      if (!context?.skipToast) {
-        toast({ title: "Deleted", description: "File deleted successfully" });
-      }
+      toast({ title: "Deleted", description: "File deleted successfully" });
     },
   });
 }

@@ -63,7 +63,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
-import { api, buildUrl } from "@shared/routes";
 import { format, formatDistanceToNow } from "date-fns";
 
 export default function DrivePage() {
@@ -136,9 +135,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders, isError: foldersError } = useFolders(currentFolderId, 'active', 5000);
-  const { data: allFoldersData, isLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns - loaded lazily
-  const { data: reports, isError: reportsError } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 5000);
+  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active', 5000);
+  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active', 5000); // For breadcrumbs and dropdowns
+  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 5000);
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -151,10 +150,8 @@ export default function DrivePage() {
     return Array.from(types).sort();
   }, [reports]);
 
-  // Use data existence check instead of isLoading to avoid stuck loading state
-  const foldersLoading = !currentFolders;
-  const reportsLoading = !reports;
-  const isLoading = foldersLoading || reportsLoading;
+  // Only show loading on initial load - use cached data after
+  const isLoading = foldersLoading || allFoldersLoading || reportsLoading;
 
   // Memoize filtered folders to avoid recalculating on every render
   const filteredFolders = useMemo(() => {
@@ -231,9 +228,6 @@ export default function DrivePage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [selectedFilesCount, setSelectedFilesCount] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
@@ -312,79 +306,44 @@ export default function DrivePage() {
     const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
-    
-    setIsUploading(true);
 
-    try {
-      // Step 1: Read all files in parallel first (faster than reading and uploading one by one)
-      const fileDataArray = await Promise.all(
-        Array.from(files).map((file) => {
-          return new Promise<{ file: File; base64: string }>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              resolve({ file, base64: reader.result as string });
-            };
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-
-      // Step 2: Upload all files in parallel using direct API calls (bypasses hook toast for single message)
-      const uploadPromises = fileDataArray.map(async ({ file, base64 }) => {
-        const res = await fetch(api.reports.create.path, {
-          method: api.reports.create.method,
-          headers: { "Content-Type": "application/json" },
-          credentials: 'include',
-          body: JSON.stringify({
-            title: file.name,
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            fileData: base64,
-            folderId: currentFolderId,
-            description: "Uploaded file",
-            year: new Date().getFullYear(),
-            month: new Date().getMonth() + 1,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to upload file");
-        return res.json();
+    // Process files asynchronously without blocking
+    const uploadPromises = Array.from(files).map(async (file) => {
+      return new Promise<void>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64 = reader.result as string;
+          try {
+            await createReport.mutateAsync({
+              title: file.name,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              fileData: base64,
+              folderId: currentFolderId,
+              description: "Uploaded file",
+              year: new Date().getFullYear(),
+              month: new Date().getMonth() + 1,
+            });
+          } catch (error) {
+            console.error("Upload failed:", error);
+          }
+          resolve();
+        };
+        reader.readAsDataURL(file);
       });
+    });
 
-      await Promise.all(uploadPromises);
+    // Wait for all uploads to complete
+    await Promise.all(uploadPromises);
 
-      // Clear the file input
-      fileInput.value = '';
-      setUploadFile(null);
-      setIsUploadOpen(false);
-      
-      // Invalidate queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-      
-      // Show single success toast for all files
-      const fileCount = files.length;
-      toast({ 
-        title: "Upload Complete", 
-        description: fileCount === 1 
-          ? "File uploaded successfully" 
-          : `${fileCount} files uploaded successfully` 
-      });
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast({ 
-        title: "Upload Failed", 
-        description: "There was an error uploading your files. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
+    setUploadFile(null);
+    setIsUploadOpen(false);
   };
 
   const handleMoveItems = async () => {
     if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
     const targetFolderId = selectedDestination;
-    const totalCount = selectedFiles.length + selectedFolders.length;
 
     // Move items
     if (selectedFiles.length > 0) {
@@ -404,51 +363,25 @@ export default function DrivePage() {
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`);
     }
-    
-    // Show single success message
-    const itemText = totalCount === 1 ? "item" : "items";
-    toast({ 
-      title: "Moved", 
-      description: `${totalCount} ${itemText} moved successfully` 
-    });
   };
 
   const handleBulkDelete = async () => {
-    const totalCount = selectedFiles.length + selectedFolders.length;
-    
-    // Delete files - use direct API calls to avoid multiple toasts
     if (selectedFiles.length > 0) {
-      const deleteFilePromises = selectedFiles.map(async (id) => {
-        const url = buildUrl(api.reports.delete.path, { id });
-        const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
-        if (!res.ok) throw new Error("Failed to delete file");
-      });
-      await Promise.all(deleteFilePromises);
+      for (const id of selectedFiles) {
+        await deleteReport.mutateAsync(id);
+      }
     }
-    
-    // Delete folders - use direct API calls to avoid multiple toasts
     if (selectedFolders.length > 0) {
-      const deleteFolderPromises = selectedFolders.map(async (id) => {
-        const url = buildUrl(api.folders.delete.path, { id });
-        const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
-        if (!res.ok) throw new Error("Failed to delete folder");
-      });
-      await Promise.all(deleteFolderPromises);
+      for (const id of selectedFolders) {
+        await deleteFolder.mutateAsync(id);
+      }
     }
-    
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsBulkDeleteOpen(false);
     setIsSelectMode(false); // Exit select mode after successful delete
-    
-    // Show single success message for bulk delete
-    const itemText = totalCount === 1 ? "item" : "items";
-    toast({ 
-      title: "Deleted", 
-      description: `${totalCount} ${itemText} deleted successfully` 
-    });
   };
 
   const createBlobUrl = (dataUrl: string) => {
@@ -634,8 +567,6 @@ export default function DrivePage() {
           </div>
           <div className="mt-4">
             <Input
-              id="drive-search"
-              name="drive-search"
               placeholder="Search folders and files..."
               value={driveSearchQuery}
               onChange={(e) => setDriveSearchQuery(e.target.value)}
@@ -682,13 +613,7 @@ export default function DrivePage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isUploadOpen} onOpenChange={(open) => {
-            setIsUploadOpen(open);
-            if (!open) {
-              setSelectedFilesCount(0);
-              setUploadFile(null);
-            }
-          }}>
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 bg-primary">
                 <UploadCloud className="w-4 h-4" /> Upload
@@ -697,49 +622,21 @@ export default function DrivePage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
-                <DialogDescription>Select or drag and drop files to upload to the current location.</DialogDescription>
+                <DialogDescription>Select and upload files to the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div 
-                  className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}`}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                      const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement;
-                      const dataTransfer = new DataTransfer();
-                      Array.from(files).forEach(file => dataTransfer.items.add(file));
-                      fileInput.files = dataTransfer.files;
-                      setSelectedFilesCount(files.length);
-                      setUploadFile(files[0] || null);
-                    }
-                  }}
-                >
-                  <Input 
-                    type="file" 
-                    name="files" 
-                    className="hidden" 
-                    id="file-upload-multiple" 
-                    multiple 
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      setUploadFile(e.target.files?.[0] || null);
-                      setSelectedFilesCount(files?.length || 0);
-                    }} 
-                  />
+                <div className="py-8 text-center border-2 border-dashed rounded-xl">
+                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
-                    <UploadCloud className={`w-10 h-10 mx-auto mb-2 ${isDragging ? 'text-primary' : ''}`} />
-                    <span>{selectedFilesCount > 0 ? `${selectedFilesCount} files selected` : "Click to select or drag files here"}</span>
+                    <UploadCloud className="w-10 h-10 mx-auto mb-2" />
+                    <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
                   </Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleUpload} disabled={isUploading || selectedFilesCount === 0}>
-                  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isUploading ? "Uploading..." : "Upload"}
+                <Button onClick={handleUpload} disabled={createReport.isPending}>
+                  {createReport.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {createReport.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -925,9 +822,11 @@ export default function DrivePage() {
                 selectedDestination === null && !destinationSelected || // No destination selected
                 selectedFolders.includes(selectedDestination || 0) || // Selected destination is being moved
                 selectedFolders.some(id => isDescendant(selectedDestination, id)) || // Selected destination is a descendant of moved folders
-                (selectedFolders.length > 0 && selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null)) || // Trying to move folders to current parent
-                (selectedFolders.length > 0 && selectedDestination === null && destinationSelected && // Trying to move folders to Home
-                  selectedFolders.every(id => (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null)) // All folders are already at root
+                selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null) || // Selected destination is the current parent
+                (selectedDestination === null && destinationSelected && // Trying to move to Home
+                 selectedFolders.length > 0 && selectedFolders.every(id => // All selected folders are already at root
+                   (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
+                 ))
               }
             >
               Move Here
@@ -1066,15 +965,7 @@ export default function DrivePage() {
       </AlertDialog>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin mb-4" />
-          <p className="text-muted-foreground">Loading files and folders...</p>
-        </div>
-      ) : foldersError || reportsError ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-destructive mb-2">Error loading content</p>
-          <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
-        </div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>

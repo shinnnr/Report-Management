@@ -56,7 +56,6 @@ export interface IStorage {
   // Logs
   getLogs(): Promise<ActivityLog[]>;
   createLog(userId: number, action: string, description: string): Promise<void>;
-  deleteAllLogs(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -105,8 +104,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (parentId === undefined) {
-      // Limit to 500 folders when fetching all to prevent slow queries
-      return db.select().from(folders).where(and(...conditions)).limit(500);
+      return db.select().from(folders).where(and(...conditions));
     }
     if (parentId === null || parentId === 0) {
       conditions.push(sql`(${folders.parentId} IS NULL OR ${folders.parentId}::text = '0' OR ${folders.parentId}::text = '')`);
@@ -592,10 +590,6 @@ export class DatabaseStorage implements IStorage {
       action,
       description,
     });
-  }
-
-  async deleteAllLogs(): Promise<void> {
-    await db.delete(activityLogs);
   }
 }
 
