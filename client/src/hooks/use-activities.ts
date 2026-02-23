@@ -57,29 +57,6 @@ export function useDeleteActivity() {
   });
 }
 
-export function useDeleteAllLogs() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async () => {
-      const res = await fetch(api.logs.deleteAll.path, {
-        method: api.logs.deleteAll.method,
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error("Failed to delete all logs");
-      return api.logs.deleteAll.responses[200].parse(await res.json());
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
-      toast({ title: "Deleted", description: "All activity logs have been cleared" });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to delete all logs", variant: "destructive" });
-    },
-  });
-}
-
 export function useLogs() {
   return useQuery({
     queryKey: [api.logs.list.path],
