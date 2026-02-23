@@ -65,9 +65,12 @@ export function Sidebar() {
     logoutMutation.mutate();
   };
 
-  // Calculate transform-origin as percentage of viewport
-  const swooshOriginX = buttonPosition.x > 0 ? `${(buttonPosition.x / window.innerWidth) * 100}%` : '50%';
-  const swooshOriginY = buttonPosition.y > 0 ? `${(buttonPosition.y / window.innerHeight) * 100}%` : '50%';
+  // Calculate transform translate delta for stretching effect
+  // Delta is the offset from center to button position
+  const viewportCenterX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
+  const viewportCenterY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+  const swooshDeltaX = buttonPosition.x > 0 ? `${buttonPosition.x - viewportCenterX}px` : '0px';
+  const swooshDeltaY = buttonPosition.y > 0 ? `${buttonPosition.y - viewportCenterY}px` : '0px';
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -147,8 +150,8 @@ export function Sidebar() {
                 isClosing ? "swoosh-modal-content closing" : "swoosh-modal-content"
               )}
               style={{
-                '--swoosh-origin-x': swooshOriginX,
-                '--swoosh-origin-y': swooshOriginY,
+                '--swoosh-delta-x': swooshDeltaX,
+                '--swoosh-delta-y': swooshDeltaY,
               } as React.CSSProperties}
             >
               <div className="flex flex-col space-y-2 text-center sm:text-left">
