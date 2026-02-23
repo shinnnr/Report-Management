@@ -358,6 +358,7 @@ export default function DrivePage() {
   const handleMoveItems = async () => {
     if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
     const targetFolderId = selectedDestination;
+    const totalCount = selectedFiles.length + selectedFolders.length;
 
     // Move items
     if (selectedFiles.length > 0) {
@@ -377,6 +378,13 @@ export default function DrivePage() {
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`);
     }
+    
+    // Show single success message
+    const itemText = totalCount === 1 ? "item" : "items";
+    toast({ 
+      title: "Moved", 
+      description: `${totalCount} ${itemText} moved successfully` 
+    });
   };
 
   const handleBulkDelete = async () => {
@@ -855,11 +863,9 @@ export default function DrivePage() {
                 selectedDestination === null && !destinationSelected || // No destination selected
                 selectedFolders.includes(selectedDestination || 0) || // Selected destination is being moved
                 selectedFolders.some(id => isDescendant(selectedDestination, id)) || // Selected destination is a descendant of moved folders
-                selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null) || // Selected destination is the current parent
-                (selectedDestination === null && destinationSelected && // Trying to move to Home
-                 selectedFolders.length > 0 && selectedFolders.every(id => // All selected folders are already at root
-                   (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
-                 ))
+                (selectedFolders.length > 0 && selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null)) || // Trying to move folders to current parent
+                (selectedFolders.length > 0 && selectedDestination === null && destinationSelected && // Trying to move folders to Home
+                  selectedFolders.every(id => (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null)) // All folders are already at root
               }
             >
               Move Here
