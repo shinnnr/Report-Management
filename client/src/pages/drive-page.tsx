@@ -136,9 +136,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders, isLoading: foldersLoading, isError: foldersError, error: foldersErrorMsg } = useFolders(currentFolderId, 'active');
+  const { data: currentFolders, isError: foldersError } = useFolders(currentFolderId, 'active', 5000);
   const { data: allFoldersData, isLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns - loaded lazily
-  const { data: reports, isLoading: reportsLoading, isError: reportsError, error: reportsErrorMsg } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
+  const { data: reports, isError: reportsError } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 5000);
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -151,8 +151,9 @@ export default function DrivePage() {
     return Array.from(types).sort();
   }, [reports]);
 
-  // Only show loading on initial load - use cached data after
-  // Don't include allFoldersLoading in the initial load check to speed up perceived performance
+  // Use data existence check instead of isLoading to avoid stuck loading state
+  const foldersLoading = !currentFolders;
+  const reportsLoading = !reports;
   const isLoading = foldersLoading || reportsLoading;
 
   // Memoize filtered folders to avoid recalculating on every render
@@ -1072,7 +1073,7 @@ export default function DrivePage() {
       ) : foldersError || reportsError ? (
         <div className="flex flex-col items-center justify-center py-20">
           <p className="text-destructive mb-2">Error loading content</p>
-          <p className="text-muted-foreground text-sm">{foldersError?.message || reportsError?.message || 'Please try again'}</p>
+          <p className="text-muted-foreground text-sm">Please try refreshing the page</p>
         </div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
