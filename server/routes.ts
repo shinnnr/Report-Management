@@ -739,6 +739,11 @@ export async function registerRoutes(
     res.json(logs);
   });
 
+  app.delete(api.logs.deleteAll.path, isAuthenticated, isAdmin, async (req, res) => {
+    await storage.deleteAllLogs();
+    res.json({ message: 'All activity logs deleted successfully' });
+  });
+
 
   // --- Seed Data Helper ---
   async function seed() {

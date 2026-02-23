@@ -136,9 +136,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active', 5000);
-  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active', 5000); // For breadcrumbs and dropdowns
-  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 5000);
+  const { data: currentFolders, isLoading: foldersLoading } = useFolders(currentFolderId, 'active');
+  const { data: allFoldersData, isLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns - loaded lazily
+  const { data: reports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -152,7 +152,8 @@ export default function DrivePage() {
   }, [reports]);
 
   // Only show loading on initial load - use cached data after
-  const isLoading = foldersLoading || allFoldersLoading || reportsLoading;
+  // Don't include allFoldersLoading in the initial load check to speed up perceived performance
+  const isLoading = foldersLoading || reportsLoading;
 
   // Memoize filtered folders to avoid recalculating on every render
   const filteredFolders = useMemo(() => {
