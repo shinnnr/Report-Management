@@ -13,7 +13,10 @@ export function useReports(folderId?: number | "root", status: string = 'active'
 
       const url = `${api.reports.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to fetch reports");
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
+      }
       return api.reports.list.responses[200].parse(await res.json());
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -21,6 +24,8 @@ export function useReports(folderId?: number | "root", status: string = 'active'
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 

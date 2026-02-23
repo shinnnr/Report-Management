@@ -10,4 +10,7 @@ COPY . .
 
 RUN npm run build
 
+# Expose the port Railway assigns
+EXPOSE $PORT
+
 CMD ["npm", "start"]

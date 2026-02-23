@@ -17,7 +17,10 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
 
       const url = `${api.folders.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to fetch folders");
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
+      }
       return api.folders.list.responses[200].parse(await res.json());
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -25,6 +28,8 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
+    retry: 3, // Retry up to 3 times on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 

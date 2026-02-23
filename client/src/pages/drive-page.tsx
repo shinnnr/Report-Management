@@ -135,9 +135,9 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
-  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active', 5000);
-  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active', 5000); // For breadcrumbs and dropdowns
-  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 5000);
+  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active');
+  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns
+  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
