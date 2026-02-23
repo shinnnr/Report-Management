@@ -7,26 +7,43 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
   return useQuery({
     queryKey: [api.folders.list.path, parentId, status],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (parentId === 'all') {
-        params.append('parentId', 'all');
-      } else if (parentId !== null) {
-        params.append('parentId', parentId.toString());
-      }
-      if (status) params.append('status', status);
-
-      const url = `${api.folders.list.path}?${params.toString()}`;
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
-      }
-      const json = await res.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       try {
-        return api.folders.list.responses[200].parse(json);
-      } catch (parseError) {
-        console.error('Zod parse error for folders:', parseError);
-        return json;
+        const params = new URLSearchParams();
+        if (parentId === 'all') {
+          params.append('parentId', 'all');
+        } else if (parentId !== null) {
+          params.append('parentId', parentId.toString());
+        }
+        if (status) params.append('status', status);
+
+        const url = `${api.folders.list.path}?${params.toString()}`;
+        const res = await fetch(url, { 
+          credentials: 'include',
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
+        }
+        const json = await res.json();
+        try {
+          return api.folders.list.responses[200].parse(json);
+        } catch (parseError) {
+          console.error('Zod parse error for folders:', parseError);
+          return json;
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        throw error;
       }
     },
     networkMode: 'always',
@@ -35,6 +52,8 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 

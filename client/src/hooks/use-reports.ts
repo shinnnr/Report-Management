@@ -7,22 +7,39 @@ export function useReports(folderId?: number | "root", status: string = 'active'
   return useQuery({
     queryKey: [api.reports.list.path, folderId, status],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (folderId) params.append("folderId", folderId.toString());
-      if (status) params.append("status", status);
-
-      const url = `${api.reports.list.path}?${params.toString()}`;
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
-      }
-      const json = await res.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       try {
-        return api.reports.list.responses[200].parse(json);
-      } catch (parseError) {
-        console.error('Zod parse error for reports:', parseError);
-        return json;
+        const params = new URLSearchParams();
+        if (folderId) params.append("folderId", folderId.toString());
+        if (status) params.append("status", status);
+
+        const url = `${api.reports.list.path}?${params.toString()}`;
+        const res = await fetch(url, { 
+          credentials: 'include',
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
+        }
+        const json = await res.json();
+        try {
+          return api.reports.list.responses[200].parse(json);
+        } catch (parseError) {
+          console.error('Zod parse error for reports:', parseError);
+          return json;
+        }
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
+        throw error;
       }
     },
     networkMode: 'always',
@@ -31,6 +48,8 @@ export function useReports(folderId?: number | "root", status: string = 'active'
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     refetchInterval: refetchInterval,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
