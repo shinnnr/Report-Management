@@ -375,8 +375,8 @@ export default function DashboardPage() {
                 {user?.role === 'admin' && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-destructive"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     onClick={() => setShowDeleteLogsConfirm(true)}
                     title="Delete all activity logs"
                   >
