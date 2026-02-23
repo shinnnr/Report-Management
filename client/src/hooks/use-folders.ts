@@ -152,7 +152,7 @@ export function useUpdateFolder() {
       if (!res.ok) throw new Error("Failed to update folder");
       return api.folders.update.responses[200].parse(await res.json());
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // Update the cache immediately
       queryClient.setQueriesData({ queryKey: [api.folders.list.path] }, (old: any) => {
         if (!old || !Array.isArray(old)) return old;
@@ -163,8 +163,18 @@ export function useUpdateFolder() {
           return folder;
         });
       });
+      
+      // Determine the message based on what's being updated
+      if (variables.status === 'active') {
+        toast({ title: "Restored", description: "Folder restored successfully" });
+      } else if (variables.name) {
+        toast({ title: "Success", description: "Folder renamed successfully" });
+      } else {
+        queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      }
+      
+      // Always invalidate to ensure all views are updated
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Success", description: "Folder renamed successfully" });
     },
   });
 }
