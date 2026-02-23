@@ -231,6 +231,7 @@ export default function DrivePage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFilesCount, setSelectedFilesCount] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
@@ -309,60 +310,73 @@ export default function DrivePage() {
     const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
 
-    // Step 1: Read all files in parallel first (faster than reading and uploading one by one)
-    const fileDataArray = await Promise.all(
-      Array.from(files).map((file) => {
-        return new Promise<{ file: File; base64: string }>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            resolve({ file, base64: reader.result as string });
-          };
-          reader.readAsDataURL(file);
+    try {
+      // Step 1: Read all files in parallel first (faster than reading and uploading one by one)
+      const fileDataArray = await Promise.all(
+        Array.from(files).map((file) => {
+          return new Promise<{ file: File; base64: string }>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({ file, base64: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+
+      // Step 2: Upload all files in parallel using direct API calls (bypasses hook toast for single message)
+      const uploadPromises = fileDataArray.map(async ({ file, base64 }) => {
+        const res = await fetch(api.reports.create.path, {
+          method: api.reports.create.method,
+          headers: { "Content-Type": "application/json" },
+          credentials: 'include',
+          body: JSON.stringify({
+            title: file.name,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            fileData: base64,
+            folderId: currentFolderId,
+            description: "Uploaded file",
+            year: new Date().getFullYear(),
+            month: new Date().getMonth() + 1,
+          }),
         });
-      })
-    );
-
-    // Step 2: Upload all files in parallel using direct API calls (bypasses hook toast for single message)
-    const uploadPromises = fileDataArray.map(async ({ file, base64 }) => {
-      const res = await fetch(api.reports.create.path, {
-        method: api.reports.create.method,
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: file.name,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          fileData: base64,
-          folderId: currentFolderId,
-          description: "Uploaded file",
-          year: new Date().getFullYear(),
-          month: new Date().getMonth() + 1,
-        }),
+        if (!res.ok) throw new Error("Failed to upload file");
+        return res.json();
       });
-      if (!res.ok) throw new Error("Failed to upload file");
-      return res.json();
-    });
 
-    await Promise.all(uploadPromises);
+      await Promise.all(uploadPromises);
 
-    // Clear the file input
-    fileInput.value = '';
-    setUploadFile(null);
-    setIsUploadOpen(false);
-    
-    // Invalidate queries to refresh the list
-    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-    
-    // Show single success toast for all files
-    const fileCount = files.length;
-    toast({ 
-      title: "Upload Complete", 
-      description: fileCount === 1 
-        ? "File uploaded successfully" 
-        : `${fileCount} files uploaded successfully` 
-    });
+      // Clear the file input
+      fileInput.value = '';
+      setUploadFile(null);
+      setIsUploadOpen(false);
+      
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      
+      // Show single success toast for all files
+      const fileCount = files.length;
+      toast({ 
+        title: "Upload Complete", 
+        description: fileCount === 1 
+          ? "File uploaded successfully" 
+          : `${fileCount} files uploaded successfully` 
+      });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast({ 
+        title: "Upload Failed", 
+        description: "There was an error uploading your files. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleMoveItems = async () => {
@@ -721,9 +735,9 @@ export default function DrivePage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleUpload} disabled={createReport.isPending || selectedFilesCount === 0}>
-                  {createReport.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {createReport.isPending ? "Uploading..." : "Upload"}
+                <Button onClick={handleUpload} disabled={isUploading || selectedFilesCount === 0}>
+                  {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isUploading ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
             </DialogContent>
