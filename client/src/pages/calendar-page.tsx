@@ -27,7 +27,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -35,6 +37,7 @@ export default function CalendarPage() {
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -183,8 +186,8 @@ export default function CalendarPage() {
       });
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
-      // Refresh activities
-      window.location.reload();
+      // Refresh activities without page reload
+      queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
     } catch (error: any) {
       console.error('Submission error:', error);
       toast({
@@ -429,9 +432,6 @@ export default function CalendarPage() {
         {/* Calendar Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold font-display text-primary">
-              {format(currentDate, 'MMMM yyyy')}
-            </h2>
             <div className="flex gap-1">
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}>
                 <ChevronLeft className="w-4 h-4" />
@@ -440,6 +440,9 @@ export default function CalendarPage() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
+            <h2 className="text-xl font-bold font-display text-primary min-w-[160px]">
+              {format(currentDate, 'MMMM yyyy')}
+            </h2>
           </div>
           <div className="text-sm text-muted-foreground font-medium">
             {activities?.length} Scheduled Activities
