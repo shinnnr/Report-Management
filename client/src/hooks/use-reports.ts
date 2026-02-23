@@ -82,9 +82,11 @@ export function useDeleteReport() {
       const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete report");
     },
-    onSuccess: () => {
+    onSuccess: (_data, _variables, context?: { skipToast?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Deleted", description: "File deleted successfully" });
+      if (!context?.skipToast) {
+        toast({ title: "Deleted", description: "File deleted successfully" });
+      }
     },
   });
 }

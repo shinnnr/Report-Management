@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { api, buildUrl } from "@shared/routes";
 import { format, formatDistanceToNow } from "date-fns";
 
 export default function DrivePage() {
@@ -307,38 +308,51 @@ export default function DrivePage() {
     const files = fileInput?.files;
     if (!files || files.length === 0) return;
 
-    // Process files asynchronously without blocking
-    const uploadPromises = Array.from(files).map(async (file) => {
-      return new Promise<void>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const base64 = reader.result as string;
-          try {
-            await createReport.mutateAsync({
-              title: file.name,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
-              fileData: base64,
-              folderId: currentFolderId,
-              description: "Uploaded file",
-              year: new Date().getFullYear(),
-              month: new Date().getMonth() + 1,
-            });
-          } catch (error) {
-            console.error("Upload failed:", error);
-          }
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
+    // Step 1: Read all files in parallel first (faster than reading and uploading one by one)
+    const fileDataArray = await Promise.all(
+      Array.from(files).map((file) => {
+        return new Promise<{ file: File; base64: string }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({ file, base64: reader.result as string });
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    );
+
+    // Step 2: Upload all files in parallel (much faster than sequential)
+    const uploadPromises = fileDataArray.map(async ({ file, base64 }) => {
+      try {
+        await createReport.mutateAsync({
+          title: file.name,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileData: base64,
+          folderId: currentFolderId,
+          description: "Uploaded file",
+          year: new Date().getFullYear(),
+          month: new Date().getMonth() + 1,
+        });
+      } catch (error) {
+        console.error("Upload failed:", error);
+      }
     });
 
-    // Wait for all uploads to complete
     await Promise.all(uploadPromises);
 
     setUploadFile(null);
     setIsUploadOpen(false);
+    
+    // Show single success toast for all files
+    const fileCount = files.length;
+    toast({ 
+      title: "Upload Complete", 
+      description: fileCount === 1 
+        ? "File uploaded successfully" 
+        : `${fileCount} files uploaded successfully` 
+    });
   };
 
   const handleMoveItems = async () => {
@@ -366,22 +380,41 @@ export default function DrivePage() {
   };
 
   const handleBulkDelete = async () => {
+    const totalCount = selectedFiles.length + selectedFolders.length;
+    
+    // Delete files - use direct API calls to avoid multiple toasts
     if (selectedFiles.length > 0) {
-      for (const id of selectedFiles) {
-        await deleteReport.mutateAsync(id);
-      }
+      const deleteFilePromises = selectedFiles.map(async (id) => {
+        const url = buildUrl(api.reports.delete.path, { id });
+        const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
+        if (!res.ok) throw new Error("Failed to delete file");
+      });
+      await Promise.all(deleteFilePromises);
     }
+    
+    // Delete folders - use direct API calls to avoid multiple toasts
     if (selectedFolders.length > 0) {
-      for (const id of selectedFolders) {
-        await deleteFolder.mutateAsync(id);
-      }
+      const deleteFolderPromises = selectedFolders.map(async (id) => {
+        const url = buildUrl(api.folders.delete.path, { id });
+        const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
+        if (!res.ok) throw new Error("Failed to delete folder");
+      });
+      await Promise.all(deleteFolderPromises);
     }
+    
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsBulkDeleteOpen(false);
     setIsSelectMode(false); // Exit select mode after successful delete
+    
+    // Show single success message for bulk delete
+    const itemText = totalCount === 1 ? "item" : "items";
+    toast({ 
+      title: "Deleted", 
+      description: `${totalCount} ${itemText} deleted successfully` 
+    });
   };
 
   const createBlobUrl = (dataUrl: string) => {

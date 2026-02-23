@@ -124,9 +124,11 @@ export function useDeleteFolder() {
       const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete folder");
     },
-    onSuccess: () => {
+    onSuccess: (_data, _variables, context?: { skipToast?: boolean }) => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Deleted", description: "Folder deleted successfully" });
+      if (!context?.skipToast) {
+        toast({ title: "Deleted", description: "Folder deleted successfully" });
+      }
     },
   });
 }
