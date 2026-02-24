@@ -13,6 +13,7 @@ import {
   Archive,
   Home,
   ChevronRight,
+  ChevronDown,
   Search,
   Loader2,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -56,7 +58,47 @@ export default function ArchivesPage() {
   const foldersLoading = !currentArchivedFolders;
   const isLoading = foldersLoading || reportsLoading;
 
-  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
+
+  // Filter states for archived files
+  const [nameFilter, setNameFilter] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<string[]>([]);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [sizeFilter, setSizeFilter] = useState<string[]>([]);
+
+  // Helper function to categorize file name
+  const getNameCategory = (fileName: string): string => {
+    const firstChar = fileName.charAt(0).toUpperCase();
+    if (firstChar >= '0' && firstChar <= '9') return '0-9';
+    if (firstChar >= 'A' && firstChar <= 'H') return 'A-H';
+    if (firstChar >= 'I' && firstChar <= 'P') return 'I-P';
+    if (firstChar >= 'Q' && firstChar <= 'Z') return 'Q-Z';
+    return 'Other';
+  };
+
+  // Helper function to categorize date
+  const getDateCategory = (dateValue: Date | string | null): string => {
+    if (!dateValue) return 'A long time ago';
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 7) return 'Earlier this week';
+    if (diffDays <= 14) return 'Last week';
+    if (diffDays <= 30) return 'Earlier this month';
+    if (diffDays <= 60) return 'Last month';
+    return 'A long time ago';
+  };
+
+  // Helper function to categorize size
+  const getSizeCategory = (fileSize: number): string => {
+    const kb = fileSize / 1024;
+    if (kb < 10) return 'tiny';
+    if (kb < 100) return 'small';
+    if (kb < 1000) return 'medium';
+    if (kb < 10000) return 'large';
+    return 'huge';
+  };
 
   // Memoize filtered folders to avoid recalculating on every render
   const filteredArchivedFolders = useMemo(() => {
@@ -71,14 +113,35 @@ export default function ArchivesPage() {
 
   // Memoize filtered reports to avoid recalculating on every render
   const filteredArchivedReports = useMemo(() => {
-    const items = archivedReports ? archivedReports.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : [];
+    let items = archivedReports ? archivedReports.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : [];
+    
+    // Apply filters
+    if (nameFilter.length > 0) {
+      items = items.filter(r => nameFilter.includes(getNameCategory(r.fileName)));
+    }
+    if (dateFilter.length > 0) {
+      items = items.filter(r => dateFilter.includes(getDateCategory(r.createdAt)));
+    }
+    if (typeFilter.length > 0) {
+      items = items.filter(r => typeFilter.includes(r.fileType?.toLowerCase() || 'other'));
+    }
+    if (sizeFilter.length > 0) {
+      items = items.filter(r => sizeFilter.includes(getSizeCategory(r.fileSize)));
+    }
+    
     return [...items].sort((a, b) => {
       if (sortBy === 'name') {
         return a.fileName.localeCompare(b.fileName);
       }
+      if (sortBy === 'date') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (sortBy === 'size') {
+        return b.fileSize - a.fileSize;
+      }
       return 0;
     });
-  }, [archivedReports, archivesSearchQuery, sortBy]);
+  }, [archivedReports, archivesSearchQuery, sortBy, nameFilter, dateFilter, typeFilter, sizeFilter]);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -212,6 +275,28 @@ export default function ArchivesPage() {
             />
           </div>
         </div>
+        {/* Bulk actions in header - shown when items are selected */}
+        {(isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0)) && (
+          <div className="flex gap-2">
+            {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
+              <>
+                {selectedFolders.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore {selectedFolders.length} Folder{selectedFolders.length > 1 ? 's' : ''}
+                  </Button>
+                )}
+                {selectedFiles.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }))}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore {selectedFiles.length} File{selectedFiles.length > 1 ? 's' : ''}
+                  </Button>
+                )}
+              </>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => { setIsSelectMode(false); setSelectedFolders([]); setSelectedFiles([]); }}>
+              Cancel
+            </Button>
+          </div>
+        )}
 
       </div>
 
@@ -351,6 +436,9 @@ export default function ArchivesPage() {
                     <DropdownMenuItem onClick={() => setSortBy('date')}>
                       Sort by Date
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('size')}>
+                      Sort by Size
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -412,7 +500,141 @@ export default function ArchivesPage() {
                   </Button>
                 </div>
               )}
-              <DropdownMenu>
+              <div className="flex items-center gap-2">
+                {/* Name Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8">
+                      Name <ChevronDown className="ml-1 h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Name</div>
+                    <DropdownMenuCheckboxItem
+                      checked={nameFilter.includes('0-9')}
+                      onCheckedChange={() => setNameFilter(nameFilter.includes('0-9') ? nameFilter.filter(f => f !== '0-9') : [...nameFilter, '0-9'])}
+                    >0-9</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={nameFilter.includes('A-H')}
+                      onCheckedChange={() => setNameFilter(nameFilter.includes('A-H') ? nameFilter.filter(f => f !== 'A-H') : [...nameFilter, 'A-H'])}
+                    >A-H</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={nameFilter.includes('I-P')}
+                      onCheckedChange={() => setNameFilter(nameFilter.includes('I-P') ? nameFilter.filter(f => f !== 'I-P') : [...nameFilter, 'I-P'])}
+                    >I-P</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={nameFilter.includes('Q-Z')}
+                      onCheckedChange={() => setNameFilter(nameFilter.includes('Q-Z') ? nameFilter.filter(f => f !== 'Q-Z') : [...nameFilter, 'Q-Z'])}
+                    >Q-Z</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={nameFilter.includes('Other')}
+                      onCheckedChange={() => setNameFilter(nameFilter.includes('Other') ? nameFilter.filter(f => f !== 'Other') : [...nameFilter, 'Other'])}
+                    >Other</DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* Date Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8">
+                      Date <ChevronDown className="ml-1 h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Date</div>
+                    <DropdownMenuCheckboxItem
+                      checked={dateFilter.includes('Earlier this week')}
+                      onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this week') ? dateFilter.filter(f => f !== 'Earlier this week') : [...dateFilter, 'Earlier this week'])}
+                    >Earlier this week</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={dateFilter.includes('Last week')}
+                      onCheckedChange={() => setDateFilter(dateFilter.includes('Last week') ? dateFilter.filter(f => f !== 'Last week') : [...dateFilter, 'Last week'])}
+                    >Last week</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={dateFilter.includes('Earlier this month')}
+                      onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this month') ? dateFilter.filter(f => f !== 'Earlier this month') : [...dateFilter, 'Earlier this month'])}
+                    >Earlier this month</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={dateFilter.includes('Last month')}
+                      onCheckedChange={() => setDateFilter(dateFilter.includes('Last month') ? dateFilter.filter(f => f !== 'Last month') : [...dateFilter, 'Last month'])}
+                    >Last month</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={dateFilter.includes('A long time ago')}
+                      onCheckedChange={() => setDateFilter(dateFilter.includes('A long time ago') ? dateFilter.filter(f => f !== 'A long time ago') : [...dateFilter, 'A long time ago'])}
+                    >A long time ago</DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* Type Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8">
+                      Type <ChevronDown className="ml-1 h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Type</div>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('pdf')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('pdf') ? typeFilter.filter(f => f !== 'pdf') : [...typeFilter, 'pdf'])}
+                    >PDF</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('doc')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('doc') ? typeFilter.filter(f => f !== 'doc') : [...typeFilter, 'doc'])}
+                    >DOC</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('docx')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('docx') ? typeFilter.filter(f => f !== 'docx') : [...typeFilter, 'docx'])}
+                    >DOCX</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('xls')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('xls') ? typeFilter.filter(f => f !== 'xls') : [...typeFilter, 'xls'])}
+                    >XLS</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('xlsx')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('xlsx') ? typeFilter.filter(f => f !== 'xlsx') : [...typeFilter, 'xlsx'])}
+                    >XLSX</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('image')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('image') ? typeFilter.filter(f => f !== 'image') : [...typeFilter, 'image'])}
+                    >Image</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={typeFilter.includes('other')}
+                      onCheckedChange={() => setTypeFilter(typeFilter.includes('other') ? typeFilter.filter(f => f !== 'other') : [...typeFilter, 'other'])}
+                    >Other</DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* Size Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8">
+                      Size <ChevronDown className="ml-1 h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Size</div>
+                    <DropdownMenuCheckboxItem
+                      checked={sizeFilter.includes('tiny')}
+                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('tiny') ? sizeFilter.filter(f => f !== 'tiny') : [...sizeFilter, 'tiny'])}
+                    >Tiny (&lt;10 KB)</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sizeFilter.includes('small')}
+                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('small') ? sizeFilter.filter(f => f !== 'small') : [...sizeFilter, 'small'])}
+                    >Small (10-100 KB)</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sizeFilter.includes('medium')}
+                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('medium') ? sizeFilter.filter(f => f !== 'medium') : [...sizeFilter, 'medium'])}
+                    >Medium (100 KB - 1 MB)</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sizeFilter.includes('large')}
+                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('large') ? sizeFilter.filter(f => f !== 'large') : [...sizeFilter, 'large'])}
+                    >Large (1-10 MB)</DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={sizeFilter.includes('huge')}
+                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('huge') ? sizeFilter.filter(f => f !== 'huge') : [...sizeFilter, 'huge'])}
+                    >Huge (&gt;10 MB)</DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* Sort Dropdown */}
+                <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <MoreVertical className="w-4 h-4" />
@@ -428,8 +650,12 @@ export default function ArchivesPage() {
                   <DropdownMenuItem onClick={() => setSortBy('date')}>
                     Sort by Date
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('size')}>
+                    Sort by Size
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
             </div>
             {filteredArchivedReports && filteredArchivedReports.length > 0 ? (
               <div className="bg-card rounded-xl border overflow-hidden">
@@ -439,6 +665,7 @@ export default function ArchivesPage() {
                       {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
                       <th className="px-6 py-3 text-left"><span className="font-semibold">Name</span></th>
                       <th className="px-6 py-3 text-left"><span className="font-semibold">Date</span></th>
+                      <th className="px-6 py-3 text-left"><span className="font-semibold">Type</span></th>
                       <th className="px-6 py-3 text-right"><span className="font-semibold">Size</span></th>
                       <th className="px-6 py-3 w-[50px]"></th>
                     </tr>
@@ -461,6 +688,7 @@ export default function ArchivesPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{r.fileType || '-'}</td>
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
