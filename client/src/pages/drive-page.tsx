@@ -386,6 +386,9 @@ export default function DrivePage() {
     setIsSelectMode(false); // Exit select mode after successful move
     if (targetFolderId !== null) {
       setLocation(`/drive?folder=${targetFolderId}`);
+    } else {
+      // When moving to Home, redirect to Home
+      setLocation('/drive');
     }
   };
 

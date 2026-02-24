@@ -259,7 +259,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         ))}
-                        {notifications.length > 10 && (
+                        {notifications.length > 0 && (
                           <div className="pt-3 mt-3">
                             <button
                               onClick={() => {

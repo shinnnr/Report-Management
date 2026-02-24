@@ -694,6 +694,22 @@ export async function registerRoutes(
       // Log the submission
       await storage.createLog(userId, "ACTIVITY_SUBMIT", `Submitted report for activity: ${activity.title}`);
 
+      // Create notification for all OTHER users about the submission
+      const users = await storage.getUsers();
+      const submittingUser = await storage.getUser(userId);
+      for (const user of users) {
+        // Exclude the submitter from receiving notification
+        if (user.id !== userId) {
+          await storage.createNotification({
+            userId: user.id,
+            activityId: activity.id,
+            title: "Activity Submitted",
+            content: `${submittingUser?.fullName || 'A user'} submitted a report for: ${activity.title}`,
+            isRead: false
+          });
+        }
+      }
+
       res.status(201).json({
         submission,
         report,
