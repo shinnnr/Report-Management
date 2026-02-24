@@ -266,6 +266,13 @@ export const api = {
         200: z.array(z.custom<typeof notifications.$inferSelect>()),
       },
     },
+    create: {
+      method: 'POST' as const,
+      path: '/api/notifications',
+      responses: {
+        201: z.custom<typeof notifications.$inferSelect>(),
+      },
+    },
     markRead: {
       method: 'POST' as const,
       path: '/api/notifications/:id/read',

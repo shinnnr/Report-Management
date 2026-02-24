@@ -190,16 +190,15 @@ export default function CalendarPage() {
 
     setIsSubmitting(true);
     try {
-      // Submit all files
-      const uploadPromises = selectedFiles.map(async (file, index) => {
+      // Submit all files without creating notifications
+      const uploadPromises = selectedFiles.map(async (file) => {
         return new Promise<void>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = async () => {
             const base64 = reader.result as string;
 
             try {
-              // Only create notification for the last file to avoid multiple notifications
-              const isLastFile = index === selectedFiles.length - 1;
+              // Suppress all notifications - we'll create one after all uploads
               const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
                 method: 'POST',
                 headers: {
@@ -212,7 +211,7 @@ export default function CalendarPage() {
                   fileType: file.type,
                   fileSize: file.size,
                   fileData: base64,
-                  suppressNotification: !isLastFile,
+                  suppressNotification: true,
                 }),
               });
 
@@ -233,14 +232,37 @@ export default function CalendarPage() {
 
       await Promise.all(uploadPromises);
 
+      // Create a single notification after all uploads complete
+      // Fetch the list of users to notify (excluding the submitter)
+      const usersResponse = await fetch(api.users.list.path);
+      const users = await usersResponse.json();
+      
+      // Create notifications for all other users
+      for (const recipient of users) {
+        if (recipient.id !== user?.id) {
+          await fetch(api.notifications.create.path, {
+            method: api.notifications.create.method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: recipient.id,
+              activityId: selectedActivity.id,
+              title: 'Activity Submitted',
+              content: `${user?.fullName || 'A user'} submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} for: ${selectedActivity.title}`,
+              isRead: false
+            })
+          });
+        }
+      }
+
       toast({
         title: "Submission successful",
         description: `Successfully submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`,
       });
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
-      // Refresh activities without page reload
+      // Refresh activities and notifications without page reload
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
     } catch (error: any) {
       console.error('Submission error:', error);
       toast({

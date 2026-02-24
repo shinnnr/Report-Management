@@ -227,7 +227,7 @@ export default function DrivePage() {
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -307,10 +307,10 @@ export default function DrivePage() {
     // Use files from state if available (from drag and drop), otherwise use file input
     let files: FileList | null = null;
     
-    if (uploadFile) {
+    if (uploadFiles.length > 0) {
       // Create a FileList-like object from the state
       const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(uploadFile);
+      uploadFiles.forEach(file => dataTransfer.items.add(file));
       files = dataTransfer.files;
     } else {
       const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
@@ -359,7 +359,7 @@ export default function DrivePage() {
         : `${fileCount} files uploaded successfully`
     });
 
-    setUploadFile(null);
+    setUploadFiles([]);
     setIsUploadOpen(false);
   };
 
@@ -383,8 +383,8 @@ export default function DrivePage() {
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      // Set the first file and trigger upload modal
-      setUploadFile(files[0]);
+      // Store all files and trigger upload modal
+      setUploadFiles(Array.from(files));
       setIsUploadOpen(true);
     }
   };
@@ -711,15 +711,15 @@ export default function DrivePage() {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
-                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
+                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFiles(e.target.files ? Array.from(e.target.files) : [])} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
                     <UploadCloud className="w-10 h-10 mx-auto mb-2" />
-                    <span>{uploadFile ? "Files Selected" : "Click to select or drag and drop"}</span>
+                    <span>{uploadFiles.length > 0 ? `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} selected` : "Click to select or drag and drop"}</span>
                   </Label>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={handleUpload} disabled={createReport.isPending}>
+                <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
                   {createReport.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {createReport.isPending ? "Uploading..." : "Upload"}
                 </Button>

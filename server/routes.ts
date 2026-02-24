@@ -734,6 +734,18 @@ export async function registerRoutes(
     res.json(notifications);
   });
 
+  app.post(api.notifications.create.path, isAuthenticated, async (req, res) => {
+    const { userId, activityId, title, content, isRead } = req.body;
+    const notification = await storage.createNotification({
+      userId,
+      activityId: activityId || null,
+      title,
+      content,
+      isRead: isRead || false
+    });
+    res.status(201).json(notification);
+  });
+
   app.post(api.notifications.markRead.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id as string);
     await storage.markNotificationRead(id);
