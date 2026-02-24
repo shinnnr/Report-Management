@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
@@ -55,8 +56,10 @@ export default function ArchivesPage() {
   const foldersLoading = !currentArchivedFolders;
   const isLoading = foldersLoading || reportsLoading;
 
-  const filteredArchivedFolders = currentArchivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [];
-  const filteredArchivedReports = archivedReports?.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [];
+  const filteredArchivedFolders = (currentArchivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
+    .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : 0);
+  const filteredArchivedReports = (archivedReports?.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
+    .sort((a, b) => sortBy === 'name' ? a.fileName.localeCompare(b.fileName) : 0);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -80,13 +83,44 @@ export default function ArchivesPage() {
 
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
+  const [restoreFolderId, setRestoreFolderId] = useState<number | null>(null);
+  const [restoreFileId, setRestoreFileId] = useState<number | null>(null);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+
+  // Handle ESC key to exit select mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSelectMode) {
+        setIsSelectMode(false);
+        setSelectedFolders([]);
+        setSelectedFiles([]);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelectMode]);
+
+  const toggleFolderSelection = (id: number) => {
+    setSelectedFolders(prev => 
+      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
+    );
+  };
+
+  const toggleFileSelection = (id: number) => {
+    setSelectedFiles(prev => 
+      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
+    );
+  };
 
   const handleRestoreFolder = (id: number) => {
-    updateFolder.mutate({ id, status: 'active' });
+    setRestoreFolderId(id);
   };
 
   const handleRestoreFile = (id: number) => {
-    updateReport.mutate({ id, status: 'active' });
+    setRestoreFileId(id);
   };
 
   const createBlobUrl = (dataUrl: string) => {
@@ -212,17 +246,102 @@ export default function ArchivesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={!!restoreFolderId} onOpenChange={() => setRestoreFolderId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore this folder? It will be moved back to the drive.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (restoreFolderId) {
+                  updateFolder.mutate({ id: restoreFolderId, status: 'active' });
+                  setRestoreFolderId(null);
+                }
+              }}
+            >
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!restoreFileId} onOpenChange={() => setRestoreFileId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore this file? It will be moved back to the drive.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (restoreFileId) {
+                  updateReport.mutate({ id: restoreFileId, status: 'active' });
+                  setRestoreFileId(null);
+                }
+              }}
+            >
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isLoading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
           <section>
-            <h2 className="text-sm font-semibold mb-4">Archived Folders</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold">Archived Folders</h2>
+              {isSelectMode && selectedFolders.length > 0 && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFolders.length})
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteFolderId(selectedFolders[0])}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFolders.length})
+                  </Button>
+                </div>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                    {isSelectMode ? 'Exit Select' : 'Select'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('name')}>
+                    Sort by Name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('date')}>
+                    Sort by Date
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             {filteredArchivedFolders && filteredArchivedFolders.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredArchivedFolders.map(f => (
-                  <div key={f.id} className="relative p-4 rounded-xl border border-border group">
-                    <div onClick={() => handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
+                  <div key={f.id} className={`relative p-4 rounded-xl border group ${isSelectMode && selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
+                    {isSelectMode && (
+                      <Checkbox 
+                        className="absolute top-2 left-2" 
+                        checked={selectedFolders.includes(f.id)} 
+                        onCheckedChange={() => toggleFolderSelection(f.id)} 
+                      />
+                    )}
+                    <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                       <FolderIcon className="w-10 h-10 text-secondary" />
                       <span className="truncate">{f.name}</span>
                     </div>
@@ -254,12 +373,43 @@ export default function ArchivesPage() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold mb-4">Archived Files</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold">Archived Files</h2>
+              {isSelectMode && selectedFiles.length > 0 && (
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }))}>
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFiles.length})
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteFileId(selectedFiles[0])}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFiles.length})
+                  </Button>
+                </div>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                    {isSelectMode ? 'Exit Select' : 'Select'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('name')}>
+                    Sort by Name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('date')}>
+                    Sort by Date
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             {filteredArchivedReports && filteredArchivedReports.length > 0 ? (
               <div className="bg-white rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
+                      {isSelectMode && <th className="px-6 py-3 w-[40px]"></th>}
                       <th className="px-6 py-3">Name</th>
                       <th className="px-6 py-3 text-right">Size</th>
                       <th className="px-6 py-3 w-[50px]"></th>
@@ -268,6 +418,14 @@ export default function ArchivesPage() {
                   <tbody className="divide-y">
                     {filteredArchivedReports.map(r => (
                       <tr key={r.id} className="hover:bg-muted/20 group">
+                        {isSelectMode && (
+                          <td className="px-6 py-4">
+                            <Checkbox 
+                              checked={selectedFiles.includes(r.id)} 
+                              onCheckedChange={() => toggleFileSelection(r.id)} 
+                            />
+                          </td>
+                        )}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4" />

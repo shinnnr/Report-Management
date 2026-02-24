@@ -135,6 +135,19 @@ export default function DrivePage() {
     }
   }, [isSelectMode]);
 
+  // Handle ESC key to exit select mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSelectMode) {
+        setIsSelectMode(false);
+        setSelectedFolders([]);
+        setSelectedFiles([]);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelectMode]);
+
   const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active');
   const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns
   const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
