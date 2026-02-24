@@ -56,6 +56,8 @@ export default function ArchivesPage() {
   const foldersLoading = !currentArchivedFolders;
   const isLoading = foldersLoading || reportsLoading;
 
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
+
   // Memoize filtered folders to avoid recalculating on every render
   const filteredArchivedFolders = useMemo(() => {
     const folders = currentArchivedFolders ? currentArchivedFolders.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : [];
@@ -105,7 +107,6 @@ export default function ArchivesPage() {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
-  const [sortBy, setSortBy] = useState<'name' | 'date'>('name');
 
   // Handle ESC key to exit select mode
   useEffect(() => {
