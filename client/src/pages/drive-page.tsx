@@ -304,8 +304,19 @@ export default function DrivePage() {
   };
 
   const handleUpload = async () => {
-    const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
-    const files = fileInput?.files;
+    // Use files from state if available (from drag and drop), otherwise use file input
+    let files: FileList | null = null;
+    
+    if (uploadFile) {
+      // Create a FileList-like object from the state
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(uploadFile);
+      files = dataTransfer.files;
+    } else {
+      const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
+      files = fileInput?.files;
+    }
+    
     if (!files || files.length === 0) return;
 
     // Process files asynchronously without blocking

@@ -219,7 +219,7 @@ export default function DashboardPage() {
               </Button>
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50">
-                <div className="p-4 border-b">
+                <div className="p-4">
                   <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
                 </div>
                 <ScrollArea className="h-72">
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                   </div>
                 </ScrollArea>
                 {notifications && notifications.length > 0 && (
-                  <div className="p-3 border-t bg-muted/30">
+                  <div className="p-3 bg-muted/30">
                     <button
                       onClick={() => {
                         setShowNotifications(false);
