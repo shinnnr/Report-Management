@@ -780,10 +780,11 @@ export default function DrivePage() {
 
                   {/* Navigation breadcrumb */}
                   {currentNavigationFolder !== null && (
-                    <div className="mb-2 p-2 bg-muted/30 rounded text-sm">
+                    <div className="mb-2 p-2 bg-muted/30 rounded text-sm flex items-center gap-2">
                       <button
-                        onClick={() => navigateToFolder(null)}
-                        className="text-primary hover:underline"
+                        onClick={() => selectDestination(null)}
+                        className={`text-primary hover:underline ${selectedDestination === null ? 'font-bold' : ''}`}
+                        title="Click to select Home as destination"
                       >
                         Home
                       </button>
