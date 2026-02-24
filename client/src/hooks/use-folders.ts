@@ -153,7 +153,7 @@ export function useUpdateFolder() {
       return api.folders.update.responses[200].parse(await res.json());
     },
     onSuccess: (data, variables) => {
-      // Update the cache immediately
+      // Update the cache immediately for all folder queries
       queryClient.setQueriesData({ queryKey: [api.folders.list.path] }, (old: any) => {
         if (!old || !Array.isArray(old)) return old;
         return old.map((folder: any) => {
@@ -164,17 +164,18 @@ export function useUpdateFolder() {
         });
       });
       
+      // Invalidate all folder queries to refresh both archives and drive views
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      
+      // Also invalidate all report queries in case restored folders contain files
+      queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      
       // Determine the message based on what's being updated
       if (variables.status === 'active') {
         toast({ title: "Restored", description: "Folder restored successfully" });
       } else if (variables.name) {
         toast({ title: "Success", description: "Folder renamed successfully" });
-      } else {
-        queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       }
-      
-      // Always invalidate to ensure all views are updated
-      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
     },
   });
 }
