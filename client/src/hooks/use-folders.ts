@@ -175,6 +175,11 @@ export function useUpdateFolder() {
       // Also invalidate all report queries in case restored folders contain files
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
       
+      // Force refetch for active folders (drive page)
+      queryClient.refetchQueries({ queryKey: [api.folders.list.path, null, 'active'] });
+      // Force refetch for archived folders (archives page)
+      queryClient.refetchQueries({ queryKey: [api.folders.list.path, null, 'archived'] });
+      
       // Determine the message based on what's being updated
       if (variables.status === 'active') {
         toast({ title: "Restored", description: "Folder restored successfully" });

@@ -298,79 +298,87 @@ export default function ArchivesPage() {
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold">Archived Folders</h2>
-              {isSelectMode && selectedFolders.length > 0 && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFolders.length})
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => setDeleteFolderId(selectedFolders[0])}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFolders.length})
-                  </Button>
-                </div>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
-                    {isSelectMode ? 'Exit Select' : 'Select'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('name')}>
-                    Sort by Name
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('date')}>
-                    Sort by Date
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            {filteredArchivedFolders && filteredArchivedFolders.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {filteredArchivedFolders.map(f => (
-                  <div key={f.id} className={`relative p-4 rounded-xl border group ${isSelectMode && selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
-                    {isSelectMode && (
-                      <Checkbox 
-                        className="absolute top-2 left-2" 
-                        checked={selectedFolders.includes(f.id)} 
-                        onCheckedChange={() => toggleFolderSelection(f.id)} 
-                      />
-                    )}
-                    <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
-                      <FolderIcon className="w-10 h-10 text-secondary" />
-                      <span className="truncate">{f.name}</span>
-                    </div>
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleRestoreFolder(f.id)}>
-                            <RotateCcw className="w-4 h-4 mr-2" /> Restore
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+          {/* Only show Folders section if:
+              1. At Home (root) - always show
+              2. Inside a folder with subfolders - show
+          */}
+          {(currentFolderId === null || (filteredArchivedFolders && filteredArchivedFolders.length > 0)) && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold">Archived Folders</h2>
+                {isSelectMode && selectedFolders.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
+                      <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFolders.length})
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteFolderId(selectedFolders[0])}>
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFolders.length})
+                    </Button>
                   </div>
-                ))}
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                      {isSelectMode ? 'Exit Select' : 'Select'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('name')}>
+                      Sort by Name
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('date')}>
+                      Sort by Date
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            ) : (
-              <div className="text-center py-20 border-2 border-dashed rounded-xl">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FolderIcon className="w-8 h-8 text-muted-foreground" />
+              {filteredArchivedFolders && filteredArchivedFolders.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {filteredArchivedFolders.map(f => (
+                    <div key={f.id} className={`relative p-4 rounded-xl border group ${isSelectMode && selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
+                      {isSelectMode && (
+                        <Checkbox 
+                          className="absolute top-2 left-2" 
+                          checked={selectedFolders.includes(f.id)} 
+                          onCheckedChange={() => toggleFolderSelection(f.id)} 
+                        />
+                      )}
+                      <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
+                        <FolderIcon className="w-10 h-10 text-secondary" />
+                        <span className="truncate">{f.name}</span>
+                      </div>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => handleRestoreFolder(f.id)}>
+                              <RotateCcw className="w-4 h-4 mr-2" /> Restore
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <h3 className="text-lg font-medium text-foreground">No archived folders</h3>
-                <p className="text-muted-foreground">Archived folders will appear here.</p>
-              </div>
-            )}
-          </section>
+              ) : (
+                currentFolderId === null && (
+                  <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FolderIcon className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium text-foreground">No archived folders</h3>
+                    <p className="text-muted-foreground">Archived folders will appear here.</p>
+                  </div>
+                )
+              )}
+            </section>
+          )}
 
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -405,13 +413,14 @@ export default function ArchivesPage() {
               </DropdownMenu>
             </div>
             {filteredArchivedReports && filteredArchivedReports.length > 0 ? (
-              <div className="bg-white rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      {isSelectMode && <th className="px-6 py-3 w-[40px]"></th>}
-                      <th className="px-6 py-3">Name</th>
-                      <th className="px-6 py-3 text-right">Size</th>
+                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
+                      <th className="px-6 py-3 text-left"><span className="font-semibold">Name</span></th>
+                      <th className="px-6 py-3 text-left"><span className="font-semibold">Date</span></th>
+                      <th className="px-6 py-3 text-right"><span className="font-semibold">Size</span></th>
                       <th className="px-6 py-3 w-[50px]"></th>
                     </tr>
                   </thead>
@@ -432,6 +441,7 @@ export default function ArchivesPage() {
                             <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                           </div>
                         </td>
+                        <td className="px-6 py-4 text-muted-foreground">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-'}</td>
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>

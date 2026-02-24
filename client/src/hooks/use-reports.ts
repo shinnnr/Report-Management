@@ -129,6 +129,10 @@ export function useUpdateReport() {
         });
       });
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      // Force refetch for active reports (drive page)
+      queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'active'] });
+      // Force refetch for archived reports (archives page)
+      queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'archived'] });
     },
   });
 }
