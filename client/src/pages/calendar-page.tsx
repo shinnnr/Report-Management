@@ -115,15 +115,22 @@ export default function CalendarPage() {
   const handleDeleteAllByDate = async () => {
     if (!selectedDate) return;
     
-    // Delete all activities for the selected date
-    for (const activity of selectedDateActivities) {
-      await deleteActivity.mutateAsync(activity.id);
-    }
+    // Delete all activities for the selected date using direct API calls to avoid multiple toasts
+    const deletePromises = selectedDateActivities.map(async (activity) => {
+      const url = buildUrl(api.activities.delete.path, { id: activity.id });
+      await fetch(url, { method: api.activities.delete.method });
+    });
+    
+    await Promise.all(deletePromises);
+    
+    // Invalidate queries to refresh the list
+    queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+    
     setShowDeleteAllConfirm(false);
     setSelectedDate(null);
     toast({
       title: "Deleted",
-      description: `All activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
+      description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
     });
   };
 
@@ -311,17 +318,14 @@ export default function CalendarPage() {
         <div className="flex items-center gap-3">
           {/* Delete All Activities Button - shows when date is selected with activities */}
           {selectedDate && selectedDateActivities.length > 0 && (
-            <>
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteAllConfirm(true)}
-                className="gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete All ({selectedDateActivities.length})
-              </Button>
-              <span className="text-muted-foreground">|</span>
-            </>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete All ({selectedDateActivities.length})
+            </Button>
           )}
 
           <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>

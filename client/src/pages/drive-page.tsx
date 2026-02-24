@@ -1445,7 +1445,7 @@ export default function DrivePage() {
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-medium">
-                            {r.fileType?.toUpperCase() || 'FILE'}
+                            {r.fileType || '-'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
