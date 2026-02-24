@@ -758,6 +758,24 @@ export async function registerRoutes(
     res.json(logs);
   });
 
+  // Delete all logs (admin only)
+  app.delete(api.logs.list.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete all logs" });
+      }
+      
+      await storage.deleteAllLogs();
+      res.json({ message: "All logs deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting logs:", err);
+      res.status(500).json({ message: "Failed to delete logs" });
+    }
+  });
+
 
   // --- Seed Data Helper ---
   async function seed() {

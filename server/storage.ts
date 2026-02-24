@@ -56,6 +56,7 @@ export interface IStorage {
   // Logs
   getLogs(): Promise<ActivityLog[]>;
   createLog(userId: number, action: string, description: string): Promise<void>;
+  deleteAllLogs(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -590,6 +591,10 @@ export class DatabaseStorage implements IStorage {
       action,
       description,
     });
+  }
+
+  async deleteAllLogs(): Promise<void> {
+    await db.delete(activityLogs);
   }
 }
 

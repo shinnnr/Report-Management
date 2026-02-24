@@ -5,11 +5,21 @@ import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, 
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
-import { useActivities, useLogs } from "@/hooks/use-activities";
+import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
@@ -39,6 +49,8 @@ export default function DashboardPage() {
 
     const [showNotifications, setShowNotifications] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
+    const [showDeleteLogsConfirm, setShowDeleteLogsConfirm] = useState(false);
+    const deleteAllLogsMutation = useDeleteAllLogs();
     const notificationRef = useRef<HTMLDivElement>(null);
 
     // Close notifications when clicking outside
@@ -352,12 +364,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         {/* Recent Activity Logs */}
         <div className="lg:col-span-2">
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
                 Recent System Activity
               </CardTitle>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => setShowDeleteLogsConfirm(true)}
+                  className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                  title="Delete all logs"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </button>
+              )}
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
@@ -518,6 +539,26 @@ export default function DashboardPage() {
         isOpen={showNotificationModal}
         onClose={() => setShowNotificationModal(false)}
       />
+
+      <AlertDialog open={showDeleteLogsConfirm} onOpenChange={setShowDeleteLogsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Activity Logs</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all activity logs? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAllLogsMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </LayoutWrapper>
   );
 }

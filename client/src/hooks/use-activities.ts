@@ -69,3 +69,29 @@ export function useLogs() {
     refetchInterval: 5000, // Poll every 5 seconds to check for new activity logs
   });
 }
+
+export function useDeleteAllLogs() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(api.logs.deleteAll.path, {
+        method: api.logs.deleteAll.method,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete logs");
+      }
+      return api.logs.deleteAll.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
+      toast({ title: "Deleted", description: "All activity logs have been deleted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}
