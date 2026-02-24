@@ -356,14 +356,17 @@ export default function CalendarPage() {
 
         {/* Delete All Activities Button - shows when date is selected with activities */}
         {selectedDate && selectedDateActivities.length > 0 && (
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteAllConfirm(true)}
-            className="gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete All ({selectedDateActivities.length})
-          </Button>
+          <>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete All ({selectedDateActivities.length})
+            </Button>
+            <span className="text-muted-foreground">|</span>
+          </>
         )}
 
         {/* Activity Submission Modal */}
