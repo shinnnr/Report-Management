@@ -186,6 +186,7 @@ export default function ArchivesPage() {
           </div>
           <div className="mt-4">
             <Input
+              name="archives-search"
               placeholder="Search archived folders and files..."
               value={archivesSearchQuery}
               onChange={(e) => setArchivesSearchQuery(e.target.value)}
@@ -417,7 +418,7 @@ export default function ArchivesPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
+                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
                       <th className="px-6 py-3 text-left"><span className="font-semibold">Name</span></th>
                       <th className="px-6 py-3 text-left"><span className="font-semibold">Date</span></th>
                       <th className="px-6 py-3 text-right"><span className="font-semibold">Size</span></th>

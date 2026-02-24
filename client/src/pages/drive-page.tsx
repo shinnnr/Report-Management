@@ -660,6 +660,7 @@ export default function DrivePage() {
           </div>
           <div className="mt-4">
             <Input
+              name="drive-search"
               placeholder="Search folders and files..."
               value={driveSearchQuery}
               onChange={(e) => setDriveSearchQuery(e.target.value)}
@@ -804,6 +805,7 @@ export default function DrivePage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
+                  name="move-search"
                   placeholder="Search folders..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
