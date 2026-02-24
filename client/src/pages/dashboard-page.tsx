@@ -219,10 +219,10 @@ export default function DashboardPage() {
               </Button>
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50">
-                <div className="p-4">
+                <div className="p-4 border-b">
                   <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
                 </div>
-                <ScrollArea className="h-96">
+                <ScrollArea className="h-72">
                   <div className="p-4">
                     {notifications && notifications.length > 0 ? (
                       <div className="space-y-2">
@@ -259,25 +259,25 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         ))}
-                        {notifications.length > 0 && (
-                          <div className="pt-3 mt-3">
-                            <button
-                              onClick={() => {
-                                setShowNotifications(false);
-                                setShowNotificationModal(true);
-                              }}
-                              className="w-full text-sm text-primary hover:text-primary/80 font-medium"
-                            >
-                              View All Notifications
-                            </button>
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">No notifications</p>
                     )}
                   </div>
                 </ScrollArea>
+                {notifications && notifications.length > 0 && (
+                  <div className="p-3 border-t bg-muted/30">
+                    <button
+                      onClick={() => {
+                        setShowNotifications(false);
+                        setShowNotificationModal(true);
+                      }}
+                      className="w-full text-sm text-primary hover:text-primary/80 font-medium"
+                    >
+                      View All Notifications
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             </div>

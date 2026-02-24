@@ -141,13 +141,15 @@ export default function CalendarPage() {
     setIsSubmitting(true);
     try {
       // Submit all files
-      const uploadPromises = selectedFiles.map(async (file) => {
+      const uploadPromises = selectedFiles.map(async (file, index) => {
         return new Promise<void>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = async () => {
             const base64 = reader.result as string;
 
             try {
+              // Only create notification for the last file to avoid multiple notifications
+              const isLastFile = index === selectedFiles.length - 1;
               const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
                 method: 'POST',
                 headers: {
@@ -160,6 +162,7 @@ export default function CalendarPage() {
                   fileType: file.type,
                   fileSize: file.size,
                   fileData: base64,
+                  suppressNotification: !isLastFile,
                 }),
               });
 

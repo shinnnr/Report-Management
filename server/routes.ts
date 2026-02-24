@@ -605,6 +605,7 @@ export async function registerRoutes(
     try {
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
+      const suppressNotification = req.body.suppressNotification === true;
 
       // Allow multiple submissions to the same activity (user can upload additional files)
       // No check needed here as we want to allow multiple files per activity
@@ -695,18 +696,20 @@ export async function registerRoutes(
       await storage.createLog(userId, "ACTIVITY_SUBMIT", `Submitted report for activity: ${activity.title}`);
 
       // Create notification for all OTHER users about the submission
-      const users = await storage.getUsers();
-      const submittingUser = await storage.getUser(userId);
-      for (const user of users) {
-        // Exclude the submitter from receiving notification
-        if (user.id !== userId) {
-          await storage.createNotification({
-            userId: user.id,
-            activityId: activity.id,
-            title: "Activity Submitted",
-            content: `${submittingUser?.fullName || 'A user'} submitted a report for: ${activity.title}`,
-            isRead: false
-          });
+      if (!suppressNotification) {
+        const users = await storage.getUsers();
+        const submittingUser = await storage.getUser(userId);
+        for (const user of users) {
+          // Exclude the submitter from receiving notification
+          if (user.id !== userId) {
+            await storage.createNotification({
+              userId: user.id,
+              activityId: activity.id,
+              title: "Activity Submitted",
+              content: `${submittingUser?.fullName || 'A user'} submitted a report for: ${activity.title}`,
+              isRead: false
+            });
+          }
         }
       }
 
