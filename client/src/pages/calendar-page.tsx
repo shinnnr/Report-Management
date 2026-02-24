@@ -49,6 +49,7 @@ export default function CalendarPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -133,6 +134,55 @@ export default function CalendarPage() {
     }
 
     setSelectedFiles(validFiles);
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `File "${file.name}" is not supported. Please select PDF or Word documents only.`,
+          variant: "destructive"
+        });
+        continue;
+      }
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `File "${file.name}" exceeds 10MB limit.`,
+          variant: "destructive"
+        });
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles([...selectedFiles, ...validFiles]);
+    }
   };
 
   const handleSubmit = async () => {
@@ -332,7 +382,12 @@ export default function CalendarPage() {
               {/* File Upload Section */}
               {selectedActivity?.status !== 'completed' && (
                 <div className="space-y-4">
-                  <div className="text-center">
+                  <div 
+                    className={`text-center p-4 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
                     <input
                       type="file"
                       id="activity-file-upload"
@@ -348,6 +403,7 @@ export default function CalendarPage() {
                       <Upload className="w-4 h-4" />
                       Choose File
                     </label>
+                    <p className="text-xs text-muted-foreground mt-2">or drag and drop files here</p>
                   </div>
 
                   {selectedFiles.length > 0 && (

@@ -228,6 +228,7 @@ export default function DrivePage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<number | null>(null);
@@ -349,6 +350,32 @@ export default function DrivePage() {
 
     setUploadFile(null);
     setIsUploadOpen(false);
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      // Set the first file and trigger upload modal
+      setUploadFile(files[0]);
+      setIsUploadOpen(true);
+    }
   };
 
   const handleMoveItems = async () => {
@@ -667,11 +694,16 @@ export default function DrivePage() {
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="py-8 text-center border-2 border-dashed rounded-xl">
+                <div 
+                  className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFile(e.target.files?.[0] || null)} />
                   <Label htmlFor="file-upload-multiple" className="cursor-pointer">
                     <UploadCloud className="w-10 h-10 mx-auto mb-2" />
-                    <span>{uploadFile ? "Files Selected" : "Click to select"}</span>
+                    <span>{uploadFile ? "Files Selected" : "Click to select or drag and drop"}</span>
                   </Label>
                 </div>
               </div>
