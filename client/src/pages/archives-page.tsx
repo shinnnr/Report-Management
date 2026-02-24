@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
@@ -56,10 +56,35 @@ export default function ArchivesPage() {
   const foldersLoading = !currentArchivedFolders;
   const isLoading = foldersLoading || reportsLoading;
 
-  const filteredArchivedFolders = (currentArchivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
-    .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : (sortBy === 'date' ? (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : 0));
-  const filteredArchivedReports = (archivedReports?.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
-    .sort((a, b) => sortBy === 'name' ? a.fileName.localeCompare(b.fileName) : (sortBy === 'date' ? (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : 0));
+  // Memoize filtered folders to avoid recalculating on every render
+  const filteredArchivedFolders = useMemo(() => {
+    const folders = (currentArchivedFolders && Array.isArray(currentArchivedFolders) ? currentArchivedFolders.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : []);
+    return folders.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [currentArchivedFolders, archivesSearchQuery, sortBy]);
+
+  // Memoize filtered reports to avoid recalculating on every render
+  const filteredArchivedReports = useMemo(() => {
+    const items = (archivedReports && Array.isArray(archivedReports) ? archivedReports.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : []);
+    return items.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.fileName.localeCompare(b.fileName);
+        case 'date':
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [archivedReports, archivesSearchQuery, sortBy]);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
