@@ -57,9 +57,9 @@ export default function ArchivesPage() {
   const isLoading = foldersLoading || reportsLoading;
 
   const filteredArchivedFolders = (currentArchivedFolders?.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
-    .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : 0);
+    .sort((a, b) => sortBy === 'name' ? a.name.localeCompare(b.name) : (sortBy === 'date' ? (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : 0));
   const filteredArchivedReports = (archivedReports?.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) || [])
-    .sort((a, b) => sortBy === 'name' ? a.fileName.localeCompare(b.fileName) : 0);
+    .sort((a, b) => sortBy === 'name' ? a.fileName.localeCompare(b.fileName) : (sortBy === 'date' ? (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) : 0));
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
