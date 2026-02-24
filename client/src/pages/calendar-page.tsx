@@ -307,7 +307,24 @@ export default function CalendarPage() {
           <p className="text-muted-foreground">Manage your schedule and deadlines.</p>
         </div>
         
-        <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
+        {/* Action buttons - kept together in a flex container */}
+        <div className="flex items-center gap-3">
+          {/* Delete All Activities Button - shows when date is selected with activities */}
+          {selectedDate && selectedDateActivities.length > 0 && (
+            <>
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete All ({selectedDateActivities.length})
+              </Button>
+              <span className="text-muted-foreground">|</span>
+            </>
+          )}
+
+          <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
           <DialogTrigger asChild>
             <Button
               className="gap-2 shadow-lg shadow-primary/20 bg-primary"

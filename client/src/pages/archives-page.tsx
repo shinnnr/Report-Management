@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { format } from "date-fns";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
@@ -59,6 +60,17 @@ export default function ArchivesPage() {
   const isLoading = foldersLoading || reportsLoading;
 
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
+
+  // Get unique file types from archived reports
+  const fileTypes = useMemo(() => {
+    if (!archivedReports) return [];
+    const types = new Set<string>();
+    archivedReports.forEach(r => {
+      const ext = r.fileType?.toLowerCase() || 'other';
+      types.add(ext);
+    });
+    return Array.from(types).sort();
+  }, [archivedReports]);
 
   // Filter states for archived files
   const [nameFilter, setNameFilter] = useState<string[]>([]);
@@ -567,15 +579,17 @@ export default function ArchivesPage() {
                                 <ChevronDown className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-48">
+                            <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
                               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Type</div>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('pdf')} onCheckedChange={() => setTypeFilter(typeFilter.includes('pdf') ? typeFilter.filter(f => f !== 'pdf') : [...typeFilter, 'pdf'])}>PDF</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('doc')} onCheckedChange={() => setTypeFilter(typeFilter.includes('doc') ? typeFilter.filter(f => f !== 'doc') : [...typeFilter, 'doc'])}>DOC</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('docx')} onCheckedChange={() => setTypeFilter(typeFilter.includes('docx') ? typeFilter.filter(f => f !== 'docx') : [...typeFilter, 'docx'])}>DOCX</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('xls')} onCheckedChange={() => setTypeFilter(typeFilter.includes('xls') ? typeFilter.filter(f => f !== 'xls') : [...typeFilter, 'xls'])}>XLS</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('xlsx')} onCheckedChange={() => setTypeFilter(typeFilter.includes('xlsx') ? typeFilter.filter(f => f !== 'xlsx') : [...typeFilter, 'xlsx'])}>XLSX</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('image')} onCheckedChange={() => setTypeFilter(typeFilter.includes('image') ? typeFilter.filter(f => f !== 'image') : [...typeFilter, 'image'])}>Image</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={typeFilter.includes('other')} onCheckedChange={() => setTypeFilter(typeFilter.includes('other') ? typeFilter.filter(f => f !== 'other') : [...typeFilter, 'other'])}>Other</DropdownMenuCheckboxItem>
+                              {fileTypes.map(type => (
+                                <DropdownMenuCheckboxItem
+                                  key={type}
+                                  checked={typeFilter.includes(type)}
+                                  onCheckedChange={() => setTypeFilter(typeFilter.includes(type) ? typeFilter.filter(f => f !== type) : [...typeFilter, type])}
+                                >
+                                  {type.toUpperCase()}
+                                </DropdownMenuCheckboxItem>
+                              ))}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -620,7 +634,7 @@ export default function ArchivesPage() {
                             <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-muted-foreground">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
                         <td className="px-6 py-4 text-muted-foreground">{r.fileType || '-'}</td>
                         <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
