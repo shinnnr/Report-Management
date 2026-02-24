@@ -269,19 +269,20 @@ export default function DrivePage() {
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
     
-    // Show success message immediately and close modal
-    setRenameFileName("");
-    setIsRenameFileOpen(false);
-    toast({ title: "Updated", description: "File renamed successfully" });
-    
     try {
       // Wait for the mutation to complete - the hook's onSuccess will invalidate reports
       await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
       // Also invalidate activities to show the rename activity
       await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      
+      // Show success message only after mutation succeeds
+      setRenameFileName("");
+      setIsRenameFileOpen(false);
+      toast({ title: "Updated", description: "File renamed successfully" });
     } catch (error) {
-      // Handle error if needed
+      // Handle error - show error message
       console.error("Failed to rename file:", error);
+      toast({ title: "Error", description: "A file with this name already exists in this location.", variant: "destructive" });
     }
   };
 
@@ -300,19 +301,20 @@ export default function DrivePage() {
   const handleRenameFolder = async () => {
     if (!renameName.trim() || !renameId) return;
     
-    // Show success message immediately and close modal
-    setRenameName("");
-    setIsRenameOpen(false);
-    toast({ title: "Updated", description: "Folder renamed successfully" });
-    
     try {
       // Wait for the mutation to complete - the hook's onSuccess will invalidate folders
       await renameFolder.mutateAsync({ id: renameId, name: renameName });
       // Also invalidate activities to show the rename activity
       await queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      
+      // Show success message only after mutation succeeds
+      setRenameName("");
+      setIsRenameOpen(false);
+      toast({ title: "Updated", description: "Folder renamed successfully" });
     } catch (error) {
-      // Handle error if needed
+      // Handle error - show error message
       console.error("Failed to rename folder:", error);
+      toast({ title: "Error", description: "A folder with this name already exists in this location.", variant: "destructive" });
     }
   };
 
