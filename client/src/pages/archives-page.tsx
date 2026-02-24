@@ -58,31 +58,23 @@ export default function ArchivesPage() {
 
   // Memoize filtered folders to avoid recalculating on every render
   const filteredArchivedFolders = useMemo(() => {
-    const folders = (currentArchivedFolders && Array.isArray(currentArchivedFolders) ? currentArchivedFolders.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : []);
-    return folders.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'date':
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-        default:
-          return 0;
+    const folders = currentArchivedFolders ? currentArchivedFolders.filter(f => f.name.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : [];
+    return [...folders].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
       }
+      return 0;
     });
   }, [currentArchivedFolders, archivesSearchQuery, sortBy]);
 
   // Memoize filtered reports to avoid recalculating on every render
   const filteredArchivedReports = useMemo(() => {
-    const items = (archivedReports && Array.isArray(archivedReports) ? archivedReports.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : []);
-    return items.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.fileName.localeCompare(b.fileName);
-        case 'date':
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-        default:
-          return 0;
+    const items = archivedReports ? archivedReports.filter(r => r.title.toLowerCase().includes(archivesSearchQuery.toLowerCase()) || r.fileName.toLowerCase().includes(archivesSearchQuery.toLowerCase())) : [];
+    return [...items].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.fileName.localeCompare(b.fileName);
       }
+      return 0;
     });
   }, [archivedReports, archivesSearchQuery, sortBy]);
 
