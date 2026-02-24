@@ -47,6 +47,7 @@ export default function CalendarPage() {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -104,6 +105,26 @@ export default function CalendarPage() {
       case 'overdue': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-orange-100 text-orange-700 border-orange-200';
     }
+  };
+
+  // Get activities for selected date
+  const selectedDateActivities = selectedDate 
+    ? activities?.filter(a => isSameDay(new Date(a.deadlineDate), selectedDate)) || []
+    : [];
+
+  const handleDeleteAllByDate = async () => {
+    if (!selectedDate) return;
+    
+    // Delete all activities for the selected date
+    for (const activity of selectedDateActivities) {
+      await deleteActivity.mutateAsync(activity.id);
+    }
+    setShowDeleteAllConfirm(false);
+    setSelectedDate(null);
+    toast({
+      title: "Deleted",
+      description: `All activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
+    });
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,9 +347,22 @@ export default function CalendarPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreate} disabled={createActivity.isPending}>
-                {createActivity.isPending ? "Creating..." : "Create Activity"}
-              </Button>
+              <div className="flex gap-2 w-full justify-between">
+                {selectedDate && selectedDateActivities.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowDeleteAllConfirm(true)}
+                    className="gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete All ({selectedDateActivities.length})
+                  </Button>
+                )}
+                <Button onClick={handleCreate} disabled={createActivity.isPending} className="ml-auto">
+                  {createActivity.isPending ? "Creating..." : "Create Activity"}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -503,6 +537,30 @@ export default function CalendarPage() {
                 }}
               >
                 Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete All Activities by Date Confirmation Modal */}
+        <Dialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete All Activities</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete all {selectedDateActivities.length} activities for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteAllConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAllByDate}
+                disabled={deleteActivity.isPending}
+              >
+                {deleteActivity.isPending ? "Deleting..." : "Delete All"}
               </Button>
             </DialogFooter>
           </DialogContent>
