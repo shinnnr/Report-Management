@@ -282,19 +282,26 @@ export default function ArchivesPage() {
               <>
                 {selectedFolders.length > 0 && (
                   <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> Restore {selectedFolders.length} Folder{selectedFolders.length > 1 ? 's' : ''}
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFolders.length})
                   </Button>
                 )}
                 {selectedFiles.length > 0 && (
                   <Button variant="outline" size="sm" onClick={() => selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }))}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> Restore {selectedFiles.length} File{selectedFiles.length > 1 ? 's' : ''}
+                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFiles.length})
+                  </Button>
+                )}
+                {selectedFolders.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteFolderId(selectedFolders[0])}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFolders.length})
+                  </Button>
+                )}
+                {selectedFiles.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteFileId(selectedFiles[0])}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFiles.length})
                   </Button>
                 )}
               </>
             )}
-            <Button variant="ghost" size="sm" onClick={() => { setIsSelectMode(false); setSelectedFolders([]); setSelectedFiles([]); }}>
-              Cancel
-            </Button>
           </div>
         )}
 
@@ -410,16 +417,6 @@ export default function ArchivesPage() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold">Archived Folders</h2>
-                {isSelectMode && selectedFolders.length > 0 && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
-                      <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFolders.length})
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => setDeleteFolderId(selectedFolders[0])}>
-                      <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFolders.length})
-                    </Button>
-                  </div>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -490,149 +487,7 @@ export default function ArchivesPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold">Archived Files</h2>
-              {isSelectMode && selectedFiles.length > 0 && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }))}>
-                    <RotateCcw className="w-4 h-4 mr-2" /> Restore ({selectedFiles.length})
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => setDeleteFileId(selectedFiles[0])}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete ({selectedFiles.length})
-                  </Button>
-                </div>
-              )}
               <div className="flex items-center gap-2">
-                {/* Name Filter */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      Name <ChevronDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Name</div>
-                    <DropdownMenuCheckboxItem
-                      checked={nameFilter.includes('0-9')}
-                      onCheckedChange={() => setNameFilter(nameFilter.includes('0-9') ? nameFilter.filter(f => f !== '0-9') : [...nameFilter, '0-9'])}
-                    >0-9</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={nameFilter.includes('A-H')}
-                      onCheckedChange={() => setNameFilter(nameFilter.includes('A-H') ? nameFilter.filter(f => f !== 'A-H') : [...nameFilter, 'A-H'])}
-                    >A-H</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={nameFilter.includes('I-P')}
-                      onCheckedChange={() => setNameFilter(nameFilter.includes('I-P') ? nameFilter.filter(f => f !== 'I-P') : [...nameFilter, 'I-P'])}
-                    >I-P</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={nameFilter.includes('Q-Z')}
-                      onCheckedChange={() => setNameFilter(nameFilter.includes('Q-Z') ? nameFilter.filter(f => f !== 'Q-Z') : [...nameFilter, 'Q-Z'])}
-                    >Q-Z</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={nameFilter.includes('Other')}
-                      onCheckedChange={() => setNameFilter(nameFilter.includes('Other') ? nameFilter.filter(f => f !== 'Other') : [...nameFilter, 'Other'])}
-                    >Other</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* Date Filter */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      Date <ChevronDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Date</div>
-                    <DropdownMenuCheckboxItem
-                      checked={dateFilter.includes('Earlier this week')}
-                      onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this week') ? dateFilter.filter(f => f !== 'Earlier this week') : [...dateFilter, 'Earlier this week'])}
-                    >Earlier this week</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={dateFilter.includes('Last week')}
-                      onCheckedChange={() => setDateFilter(dateFilter.includes('Last week') ? dateFilter.filter(f => f !== 'Last week') : [...dateFilter, 'Last week'])}
-                    >Last week</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={dateFilter.includes('Earlier this month')}
-                      onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this month') ? dateFilter.filter(f => f !== 'Earlier this month') : [...dateFilter, 'Earlier this month'])}
-                    >Earlier this month</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={dateFilter.includes('Last month')}
-                      onCheckedChange={() => setDateFilter(dateFilter.includes('Last month') ? dateFilter.filter(f => f !== 'Last month') : [...dateFilter, 'Last month'])}
-                    >Last month</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={dateFilter.includes('A long time ago')}
-                      onCheckedChange={() => setDateFilter(dateFilter.includes('A long time ago') ? dateFilter.filter(f => f !== 'A long time ago') : [...dateFilter, 'A long time ago'])}
-                    >A long time ago</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* Type Filter */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      Type <ChevronDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Type</div>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('pdf')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('pdf') ? typeFilter.filter(f => f !== 'pdf') : [...typeFilter, 'pdf'])}
-                    >PDF</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('doc')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('doc') ? typeFilter.filter(f => f !== 'doc') : [...typeFilter, 'doc'])}
-                    >DOC</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('docx')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('docx') ? typeFilter.filter(f => f !== 'docx') : [...typeFilter, 'docx'])}
-                    >DOCX</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('xls')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('xls') ? typeFilter.filter(f => f !== 'xls') : [...typeFilter, 'xls'])}
-                    >XLS</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('xlsx')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('xlsx') ? typeFilter.filter(f => f !== 'xlsx') : [...typeFilter, 'xlsx'])}
-                    >XLSX</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('image')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('image') ? typeFilter.filter(f => f !== 'image') : [...typeFilter, 'image'])}
-                    >Image</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={typeFilter.includes('other')}
-                      onCheckedChange={() => setTypeFilter(typeFilter.includes('other') ? typeFilter.filter(f => f !== 'other') : [...typeFilter, 'other'])}
-                    >Other</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* Size Filter */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      Size <ChevronDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Size</div>
-                    <DropdownMenuCheckboxItem
-                      checked={sizeFilter.includes('tiny')}
-                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('tiny') ? sizeFilter.filter(f => f !== 'tiny') : [...sizeFilter, 'tiny'])}
-                    >Tiny (&lt;10 KB)</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={sizeFilter.includes('small')}
-                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('small') ? sizeFilter.filter(f => f !== 'small') : [...sizeFilter, 'small'])}
-                    >Small (10-100 KB)</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={sizeFilter.includes('medium')}
-                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('medium') ? sizeFilter.filter(f => f !== 'medium') : [...sizeFilter, 'medium'])}
-                    >Medium (100 KB - 1 MB)</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={sizeFilter.includes('large')}
-                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('large') ? sizeFilter.filter(f => f !== 'large') : [...sizeFilter, 'large'])}
-                    >Large (1-10 MB)</DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={sizeFilter.includes('huge')}
-                      onCheckedChange={() => setSizeFilter(sizeFilter.includes('huge') ? sizeFilter.filter(f => f !== 'huge') : [...sizeFilter, 'huge'])}
-                    >Huge (&gt;10 MB)</DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 {/* Sort Dropdown */}
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -663,10 +518,76 @@ export default function ArchivesPage() {
                   <thead className="bg-muted">
                     <tr>
                       {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
-                      <th className="px-6 py-3 text-left"><span className="font-semibold">Name</span></th>
-                      <th className="px-6 py-3 text-left"><span className="font-semibold">Date</span></th>
-                      <th className="px-6 py-3 text-left"><span className="font-semibold">Type</span></th>
-                      <th className="px-6 py-3 text-right"><span className="font-semibold">Size</span></th>
+                      <th className="px-6 py-3 text-left">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 font-semibold">
+                              Name <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-48">
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Name</div>
+                            <DropdownMenuCheckboxItem checked={nameFilter.includes('0-9')} onCheckedChange={() => setNameFilter(nameFilter.includes('0-9') ? nameFilter.filter(f => f !== '0-9') : [...nameFilter, '0-9'])}>0-9</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={nameFilter.includes('A-H')} onCheckedChange={() => setNameFilter(nameFilter.includes('A-H') ? nameFilter.filter(f => f !== 'A-H') : [...nameFilter, 'A-H'])}>A-H</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={nameFilter.includes('I-P')} onCheckedChange={() => setNameFilter(nameFilter.includes('I-P') ? nameFilter.filter(f => f !== 'I-P') : [...nameFilter, 'I-P'])}>I-P</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={nameFilter.includes('Q-Z')} onCheckedChange={() => setNameFilter(nameFilter.includes('Q-Z') ? nameFilter.filter(f => f !== 'Q-Z') : [...nameFilter, 'Q-Z'])}>Q-Z</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={nameFilter.includes('Other')} onCheckedChange={() => setNameFilter(nameFilter.includes('Other') ? nameFilter.filter(f => f !== 'Other') : [...nameFilter, 'Other'])}>Other</DropdownMenuCheckboxItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </th>
+                      <th className="px-6 py-3 text-left">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 font-semibold">
+                              Date <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-48">
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Date</div>
+                            <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this week') ? dateFilter.filter(f => f !== 'Earlier this week') : [...dateFilter, 'Earlier this week'])}>Earlier this week</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={dateFilter.includes('Last week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last week') ? dateFilter.filter(f => f !== 'Last week') : [...dateFilter, 'Last week'])}>Last week</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this month') ? dateFilter.filter(f => f !== 'Earlier this month') : [...dateFilter, 'Earlier this month'])}>Earlier this month</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={dateFilter.includes('Last month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last month') ? dateFilter.filter(f => f !== 'Last month') : [...dateFilter, 'Last month'])}>Last month</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={dateFilter.includes('A long time ago')} onCheckedChange={() => setDateFilter(dateFilter.includes('A long time ago') ? dateFilter.filter(f => f !== 'A long time ago') : [...dateFilter, 'A long time ago'])}>A long time ago</DropdownMenuCheckboxItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </th>
+                      <th className="px-6 py-3 text-left">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 font-semibold">
+                              Type <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-48">
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Type</div>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('pdf')} onCheckedChange={() => setTypeFilter(typeFilter.includes('pdf') ? typeFilter.filter(f => f !== 'pdf') : [...typeFilter, 'pdf'])}>PDF</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('doc')} onCheckedChange={() => setTypeFilter(typeFilter.includes('doc') ? typeFilter.filter(f => f !== 'doc') : [...typeFilter, 'doc'])}>DOC</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('docx')} onCheckedChange={() => setTypeFilter(typeFilter.includes('docx') ? typeFilter.filter(f => f !== 'docx') : [...typeFilter, 'docx'])}>DOCX</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('xls')} onCheckedChange={() => setTypeFilter(typeFilter.includes('xls') ? typeFilter.filter(f => f !== 'xls') : [...typeFilter, 'xls'])}>XLS</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('xlsx')} onCheckedChange={() => setTypeFilter(typeFilter.includes('xlsx') ? typeFilter.filter(f => f !== 'xlsx') : [...typeFilter, 'xlsx'])}>XLSX</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('image')} onCheckedChange={() => setTypeFilter(typeFilter.includes('image') ? typeFilter.filter(f => f !== 'image') : [...typeFilter, 'image'])}>Image</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={typeFilter.includes('other')} onCheckedChange={() => setTypeFilter(typeFilter.includes('other') ? typeFilter.filter(f => f !== 'other') : [...typeFilter, 'other'])}>Other</DropdownMenuCheckboxItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </th>
+                      <th className="px-6 py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 font-semibold ml-auto">
+                              Size <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Size</div>
+                            <DropdownMenuCheckboxItem checked={sizeFilter.includes('tiny')} onCheckedChange={() => setSizeFilter(sizeFilter.includes('tiny') ? sizeFilter.filter(f => f !== 'tiny') : [...sizeFilter, 'tiny'])}>Tiny (&lt;10 KB)</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={sizeFilter.includes('small')} onCheckedChange={() => setSizeFilter(sizeFilter.includes('small') ? sizeFilter.filter(f => f !== 'small') : [...sizeFilter, 'small'])}>Small (10-100 KB)</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={sizeFilter.includes('medium')} onCheckedChange={() => setSizeFilter(sizeFilter.includes('medium') ? sizeFilter.filter(f => f !== 'medium') : [...sizeFilter, 'medium'])}>Medium (100 KB - 1 MB)</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={sizeFilter.includes('large')} onCheckedChange={() => setSizeFilter(sizeFilter.includes('large') ? sizeFilter.filter(f => f !== 'large') : [...sizeFilter, 'large'])}>Large (1-10 MB)</DropdownMenuCheckboxItem>
+                            <DropdownMenuCheckboxItem checked={sizeFilter.includes('huge')} onCheckedChange={() => setSizeFilter(sizeFilter.includes('huge') ? sizeFilter.filter(f => f !== 'huge') : [...sizeFilter, 'huge'])}>Huge (&gt;10 MB)</DropdownMenuCheckboxItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </th>
                       <th className="px-6 py-3 w-[50px]"></th>
                     </tr>
                   </thead>

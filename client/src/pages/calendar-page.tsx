@@ -347,25 +347,24 @@ export default function CalendarPage() {
               </div>
             </div>
             <DialogFooter>
-              <div className="flex gap-2 w-full justify-between">
-                {selectedDate && selectedDateActivities.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setShowDeleteAllConfirm(true)}
-                    className="gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete All ({selectedDateActivities.length})
-                  </Button>
-                )}
-                <Button onClick={handleCreate} disabled={createActivity.isPending} className="ml-auto">
-                  {createActivity.isPending ? "Creating..." : "Create Activity"}
-                </Button>
-              </div>
+              <Button onClick={handleCreate} disabled={createActivity.isPending}>
+                {createActivity.isPending ? "Creating..." : "Create Activity"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete All Activities Button - shows when date is selected with activities */}
+        {selectedDate && selectedDateActivities.length > 0 && (
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteAllConfirm(true)}
+            className="gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete All ({selectedDateActivities.length})
+          </Button>
+        )}
 
         {/* Activity Submission Modal */}
         <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
