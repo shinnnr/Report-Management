@@ -1056,64 +1056,70 @@ export default function DrivePage() {
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold">Folders</h2>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
-                    {isSelectMode ? 'Exit Select' : 'Select'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('name')}>
-                    Sort by Name
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('date')}>
-                    Sort by Date
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('size')}>
-                    Sort by Size
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            {filteredFolders && filteredFolders.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {filteredFolders.map(f => (
-                  <div key={f.id} className={`relative p-4 rounded-xl border group ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
-                    {isSelectMode && <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
-                    <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
-                      <FolderIcon className="w-10 h-10 text-secondary" />
-                      <span className="truncate">{f.name}</span>
-                    </div>
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
+          {/* Only show Folders section if:
+              1. At Home (root) - always show
+              2. Inside a folder - only if there are subfolders
+          */}
+          {(currentFolderId === null || (filteredFolders && filteredFolders.length > 0)) && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold">Folders</h2>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsSelectMode(!isSelectMode)}>
+                      {isSelectMode ? 'Exit Select' : 'Select'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('name')}>
+                      Sort by Name
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('date')}>
+                      Sort by Date
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('size')}>
+                      Sort by Size
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            ) : (
-              <div className="text-center py-20 border-2 border-dashed rounded-xl">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FolderIcon className="w-8 h-8 text-muted-foreground" />
+              {filteredFolders && filteredFolders.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {filteredFolders.map(f => (
+                    <div key={f.id} className={`relative p-4 rounded-xl border group ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
+                      {isSelectMode && <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
+                      <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
+                        <FolderIcon className="w-10 h-10 text-secondary" />
+                        <span className="truncate">{f.name}</span>
+                      </div>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <h3 className="text-lg font-medium text-foreground">No folders found</h3>
-                <p className="text-muted-foreground">Create your first folder to get started.</p>
-              </div>
-            )}
-          </section>
+              ) : (
+                <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FolderIcon className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium text-foreground">No folders found</h3>
+                  <p className="text-muted-foreground">Create your first folder to get started.</p>
+                </div>
+              )}
+            </section>
+          )}
 
           <section>
             <div className="flex items-center justify-between mb-4">
