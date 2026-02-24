@@ -175,7 +175,7 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
-                  deleteFolder.mutate(deleteFolderId);
+                  deleteFolder.mutate({ id: deleteFolderId });
                   setDeleteFolderId(null);
                 }
               }}
@@ -200,7 +200,7 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
-                  deleteReport.mutate(deleteFileId);
+                  deleteReport.mutate({ id: deleteFileId });
                   setDeleteFileId(null);
                 }
               }}

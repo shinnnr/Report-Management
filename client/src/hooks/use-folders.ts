@@ -95,7 +95,7 @@ export function useMoveFolder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, targetParentId }: { id: number; targetParentId: number | null }) => {
+    mutationFn: async ({ id, targetParentId, suppressToast }: { id: number; targetParentId: number | null; suppressToast?: boolean }) => {
       const url = buildUrl(api.folders.move.path, { id });
       const res = await fetch(url, {
         method: api.folders.move.method,
@@ -107,11 +107,13 @@ export function useMoveFolder() {
         const error = await res.json();
         throw new Error(error.message || "Failed to move folder");
       }
-      return api.folders.move.responses[200].parse(await res.json());
+      return { ...await api.folders.move.responses[200].parse(await res.json()), suppressToast };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Moved", description: "Folder moved successfully" });
+      if (!data?.suppressToast) {
+        toast({ title: "Moved", description: "Folder moved successfully" });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -124,14 +126,17 @@ export function useDeleteFolder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async ({ id, suppressToast }: { id: number; suppressToast?: boolean }) => {
       const url = buildUrl(api.folders.delete.path, { id });
       const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete folder");
+      return { suppressToast };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      toast({ title: "Deleted", description: "Folder deleted successfully" });
+      if (!data?.suppressToast) {
+        toast({ title: "Deleted", description: "Folder deleted successfully" });
+      }
     },
   });
 }

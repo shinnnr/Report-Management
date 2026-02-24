@@ -324,6 +324,7 @@ export default function DrivePage() {
               description: "Uploaded file",
               year: new Date().getFullYear(),
               month: new Date().getMonth() + 1,
+              _suppressToast: true, // Suppress individual toast for each file
             });
           } catch (error) {
             console.error("Upload failed:", error);
@@ -337,6 +338,15 @@ export default function DrivePage() {
     // Wait for all uploads to complete
     await Promise.all(uploadPromises);
 
+    // Show success message based on number of files uploaded
+    const fileCount = files.length;
+    toast({
+      title: "Success",
+      description: fileCount === 1 
+        ? "1 file uploaded successfully" 
+        : `${fileCount} files uploaded successfully`
+    });
+
     setUploadFile(null);
     setIsUploadOpen(false);
   };
@@ -344,18 +354,32 @@ export default function DrivePage() {
   const handleMoveItems = async () => {
     if (selectedFiles.length === 0 && selectedFolders.length === 0) return;
     const targetFolderId = selectedDestination;
+    const filesCount = selectedFiles.length;
+    const foldersCount = selectedFolders.length;
 
     // Move items
     if (selectedFiles.length > 0) {
-      await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId });
+      await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId, suppressToast: true });
     }
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await moveFolder.mutateAsync({ id, targetParentId: targetFolderId });
+        await moveFolder.mutateAsync({ id, targetParentId: targetFolderId, suppressToast: true });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    
+    // Show success message based on number of items moved
+    const totalCount = filesCount + foldersCount;
+    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+    const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
+    
+    toast({
+      title: "Moved",
+      description: `${fileText}${andText}${folderText} moved successfully`
+    });
+    
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsMoveOpen(false);
@@ -366,18 +390,33 @@ export default function DrivePage() {
   };
 
   const handleBulkDelete = async () => {
+    const filesCount = selectedFiles.length;
+    const foldersCount = selectedFolders.length;
+    
     if (selectedFiles.length > 0) {
       for (const id of selectedFiles) {
-        await deleteReport.mutateAsync(id);
+        await deleteReport.mutateAsync({ id, suppressToast: true });
       }
     }
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await deleteFolder.mutateAsync(id);
+        await deleteFolder.mutateAsync({ id, suppressToast: true });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
     queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    
+    // Show success message based on number of items deleted
+    const totalCount = filesCount + foldersCount;
+    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+    const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
+    
+    toast({
+      title: "Deleted",
+      description: `${fileText}${andText}${folderText} deleted successfully`
+    });
+    
     setSelectedFiles([]);
     setSelectedFolders([]);
     setIsBulkDeleteOpen(false);
@@ -849,7 +888,7 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
-                  deleteFolder.mutate(deleteFolderId);
+                  deleteFolder.mutate({ id: deleteFolderId });
                   setDeleteFolderId(null);
                 }
               }}
@@ -874,7 +913,7 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
-                  deleteReport.mutate(deleteFileId);
+                  deleteReport.mutate({ id: deleteFileId });
                   setDeleteFileId(null);
                 }
               }}

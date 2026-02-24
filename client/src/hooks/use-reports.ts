@@ -34,7 +34,7 @@ export function useCreateReport() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: InsertReport) => {
+    mutationFn: async (data: InsertReport & { _suppressToast?: boolean }) => {
       const res = await fetch(api.reports.create.path, {
         method: api.reports.create.method,
         headers: { "Content-Type": "application/json" },
@@ -45,9 +45,12 @@ export function useCreateReport() {
       if (!res.ok) throw new Error("Failed to upload report");
       return api.reports.create.responses[201].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Success", description: "File uploaded successfully" });
+      // Only show toast if _suppressToast is not true
+      if (!variables._suppressToast) {
+        toast({ title: "Success", description: "File uploaded successfully" });
+      }
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to upload file", variant: "destructive" });
@@ -60,19 +63,21 @@ export function useMoveReports() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { reportIds: number[]; folderId: number | null }) => {
+    mutationFn: async ({ reportIds, folderId, suppressToast }: { reportIds: number[]; folderId: number | null; suppressToast?: boolean }) => {
       const res = await fetch(api.reports.move.path, {
         method: api.reports.move.method,
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify({ reportIds, folderId }),
       });
       if (!res.ok) throw new Error("Failed to move reports");
-      return api.reports.move.responses[200].parse(await res.json());
+      return { ...await api.reports.move.responses[200].parse(await res.json()), suppressToast };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Success", description: "Files moved successfully" });
+      if (!data?.suppressToast) {
+        toast({ title: "Success", description: "Files moved successfully" });
+      }
     },
   });
 }
@@ -82,14 +87,17 @@ export function useDeleteReport() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async ({ id, suppressToast }: { id: number; suppressToast?: boolean }) => {
       const url = buildUrl(api.reports.delete.path, { id });
       const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
       if (!res.ok) throw new Error("Failed to delete report");
+      return { suppressToast };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      toast({ title: "Deleted", description: "File deleted successfully" });
+      if (!data?.suppressToast) {
+        toast({ title: "Deleted", description: "File deleted successfully" });
+      }
     },
   });
 }
