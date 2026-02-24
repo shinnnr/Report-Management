@@ -714,8 +714,8 @@ export default function DrivePage() {
       <Dialog open={isMoveOpen} onOpenChange={(open) => {
         setIsMoveOpen(open);
         if (open) {
-          // Set initial navigation to root to show all folders
-          setCurrentNavigationFolder(null);
+          // Set initial navigation to current folder (or root if at home)
+          setCurrentNavigationFolder(currentFolderId);
         } else {
           setSelectedDestination(null);
           setDestinationSelected(false);
@@ -859,10 +859,12 @@ export default function DrivePage() {
                 }
               }}
               disabled={
-                selectedDestination === null && !destinationSelected || // No destination selected
+                (selectedDestination === null && !destinationSelected) || // No destination selected
+                selectedDestination === currentFolderId || // Trying to move to the same folder
+                (selectedDestination === null && currentFolderId === null && destinationSelected) || // Trying to move to Home when already at Home
                 selectedFolders.includes(selectedDestination || 0) || // Selected destination is being moved
                 selectedFolders.some(id => isDescendant(selectedDestination, id)) || // Selected destination is a descendant of moved folders
-                selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null) || // Selected destination is the current parent
+                (selectedFolders.length > 0 && selectedDestination === (allFoldersData?.find(f => f.id === selectedFolders[0])?.parentId ?? null)) || // Selected destination is the current parent
                 (selectedDestination === null && destinationSelected && // Trying to move to Home
                  selectedFolders.length > 0 && selectedFolders.every(id => // All selected folders are already at root
                    (allFoldersData?.find(f => f.id === id)?.parentId ?? null) === null
