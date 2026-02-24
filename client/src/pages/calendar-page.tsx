@@ -370,6 +370,7 @@ export default function CalendarPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
 
         {/* Activity Submission Modal */}
         <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
