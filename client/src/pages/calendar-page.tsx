@@ -48,6 +48,7 @@ export default function CalendarPage() {
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -115,6 +116,7 @@ export default function CalendarPage() {
   const handleDeleteAllByDate = async () => {
     if (!selectedDate) return;
     
+    setIsDeletingAll(true);
     try {
       // Delete all activities for the selected date using direct API calls to avoid multiple toasts
       const deleteResults = await Promise.all(
@@ -149,6 +151,8 @@ export default function CalendarPage() {
     } catch (error) {
       console.error("Failed to delete activities:", error);
       toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -350,9 +354,10 @@ export default function CalendarPage() {
               variant="destructive"
               onClick={() => setShowDeleteAllConfirm(true)}
               className="gap-2"
+              disabled={isDeletingAll}
             >
               <Trash2 className="w-4 h-4" />
-              Delete All ({selectedDateActivities.length})
+              {isDeletingAll ? "Deleting..." : `Delete All (${selectedDateActivities.length})`}
             </Button>
           )}
 
@@ -596,9 +601,9 @@ export default function CalendarPage() {
               <Button
                 variant="destructive"
                 onClick={handleDeleteAllByDate}
-                disabled={deleteActivity.isPending}
+                disabled={isDeletingAll}
               >
-                {deleteActivity.isPending ? "Deleting..." : "Delete All"}
+                {isDeletingAll ? "Deleting..." : "Delete All"}
               </Button>
             </DialogFooter>
           </DialogContent>
