@@ -107,7 +107,7 @@ export function useUpdateReport() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertReport>) => {
+    mutationFn: async ({ id, suppressToast, ...updates }: { id: number; suppressToast?: boolean } & Partial<InsertReport>) => {
       const url = buildUrl(api.reports.update.path, { id });
       const res = await fetch(url, {
         method: api.reports.update.method,
@@ -116,7 +116,7 @@ export function useUpdateReport() {
         body: JSON.stringify(updates),
       });
       if (!res.ok) throw new Error("Failed to update report");
-      return api.reports.update.responses[200].parse(await res.json());
+      return { ...api.reports.update.responses[200].parse(await res.json()), suppressToast };
     },
     onSuccess: (data, variables) => {
       // Update the cache immediately for all folder queries
@@ -135,8 +135,8 @@ export function useUpdateReport() {
       // Force refetch for archived reports (archives page)
       queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'archived'] });
 
-      // Show toast for restore action
-      if (variables.status === 'active') {
+      // Show toast for restore action only if not suppressed
+      if (variables.status === 'active' && !data?.suppressToast) {
         toast({ title: "Restored", description: "File restored successfully" });
       }
     },

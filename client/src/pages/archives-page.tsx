@@ -261,12 +261,12 @@ export default function ArchivesPage() {
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await updateFolder.mutateAsync({ id, status: 'active' });
+        await updateFolder.mutateAsync({ id, status: 'active', suppressToast: true });
       }
     }
     if (selectedFiles.length > 0) {
       for (const id of selectedFiles) {
-        await updateReport.mutateAsync({ id, status: 'active' });
+        await updateReport.mutateAsync({ id, status: 'active', suppressToast: true });
       }
     }
     
@@ -293,12 +293,12 @@ export default function ArchivesPage() {
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await deleteFolder.mutateAsync({ id });
+        await deleteFolder.mutateAsync({ id, suppressToast: true });
       }
     }
     if (selectedFiles.length > 0) {
       for (const id of selectedFiles) {
-        await deleteReport.mutateAsync({ id });
+        await deleteReport.mutateAsync({ id, suppressToast: true });
       }
     }
     

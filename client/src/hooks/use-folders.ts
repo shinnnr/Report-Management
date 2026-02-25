@@ -146,7 +146,7 @@ export function useUpdateFolder() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: number } & Partial<InsertFolder>) => {
+    mutationFn: async ({ id, suppressToast, ...data }: { id: number; suppressToast?: boolean } & Partial<InsertFolder>) => {
       const url = buildUrl(api.folders.update.path, { id });
       const res = await fetch(url, {
         method: api.folders.update.method,
@@ -155,7 +155,7 @@ export function useUpdateFolder() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to update folder");
-      return api.folders.update.responses[200].parse(await res.json());
+      return { ...api.folders.update.responses[200].parse(await res.json()), suppressToast };
     },
     onSuccess: (data, variables) => {
       // Update the cache immediately for all folder queries
@@ -181,9 +181,9 @@ export function useUpdateFolder() {
       queryClient.refetchQueries({ queryKey: [api.folders.list.path, null, 'archived'] });
       
       // Determine the message based on what's being updated
-      if (variables.status === 'active') {
+      if (variables.status === 'active' && !data?.suppressToast) {
         toast({ title: "Restored", description: "Folder restored successfully" });
-      } else if (variables.name) {
+      } else if (variables.name && !data?.suppressToast) {
         toast({ title: "Success", description: "Folder renamed successfully" });
       }
     },
