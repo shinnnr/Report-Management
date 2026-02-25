@@ -115,23 +115,28 @@ export default function CalendarPage() {
   const handleDeleteAllByDate = async () => {
     if (!selectedDate) return;
     
-    // Delete all activities for the selected date using direct API calls to avoid multiple toasts
-    const deletePromises = selectedDateActivities.map(async (activity) => {
-      const url = buildUrl(api.activities.delete.path, { id: activity.id });
-      await fetch(url, { method: api.activities.delete.method });
-    });
-    
-    await Promise.all(deletePromises);
-    
-    // Invalidate queries to refresh the list
-    queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-    
-    setShowDeleteAllConfirm(false);
-    setSelectedDate(null);
-    toast({
-      title: "Deleted",
-      description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
-    });
+    try {
+      // Delete all activities for the selected date using direct API calls to avoid multiple toasts
+      const deletePromises = selectedDateActivities.map(async (activity) => {
+        const url = buildUrl(api.activities.delete.path, { id: activity.id });
+        await fetch(url, { method: api.activities.delete.method });
+      });
+      
+      await Promise.all(deletePromises);
+      
+      // Invalidate queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+      
+      setShowDeleteAllConfirm(false);
+      setSelectedDate(null);
+      toast({
+        title: "Deleted",
+        description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
+      });
+    } catch (error) {
+      console.error("Failed to delete activities:", error);
+      toast({ title: "Error", description: "Failed to delete some activities. Please try again.", variant: "destructive" });
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -554,8 +559,9 @@ export default function CalendarPage() {
                   }
                   setShowDeleteConfirm(false);
                 }}
+                disabled={deleteActivity.isPending}
               >
-                Delete
+                {deleteActivity.isPending ? "Deleting..." : "Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -267,6 +267,8 @@ export default function DrivePage() {
   const [isBulkArchiveOpen, setIsBulkArchiveOpen] = useState(false);
   const [archiveFolderId, setArchiveFolderId] = useState<number | null>(null);
   const [archiveFileId, setArchiveFileId] = useState<number | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
@@ -452,68 +454,78 @@ export default function DrivePage() {
   const handleBulkDelete = async () => {
     const filesCount = selectedFiles.length;
     const foldersCount = selectedFolders.length;
+    setIsDeleting(true);
     
-    if (selectedFiles.length > 0) {
-      for (const id of selectedFiles) {
-        await deleteReport.mutateAsync({ id, suppressToast: true });
+    try {
+      if (selectedFiles.length > 0) {
+        for (const id of selectedFiles) {
+          await deleteReport.mutateAsync({ id, suppressToast: true });
+        }
       }
-    }
-    if (selectedFolders.length > 0) {
-      for (const id of selectedFolders) {
-        await deleteFolder.mutateAsync({ id, suppressToast: true });
+      if (selectedFolders.length > 0) {
+        for (const id of selectedFolders) {
+          await deleteFolder.mutateAsync({ id, suppressToast: true });
+        }
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      
+      // Show success message based on number of items deleted
+      const totalCount = filesCount + foldersCount;
+      const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+      const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+      const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
+      
+      toast({
+        title: "Deleted",
+        description: `${fileText}${andText}${folderText} deleted successfully`
+      });
+      
+      setSelectedFiles([]);
+      setSelectedFolders([]);
+      setIsBulkDeleteOpen(false);
+      setIsSelectMode(false); // Exit select mode after successful delete
+    } finally {
+      setIsDeleting(false);
     }
-    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-    
-    // Show success message based on number of items deleted
-    const totalCount = filesCount + foldersCount;
-    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
-    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
-    const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
-    
-    toast({
-      title: "Deleted",
-      description: `${fileText}${andText}${folderText} deleted successfully`
-    });
-    
-    setSelectedFiles([]);
-    setSelectedFolders([]);
-    setIsBulkDeleteOpen(false);
-    setIsSelectMode(false); // Exit select mode after successful delete
   };
 
   const handleBulkArchive = async () => {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
+    setIsArchiving(true);
     
-    if (selectedFolders.length > 0) {
-      for (const id of selectedFolders) {
-        await updateFolder.mutateAsync({ id, status: 'archived', suppressToast: true });
+    try {
+      if (selectedFolders.length > 0) {
+        for (const id of selectedFolders) {
+          await updateFolder.mutateAsync({ id, status: 'archived', suppressToast: true });
+        }
       }
-    }
-    if (selectedFiles.length > 0) {
-      for (const id of selectedFiles) {
-        await updateReport.mutateAsync({ id, status: 'archived', suppressToast: true });
+      if (selectedFiles.length > 0) {
+        for (const id of selectedFiles) {
+          await updateReport.mutateAsync({ id, status: 'archived', suppressToast: true });
+        }
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      
+      // Show success message based on number of items archived
+      const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+      const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+      const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
+      
+      toast({
+        title: "Archived",
+        description: `${folderText}${andText}${fileText} archived successfully`
+      });
+      
+      setSelectedFiles([]);
+      setSelectedFolders([]);
+      setIsBulkArchiveOpen(false);
+      setIsSelectMode(false);
+    } finally {
+      setIsArchiving(false);
     }
-    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-    
-    // Show success message based on number of items archived
-    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
-    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
-    const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
-    
-    toast({
-      title: "Archived",
-      description: `${folderText}${andText}${fileText} archived successfully`
-    });
-    
-    setSelectedFiles([]);
-    setSelectedFolders([]);
-    setIsBulkArchiveOpen(false);
-    setIsSelectMode(false);
   };
 
   const createBlobUrl = (dataUrl: string) => {
@@ -991,13 +1003,20 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
-                  deleteFolder.mutate({ id: deleteFolderId });
-                  setDeleteFolderId(null);
+                  setIsDeleting(true);
+                  deleteFolder.mutate({ id: deleteFolderId }, {
+                    onSuccess: () => {
+                      setDeleteFolderId(null);
+                      setIsDeleting(false);
+                    },
+                    onError: () => setIsDeleting(false)
+                  });
                 }
               }}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1016,13 +1035,20 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
-                  deleteReport.mutate({ id: deleteFileId });
-                  setDeleteFileId(null);
+                  setIsDeleting(true);
+                  deleteReport.mutate({ id: deleteFileId }, {
+                    onSuccess: () => {
+                      setDeleteFileId(null);
+                      setIsDeleting(false);
+                    },
+                    onError: () => setIsDeleting(false)
+                  });
                 }
               }}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1040,8 +1066,8 @@ export default function DrivePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkArchive}>
-              Archive
+            <AlertDialogAction onClick={handleBulkArchive} disabled={isArchiving}>
+              {isArchiving ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1061,9 +1087,10 @@ export default function DrivePage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1083,16 +1110,20 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFolderId) {
+                  setIsArchiving(true);
                   updateFolder.mutate({ id: archiveFolderId, status: 'archived' }, {
                     onSuccess: () => {
                       toast({ title: "Archived", description: "Folder archived successfully" });
                       setArchiveFolderId(null);
-                    }
+                      setIsArchiving(false);
+                    },
+                    onError: () => setIsArchiving(false)
                   });
                 }
               }}
+              disabled={isArchiving}
             >
-              Archive
+              {isArchiving ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1111,16 +1142,20 @@ export default function DrivePage() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFileId) {
+                  setIsArchiving(true);
                   updateReport.mutate({ id: archiveFileId, status: 'archived' }, {
                     onSuccess: () => {
                       toast({ title: "Archived", description: "File archived successfully" });
-                    }
+                      setArchiveFileId(null);
+                      setIsArchiving(false);
+                    },
+                    onError: () => setIsArchiving(false)
                   });
-                  setArchiveFileId(null);
                 }
               }}
+              disabled={isArchiving}
             >
-              Archive
+              {isArchiving ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

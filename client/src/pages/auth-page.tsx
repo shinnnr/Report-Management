@@ -87,14 +87,14 @@ export default function AuthPage() {
 
       {/* Right: Login Form */}
       <div className="flex items-center justify-center p-8 bg-gray-50">
-        <Card className="w-full max-w-md border-none shadow-none bg-white">
-          <CardHeader className="space-y-1 px-0">
+        <Card className="w-full max-w-lg border-2 border-gray-200 shadow-lg bg-white mx-4">
+          <CardHeader className="space-y-1 px-8">
             <CardTitle className="text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
             <CardDescription className="text-base">
               Enter your credentials to access your dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-0">
+          <CardContent className="px-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
