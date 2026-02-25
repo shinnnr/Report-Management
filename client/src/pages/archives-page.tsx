@@ -303,12 +303,10 @@ export default function ArchivesPage() {
         if (restoredFiles > 0) {
           successParts.push(`${restoredFiles} file${restoredFiles > 1 ? 's' : ''} restored successfully`);
         }
-        const fullErrorMsg = errorMessage.startsWith("Error ") ? errorMessage : "Error " + errorMessage;
-        toast({ title: "Partially Restored", description: successParts.join(" and ") + ". " + fullErrorMsg, variant: "destructive" });
+        toast({ title: "Partially Restored", description: successParts.join(" and ") + ". " + errorMessage, variant: "destructive" });
       } else {
         // All items failed
-        const fullErrorMsg = errorMessage.startsWith("Error ") ? errorMessage : "Error " + errorMessage;
-        toast({ title: "Error", description: fullErrorMsg, variant: "destructive" });
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
       }
     } else {
       // Show success message based on number of items restored
@@ -490,8 +488,7 @@ export default function ArchivesPage() {
                     await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
                     toast({ title: "Restored", description: "Folder restored successfully" });
                   } catch (error: any) {
-                    const errorMsg = error?.message || "A folder with this name already exists in this location.";
-                    toast({ title: "Error", description: errorMsg.startsWith("Error ") ? errorMsg : "Error " + errorMsg, variant: "destructive" });
+                    toast({ title: "Error", description: error?.message || "A folder with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFolderId(null);
                   setIsRestoring(false);
@@ -523,8 +520,7 @@ export default function ArchivesPage() {
                     await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
                     toast({ title: "Restored", description: "File restored successfully" });
                   } catch (error: any) {
-                    const errorMsg = error?.message || "A file with this name already exists in this location.";
-                    toast({ title: "Error", description: errorMsg.startsWith("Error ") ? errorMsg : "Error " + errorMsg, variant: "destructive" });
+                    toast({ title: "Error", description: error?.message || "A file with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFileId(null);
                   setIsRestoring(false);
