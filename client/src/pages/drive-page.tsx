@@ -1169,7 +1169,7 @@ export default function DrivePage() {
                   <thead className="bg-muted">
                     <tr>
                       {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredReports.map(r => r.id) : [])} /></th>}
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[40%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
@@ -1244,7 +1244,7 @@ export default function DrivePage() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[20%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -1319,7 +1319,7 @@ export default function DrivePage() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[20%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -1349,7 +1349,7 @@ export default function DrivePage() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right">
+                      <th className="px-6 py-3 text-right w-[20%]">
                         <div className="flex items-center justify-end gap-1">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>

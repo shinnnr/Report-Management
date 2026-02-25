@@ -556,7 +556,7 @@ export default function ArchivesPage() {
                   <thead className="bg-muted">
                     <tr>
                       {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[40%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
@@ -576,7 +576,7 @@ export default function ArchivesPage() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[20%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -587,16 +587,16 @@ export default function ArchivesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
                               <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Filter by Date</div>
-                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this week') ? dateFilter.filter(f => f !== 'Earlier this week') : [...dateFilter, 'Earlier this week'])}>Earlier this week</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Last week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last week') ? dateFilter.filter(f => f !== 'Last week') : [...dateFilter, 'Last week'])}>Last week</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this month') ? dateFilter.filter(f => f !== 'Earlier this month') : [...dateFilter, 'Earlier this month'])}>Earlier this month</DropdownMenuCheckboxItem>
-                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Last month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last month') ? dateFilter.filter(f => f !== 'Last month') : [...dateFilter, 'Last month'])}>Last month</DropdownMenuCheckboxItem>
                               <DropdownMenuCheckboxItem checked={dateFilter.includes('A long time ago')} onCheckedChange={() => setDateFilter(dateFilter.includes('A long time ago') ? dateFilter.filter(f => f !== 'A long time ago') : [...dateFilter, 'A long time ago'])}>A long time ago</DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Last month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last month') ? dateFilter.filter(f => f !== 'Last month') : [...dateFilter, 'Last month'])}>Last month</DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this month')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this month') ? dateFilter.filter(f => f !== 'Earlier this month') : [...dateFilter, 'Earlier this month'])}>Earlier this month</DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Last week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Last week') ? dateFilter.filter(f => f !== 'Last week') : [...dateFilter, 'Last week'])}>Last week</DropdownMenuCheckboxItem>
+                              <DropdownMenuCheckboxItem checked={dateFilter.includes('Earlier this week')} onCheckedChange={() => setDateFilter(dateFilter.includes('Earlier this week') ? dateFilter.filter(f => f !== 'Earlier this week') : [...dateFilter, 'Earlier this week'])}>Earlier this week</DropdownMenuCheckboxItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3 text-left w-[20%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -620,7 +620,7 @@ export default function ArchivesPage() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right">
+                      <th className="px-6 py-3 text-right w-[20%]">
                         <div className="flex items-center justify-end gap-1">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
@@ -680,8 +680,11 @@ export default function ArchivesPage() {
                     ))}
                     {filteredArchivedReports.length === 0 && (
                       <tr>
-                        <td colSpan={isSelectMode ? 6 : 5} className="px-6 py-12 text-center text-muted-foreground">
-                          No archived files found
+                        <td colSpan={isSelectMode ? 6 : 5} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <FileText className="w-8 h-8 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">No archived files found</p>
+                          </div>
                         </td>
                       </tr>
                     )}
