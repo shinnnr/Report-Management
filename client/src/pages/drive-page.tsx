@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Filter,
   FolderOpen,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -263,6 +264,7 @@ export default function DrivePage() {
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkArchiveOpen, setIsBulkArchiveOpen] = useState(false);
   const [archiveFolderId, setArchiveFolderId] = useState<number | null>(null);
   const [archiveFileId, setArchiveFileId] = useState<number | null>(null);
 
@@ -479,6 +481,39 @@ export default function DrivePage() {
     setIsSelectMode(false); // Exit select mode after successful delete
   };
 
+  const handleBulkArchive = async () => {
+    const foldersCount = selectedFolders.length;
+    const filesCount = selectedFiles.length;
+    
+    if (selectedFolders.length > 0) {
+      for (const id of selectedFolders) {
+        await updateFolder.mutateAsync({ id, status: 'archived', suppressToast: true });
+      }
+    }
+    if (selectedFiles.length > 0) {
+      for (const id of selectedFiles) {
+        await updateReport.mutateAsync({ id, status: 'archived', suppressToast: true });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+    
+    // Show success message based on number of items archived
+    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+    const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
+    
+    toast({
+      title: "Archived",
+      description: `${folderText}${andText}${fileText} archived successfully`
+    });
+    
+    setSelectedFiles([]);
+    setSelectedFolders([]);
+    setIsBulkArchiveOpen(false);
+    setIsSelectMode(false);
+  };
+
   const createBlobUrl = (dataUrl: string) => {
     if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
 
@@ -676,6 +711,9 @@ export default function DrivePage() {
             <>
               <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                 <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => setIsBulkArchiveOpen(true)}>
+                <Archive className="w-4 h-4" /> Archive ({selectedFiles.length + selectedFolders.length})
               </Button>
               <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
                 <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
@@ -985,6 +1023,25 @@ export default function DrivePage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Archive Confirmation Dialog */}
+      <AlertDialog open={isBulkArchiveOpen} onOpenChange={setIsBulkArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive {selectedFiles.length + selectedFolders.length} item{(selectedFiles.length + selectedFolders.length) > 1 ? 's' : ''}? They will be moved to the archives and can be restored later.
+              {selectedFolders.length > 0 && " This will also archive all files and subfolders inside the selected folders."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkArchive}>
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
