@@ -293,12 +293,30 @@ export default function ArchivesPage() {
             {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
               <>
                 {selectedFolders.length > 0 && (
-                  <Button variant="outline" className="gap-2" onClick={() => selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }))}>
+                  <Button variant="outline" className="gap-2" onClick={() => {
+                    const count = selectedFolders.length;
+                    selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }));
+                    setSelectedFolders([]);
+                    setIsSelectMode(false);
+                    toast({
+                      title: "Folders restored",
+                      description: `${count} folder${count > 1 ? 's' : ''} has been restored to the drive.`,
+                    });
+                  }}>
                     <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length})
                   </Button>
                 )}
                 {selectedFiles.length > 0 && (
-                  <Button variant="outline" className="gap-2" onClick={() => selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }))}>
+                  <Button variant="outline" className="gap-2" onClick={() => {
+                    const count = selectedFiles.length;
+                    selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }));
+                    setSelectedFiles([]);
+                    setIsSelectMode(false);
+                    toast({
+                      title: "Files restored",
+                      description: `${count} file${count > 1 ? 's' : ''} has been restored to the drive.`,
+                    });
+                  }}>
                     <RotateCcw className="w-4 h-4" /> Restore ({selectedFiles.length})
                   </Button>
                 )}
@@ -384,6 +402,10 @@ export default function ArchivesPage() {
                 if (restoreFolderId) {
                   updateFolder.mutate({ id: restoreFolderId, status: 'active' });
                   setRestoreFolderId(null);
+                  toast({
+                    title: "Folder restored",
+                    description: "The folder has been restored to the drive.",
+                  });
                 }
               }}
             >
@@ -408,6 +430,10 @@ export default function ArchivesPage() {
                 if (restoreFileId) {
                   updateReport.mutate({ id: restoreFileId, status: 'active' });
                   setRestoreFileId(null);
+                  toast({
+                    title: "File restored",
+                    description: "The file has been restored to the drive.",
+                  });
                 }
               }}
             >
@@ -524,7 +550,7 @@ export default function ArchivesPage() {
               </DropdownMenu>
               </div>
             </div>
-            {filteredArchivedReports && filteredArchivedReports.length > 0 ? (
+            {archivedReports && archivedReports.length > 0 ? (
               <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
@@ -652,6 +678,13 @@ export default function ArchivesPage() {
                         </td>
                       </tr>
                     ))}
+                    {filteredArchivedReports.length === 0 && (
+                      <tr>
+                        <td colSpan={isSelectMode ? 6 : 5} className="px-6 py-12 text-center text-muted-foreground">
+                          No archived files found
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

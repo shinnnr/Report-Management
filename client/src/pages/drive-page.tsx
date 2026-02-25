@@ -1163,7 +1163,8 @@ export default function DrivePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <div className="bg-card rounded-xl border overflow-hidden">
+            {reports && reports.length > 0 ? (
+              <div className="bg-card rounded-xl border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -1443,10 +1444,8 @@ export default function DrivePage() {
                         <td className="px-6 py-4 text-muted-foreground">
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-medium">
-                            {r.fileType || '-'}
-                          </span>
+                        <td className="px-6 py-4 text-muted-foreground">
+                          {r.fileType || '-'}
                         </td>
                         <td className="px-6 py-4 text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
@@ -1473,6 +1472,15 @@ export default function DrivePage() {
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground">No files</h3>
+                <p className="text-muted-foreground">Upload or create your first file to get started.</p>
+              </div>
+            )}
           </section>
         </div>
       )}
