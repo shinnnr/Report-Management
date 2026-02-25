@@ -793,7 +793,7 @@ export default function DrivePage() {
             <Label htmlFor="rename-file-input">File Name</Label>
             <Input id="rename-file-input" name="fileName" value={renameFileName} onChange={(e) => setRenameFileName(e.target.value)} />
           </div>
-          <DialogFooter><Button onClick={handleRenameFile}>Rename</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleRenameFile} disabled={updateReport.isPending}>{updateReport.isPending ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -807,7 +807,7 @@ export default function DrivePage() {
             <Label htmlFor="rename-folder-input">Folder Name</Label>
             <Input id="rename-folder-input" name="folderName" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
           </div>
-          <DialogFooter><Button onClick={handleRenameFolder}>Rename</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleRenameFolder} disabled={renameFolder.isPending}>{renameFolder.isPending ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

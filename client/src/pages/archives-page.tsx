@@ -258,28 +258,41 @@ export default function ArchivesPage() {
   const handleBulkRestore = async () => {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
+    let hasError = false;
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
-        await updateFolder.mutateAsync({ id, status: 'active', suppressToast: true });
+        try {
+          await updateFolder.mutateAsync({ id, status: 'active', suppressToast: true });
+        } catch (error) {
+          hasError = true;
+        }
       }
     }
     if (selectedFiles.length > 0) {
       for (const id of selectedFiles) {
-        await updateReport.mutateAsync({ id, status: 'active', suppressToast: true });
+        try {
+          await updateReport.mutateAsync({ id, status: 'active', suppressToast: true });
+        } catch (error) {
+          hasError = true;
+        }
       }
     }
     
-    // Show success message based on number of items restored
-    const totalCount = foldersCount + filesCount;
-    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
-    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
-    const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
-    
-    toast({
-      title: "Restored",
-      description: `${folderText}${andText}${fileText} restored successfully`
-    });
+    if (hasError) {
+      toast({ title: "Error", description: "Some items could not be restored because a folder or file with the same name already exists in this location.", variant: "destructive" });
+    } else {
+      // Show success message based on number of items restored
+      const totalCount = foldersCount + filesCount;
+      const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+      const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+      const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
+      
+      toast({
+        title: "Restored",
+        description: `${folderText}${andText}${fileText} restored successfully`
+      });
+    }
     
     setSelectedFolders([]);
     setSelectedFiles([]);
@@ -432,9 +445,14 @@ export default function ArchivesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (restoreFolderId) {
-                  updateFolder.mutate({ id: restoreFolderId, status: 'active' });
+                  try {
+                    await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
+                    toast({ title: "Restored", description: "Folder restored successfully" });
+                  } catch (error) {
+                    toast({ title: "Error", description: "A folder with this name already exists in this location.", variant: "destructive" });
+                  }
                   setRestoreFolderId(null);
                 }
               }}
@@ -456,9 +474,14 @@ export default function ArchivesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 if (restoreFileId) {
-                  updateReport.mutate({ id: restoreFileId, status: 'active' });
+                  try {
+                    await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
+                    toast({ title: "Restored", description: "File restored successfully" });
+                  } catch (error) {
+                    toast({ title: "Error", description: "A file with this name already exists in this location.", variant: "destructive" });
+                  }
                   setRestoreFileId(null);
                 }
               }}
