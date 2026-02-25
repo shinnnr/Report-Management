@@ -658,22 +658,32 @@ export async function registerRoutes(
 
       // Create or get year folder
       let yearFolder = await storage.getFolderByNameAndParent(`${activityYear}`, null);
-      if (!yearFolder) {
-        yearFolder = await storage.createFolder({
-          name: `${activityYear}`,
-          parentId: null,
-          createdBy: userId
-        });
+      if (!yearFolder || yearFolder.status === 'archived') {
+        if (yearFolder && yearFolder.status === 'archived') {
+          // Reactivate the archived folder
+          yearFolder = await storage.updateFolder(yearFolder.id, { status: 'active' });
+        } else {
+          yearFolder = await storage.createFolder({
+            name: `${activityYear}`,
+            parentId: null,
+            createdBy: userId
+          });
+        }
       }
 
       // Create or get month folder
       let monthFolder = await storage.getFolderByNameAndParent(activityMonthName, yearFolder.id);
-      if (!monthFolder) {
-        monthFolder = await storage.createFolder({
-          name: activityMonthName,
-          parentId: yearFolder.id,
-          createdBy: userId
-        });
+      if (!monthFolder || monthFolder.status === 'archived') {
+        if (monthFolder && monthFolder.status === 'archived') {
+          // Reactivate the archived folder
+          monthFolder = await storage.updateFolder(monthFolder.id, { status: 'active' });
+        } else {
+          monthFolder = await storage.createFolder({
+            name: activityMonthName,
+            parentId: yearFolder.id,
+            createdBy: userId
+          });
+        }
       }
 
       // Create the report
