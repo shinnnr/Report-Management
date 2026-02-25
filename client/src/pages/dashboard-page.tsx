@@ -65,6 +65,8 @@ export default function DashboardPage() {
     }, []);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+    const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
+    const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
         const data: { items: any[]; total: number } = getPreviewData(type);
@@ -311,7 +313,7 @@ export default function DashboardPage() {
             value={folders?.length || 0}
             icon={Folder}
             color="primary"
-            trend="Root directories"
+            trend={`${subFoldersCount} sub folders`}
           />
         </div>
         <div
@@ -341,7 +343,7 @@ export default function DashboardPage() {
             value={activities?.length || 0}
             icon={Activity}
             color="secondary"
-            trend="All tasks"
+            trend={`${pendingActivities} pending activities`}
           />
         </div>
         <div

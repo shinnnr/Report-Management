@@ -42,6 +42,11 @@ export default function CalendarPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
+  
+  // Calculate activities in current month
+  const activitiesInCurrentMonth = activities?.filter(a => 
+    isSameMonth(new Date(a.deadlineDate), currentDate)
+  ) || [];
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -626,8 +631,13 @@ export default function CalendarPage() {
               {format(currentDate, 'MMMM yyyy')}
             </h2>
           </div>
-          <div className="text-sm text-muted-foreground font-medium">
-            {activities?.length} Scheduled Activities
+          <div className="flex flex-col gap-1">
+            <div className="text-sm text-muted-foreground font-medium">
+              {activitiesInCurrentMonth?.length || 0} Scheduled Activities
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {activities?.length || 0} Total Activities
+            </div>
           </div>
         </div>
 
