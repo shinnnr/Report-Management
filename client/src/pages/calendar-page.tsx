@@ -117,25 +117,38 @@ export default function CalendarPage() {
     
     try {
       // Delete all activities for the selected date using direct API calls to avoid multiple toasts
-      const deletePromises = selectedDateActivities.map(async (activity) => {
-        const url = buildUrl(api.activities.delete.path, { id: activity.id });
-        await fetch(url, { method: api.activities.delete.method });
-      });
+      const deleteResults = await Promise.all(
+        selectedDateActivities.map(async (activity) => {
+          const url = buildUrl(api.activities.delete.path, { id: activity.id });
+          const response = await fetch(url, { method: api.activities.delete.method });
+          return { id: activity.id, success: response.ok };
+        })
+      );
       
-      await Promise.all(deletePromises);
+      const failedCount = deleteResults.filter(r => !r.success).length;
       
       // Invalidate queries to refresh the list
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       
       setShowDeleteAllConfirm(false);
       setSelectedDate(null);
-      toast({
-        title: "Deleted",
-        description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
-      });
+      
+      if (failedCount === 0) {
+        toast({
+          title: "Deleted",
+          description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
+        });
+      } else if (selectedDateActivities.length - failedCount > 0) {
+        toast({
+          title: "Partially Deleted",
+          description: `${selectedDateActivities.length - failedCount} activities deleted. ${failedCount} failed to delete.`,
+        });
+      } else {
+        toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
+      }
     } catch (error) {
       console.error("Failed to delete activities:", error);
-      toast({ title: "Error", description: "Failed to delete some activities. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
     }
   };
 
