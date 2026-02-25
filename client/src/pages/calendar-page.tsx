@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
