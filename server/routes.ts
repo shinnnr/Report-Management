@@ -658,15 +658,8 @@ export async function registerRoutes(
 
       // Create or get year folder
       // Always create a new folder if existing one is archived (don't unarchive)
-      let yearFolder = await storage.getFolderByNameAndParent(`${activityYear}`, null);
+      let yearFolder = await storage.getActiveFolderByNameAndParent(`${activityYear}`, null);
       if (!yearFolder) {
-        yearFolder = await storage.createFolder({
-          name: `${activityYear}`,
-          parentId: null,
-          createdBy: userId
-        });
-      } else if (yearFolder.status === 'archived') {
-        // Create a new year folder with archived status indication
         yearFolder = await storage.createFolder({
           name: `${activityYear}`,
           parentId: null,
@@ -676,15 +669,8 @@ export async function registerRoutes(
 
       // Create or get month folder
       // Always create a new folder if existing one is archived (don't unarchive)
-      let monthFolder = await storage.getFolderByNameAndParent(activityMonthName, yearFolder.id);
+      let monthFolder = await storage.getActiveFolderByNameAndParent(activityMonthName, yearFolder.id);
       if (!monthFolder) {
-        monthFolder = await storage.createFolder({
-          name: activityMonthName,
-          parentId: yearFolder.id,
-          createdBy: userId
-        });
-      } else if (monthFolder.status === 'archived') {
-        // Create a new month folder with archived status indication
         monthFolder = await storage.createFolder({
           name: activityMonthName,
           parentId: yearFolder.id,
