@@ -9,7 +9,7 @@ import {
   isToday,
   isSameDay
 } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
@@ -30,6 +30,85 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
+
+// Philippine Holidays (fixed dates and movable holidays for 2024-2026)
+const PHILIPPINE_HOLIDAYS = [
+  // 2024
+  { month: 0, day: 1, name: "New Year's Day" },
+  { month: 2, day: 29, name: "National Holiday" },
+  { month: 3, day: 9, name: "The Day of Valor" },
+  { month: 3, day: 11, name: "Maundy Thursday" },
+  { month: 3, day: 12, name: "Good Friday" },
+  { month: 3, day: 13, name: "Black Saturday" },
+  { month: 3, day: 1, name: "Eid'l Fitr" },
+  { month: 4, day: 1, name: "Labor Day" },
+  { month: 5, day: 12, name: "Independence Day" },
+  { month: 7, day: 21, name: "Ninoy Aquino Day" },
+  { month: 7, day: 26, name: "National Hero Day" },
+  { month: 9, day: 30, name: "All Saints' Day" },
+  { month: 10, day: 1, name: "All Souls' Day" },
+  { month: 10, day: 2, name: "Special Non-Working Day" },
+  { month: 11, day: 25, name: "Christmas Eve" },
+  { month: 11, day: 30, name: "Bonifacio Day" },
+  { month: 11, day: 31, name: "New Year's Eve" },
+  // 2025
+  { month: 0, day: 1, name: "New Year's Day" },
+  { month: 0, day: 29, name: "The Day of Valor" },
+  { month: 2, day: 17, name: "The Day of Valor (Observed)" },
+  { month: 3, day: 17, name: "Maundy Thursday" },
+  { month: 3, day: 18, name: "Good Friday" },
+  { month: 3, day: 19, name: "Black Saturday" },
+  { month: 3, day: 20, name: "Easter Sunday" },
+  { month: 3, day: 31, name: "Eid'l Fitr" },
+  { month: 4, day: 1, name: "Labor Day" },
+  { month: 5, day: 12, name: "Independence Day" },
+  { month: 6, day: 21, name: "Ninoy Aquino Day" },
+  { month: 7, day: 25, name: "National Hero Day" },
+  { month: 8, day: 21, name: "New Year's Day (Observed)" },
+  { month: 9, day: 1, name: "All Saints' Day" },
+  { month: 10, day: 1, name: "All Saints' Day (Observed)" },
+  { month: 10, day: 2, name: "All Souls' Day" },
+  { month: 11, day: 24, name: "Christmas Eve" },
+  { month: 11, day: 25, name: "Bonifacio Day" },
+  { month: 11, day: 30, name: "Christmas Day" },
+  { month: 11, day: 31, name: "New Year's Eve" },
+  // 2026
+  { month: 0, day: 1, name: "New Year's Day" },
+  { month: 1, day: 16, name: "The Day of Valor" },
+  { month: 2, day: 14, name: "The Day of Valor (Observed)" },
+  { month: 3, day: 2, name: "Maundy Thursday" },
+  { month: 3, day: 3, name: "Good Friday" },
+  { month: 3, day: 4, name: "Black Saturday" },
+  { month: 3, day: 5, name: "Easter Sunday" },
+  { month: 3, day: 20, name: "Eid'l Fitr" },
+  { month: 4, day: 1, name: "Labor Day" },
+  { month: 5, day: 12, name: "Independence Day" },
+  { month: 6, day: 17, name: "Ninoy Aquino Day" },
+  { month: 7, day: 21, name: "National Hero Day" },
+  { month: 9, day: 1, name: "All Saints' Day" },
+  { month: 10, day: 1, name: "All Souls' Day" },
+  { month: 10, day: 2, name: "All Saints' Day (Observed)" },
+  { month: 11, day: 24, name: "Christmas Eve" },
+  { month: 11, day: 25, name: "Bonifacio Day" },
+  { month: 11, day: 30, name: "Christmas Day" },
+  { month: 11, day: 31, name: "New Year's Eve" },
+];
+
+// Check if a date is a Philippine holiday
+const isHoliday = (date: Date): { isHoliday: boolean; holidayName?: string } => {
+  const month = date.getMonth();
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  // Check fixed-date holidays
+  const holiday = PHILIPPINE_HOLIDAYS.find(h => h.month === month && h.day === day);
+  
+  if (holiday) {
+    return { isHoliday: true, holidayName: holiday.name };
+  }
+  
+  return { isHoliday: false };
+};
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -647,6 +726,7 @@ export default function CalendarPage() {
 
           {daysInMonth.map((date) => {
             const dayActivities = activities?.filter(a => isSameDay(new Date(a.deadlineDate), date));
+            const holiday = isHoliday(date);
 
             return (
               <div
@@ -654,7 +734,8 @@ export default function CalendarPage() {
                 className={cn(
                   "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800",
                   isToday(date) && "bg-accent/5 dark:bg-accent/10",
-                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
+                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5",
+                  holiday.isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -667,10 +748,18 @@ export default function CalendarPage() {
               >
                 <div className={cn(
                   "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
-                  isToday(date) ? "bg-accent text-white shadow-sm" : "text-muted-foreground"
+                  isToday(date) ? "bg-accent text-white shadow-sm" : "text-muted-foreground",
+                  holiday.isHoliday && "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                 )}>
                   {format(date, 'd')}
                 </div>
+                
+                {/* Holiday indicator */}
+                {holiday.isHoliday && (
+                  <div className="text-xs text-red-600 dark:text-red-400 font-medium truncate mb-1">
+                    🎉 {holiday.holidayName}
+                  </div>
+                )}
                 
                 <div className="space-y-1">
                   {dayActivities?.map(activity => (
