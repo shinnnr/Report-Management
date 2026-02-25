@@ -610,7 +610,7 @@ export async function registerRoutes(
       // Allow multiple submissions to the same activity (user can upload additional files)
       // No check needed here as we want to allow multiple files per activity
 
-      const { title, description, fileName, fileType, fileSize, fileData } = req.body;
+      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth } = req.body;
 
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -634,12 +634,27 @@ export async function registerRoutes(
       const isLate = now > deadline;
 
       // Create organized folder structure: {Activity Year}/{Activity Month}/(files uploaded)
-      const activityYear = deadline.getFullYear();
+      // Use deadlineYear and deadlineMonth from client if available (represents local timezone)
+      // Otherwise extract from the deadline date
+      let activityYear: number;
+      let activityMonth: number;
+      
+      if (deadlineYear && deadlineMonth) {
+        // Use client-provided year/month (in local timezone)
+        activityYear = deadlineYear;
+        activityMonth = deadlineMonth - 1; // Convert 1-indexed to 0-indexed
+      } else {
+        // Fallback: extract from ISO string to avoid timezone issues
+        const deadlineISO = deadline.toISOString();
+        activityYear = parseInt(deadlineISO.substring(0, 4));
+        activityMonth = parseInt(deadlineISO.substring(5, 7)) - 1; // 0-indexed
+      }
+      
       const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
       ];
-      const activityMonthName = monthNames[deadline.getMonth()];
+      const activityMonthName = monthNames[activityMonth];
 
       // Create or get year folder
       let yearFolder = await storage.getFolderByNameAndParent(`${activityYear}`, null);

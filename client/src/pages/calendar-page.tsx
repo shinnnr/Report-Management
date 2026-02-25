@@ -227,6 +227,11 @@ export default function CalendarPage() {
 
             try {
               // Suppress all notifications - we'll create one after all uploads
+              // Also send the deadline year/month to ensure correct folder creation
+              const deadlineDate = new Date(selectedActivity.deadlineDate);
+              const deadlineYear = deadlineDate.getFullYear();
+              const deadlineMonth = deadlineDate.getMonth() + 1;
+              
               const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
                 method: 'POST',
                 headers: {
@@ -240,6 +245,8 @@ export default function CalendarPage() {
                   fileSize: file.size,
                   fileData: base64,
                   suppressNotification: true,
+                  deadlineYear,
+                  deadlineMonth,
                 }),
               });
 
@@ -291,6 +298,9 @@ export default function CalendarPage() {
       // Refresh activities and notifications without page reload
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
+      // Also refresh folders and reports so Drive page reflects changes in real-time
+      queryClient.invalidateQueries({ queryKey: ['/api/folders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
     } catch (error: any) {
       console.error('Submission error:', error);
       toast({
