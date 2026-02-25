@@ -292,34 +292,24 @@ export default function ArchivesPage() {
           <div className="flex items-center gap-3">
             {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
               <>
-                {selectedFolders.length > 0 && (
-                  <Button variant="outline" className="gap-2" onClick={() => {
-                    selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }));
-                    setSelectedFolders([]);
-                    setIsSelectMode(false);
-                  }}>
-                    <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length})
-                  </Button>
-                )}
-                {selectedFiles.length > 0 && (
-                  <Button variant="outline" className="gap-2" onClick={() => {
-                    selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }));
-                    setSelectedFiles([]);
-                    setIsSelectMode(false);
-                  }}>
-                    <RotateCcw className="w-4 h-4" /> Restore ({selectedFiles.length})
-                  </Button>
-                )}
-                {selectedFolders.length > 0 && (
-                  <Button variant="destructive" className="gap-2" onClick={() => setDeleteFolderId(selectedFolders[0])}>
-                    <Trash2 className="w-4 h-4" /> Delete ({selectedFolders.length})
-                  </Button>
-                )}
-                {selectedFiles.length > 0 && (
-                  <Button variant="destructive" className="gap-2" onClick={() => setDeleteFileId(selectedFiles[0])}>
-                    <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length})
-                  </Button>
-                )}
+                <Button variant="outline" className="gap-2" onClick={() => {
+                  selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }));
+                  selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }));
+                  setSelectedFolders([]);
+                  setSelectedFiles([]);
+                  setIsSelectMode(false);
+                }}>
+                  <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length + selectedFiles.length})
+                </Button>
+                <Button variant="destructive" className="gap-2" onClick={() => {
+                  if (selectedFolders.length > 0) {
+                    setDeleteFolderId(selectedFolders[0]);
+                  } else if (selectedFiles.length > 0) {
+                    setDeleteFileId(selectedFiles[0]);
+                  }
+                }}>
+                  <Trash2 className="w-4 h-4" /> Delete ({selectedFolders.length + selectedFiles.length})
+                </Button>
               </>
             )}
           </div>
