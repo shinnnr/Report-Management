@@ -185,7 +185,7 @@ export class DatabaseStorage implements IStorage {
         ).limit(1);
 
         if (duplicate.length > 0) {
-          throw new Error("A folder with this name already exists in this location.");
+          throw new Error(`A folder named "${updates.name}" already exists in this location.`);
         }
       }
 
@@ -204,7 +204,7 @@ export class DatabaseStorage implements IStorage {
         ).limit(1);
 
         if (duplicate.length > 0) {
-          throw new Error("A folder with this name already exists in this location.");
+          throw new Error(`A folder named "${currentFolder[0].name}" already exists in this location.`);
         }
       }
 
@@ -444,7 +444,7 @@ export class DatabaseStorage implements IStorage {
         ).limit(1);
 
         if (duplicate.length > 0) {
-          throw new Error("A file with this name already exists in this location.");
+          throw new Error(`A file named "${newFileName}" already exists in this location.`);
         }
       }
 
@@ -464,7 +464,7 @@ export class DatabaseStorage implements IStorage {
         ).limit(1);
 
         if (duplicate.length > 0) {
-          throw new Error("A file with this name already exists in this location.");
+          throw new Error(`A file named "${currentReport[0].fileName}" already exists in this location.`);
         }
       }
 
