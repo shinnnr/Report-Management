@@ -274,7 +274,7 @@ export default function ArchivesPage() {
         } catch (error: any) {
           hasError = true;
           if (!errorMessage) {
-            errorMessage = error?.message || "A folder with this name already exists in this location.";
+            errorMessage = error?.message || "A folder named already exists in this location.";
           }
         }
       }
@@ -287,7 +287,7 @@ export default function ArchivesPage() {
         } catch (error: any) {
           hasError = true;
           if (!errorMessage) {
-            errorMessage = error?.message || "A file with this name already exists in this location.";
+            errorMessage = error?.message || "A file named already exists in this location.";
           }
         }
       }
@@ -488,7 +488,7 @@ export default function ArchivesPage() {
                     await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
                     toast({ title: "Restored", description: "Folder restored successfully" });
                   } catch (error: any) {
-                    toast({ title: "Error", description: error?.message || "A folder with this name already exists in this location.", variant: "destructive" });
+                    toast({ title: "Error", description: error?.message || "A folder named already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFolderId(null);
                   setIsRestoring(false);
@@ -520,7 +520,7 @@ export default function ArchivesPage() {
                     await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
                     toast({ title: "Restored", description: "File restored successfully" });
                   } catch (error: any) {
-                    toast({ title: "Error", description: error?.message || "A file with this name already exists in this location.", variant: "destructive" });
+                    toast({ title: "Error", description: error?.message || "A file named already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFileId(null);
                   setIsRestoring(false);

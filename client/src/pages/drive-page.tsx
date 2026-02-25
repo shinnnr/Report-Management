@@ -286,7 +286,7 @@ export default function DrivePage() {
     } catch (error: any) {
       // Handle error - show error message
       console.error("Failed to rename file:", error);
-      toast({ title: "Error", description: error?.message || "A file with this name already exists in this location.", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "A file named already exists in this location.", variant: "destructive" });
     }
   };
 
@@ -318,7 +318,7 @@ export default function DrivePage() {
     } catch (error: any) {
       // Handle error - show error message
       console.error("Failed to rename folder:", error);
-      toast({ title: "Error", description: error?.message || "A folder with this name already exists in this location.", variant: "destructive" });
+      toast({ title: "Error", description: error?.message || "A folder named already exists in this location.", variant: "destructive" });
     }
   };
 
