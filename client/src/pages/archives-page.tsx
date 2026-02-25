@@ -179,6 +179,8 @@ export default function ArchivesPage() {
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [restoreFolderId, setRestoreFolderId] = useState<number | null>(null);
   const [restoreFileId, setRestoreFileId] = useState<number | null>(null);
+  const [isBulkRestoreOpen, setIsBulkRestoreOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedFolders, setSelectedFolders] = useState<number[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
@@ -253,6 +255,70 @@ export default function ArchivesPage() {
     }, 1000);
   };
 
+  const handleBulkRestore = async () => {
+    const foldersCount = selectedFolders.length;
+    const filesCount = selectedFiles.length;
+    
+    if (selectedFolders.length > 0) {
+      for (const id of selectedFolders) {
+        await updateFolder.mutateAsync({ id, status: 'active' });
+      }
+    }
+    if (selectedFiles.length > 0) {
+      for (const id of selectedFiles) {
+        await updateReport.mutateAsync({ id, status: 'active' });
+      }
+    }
+    
+    // Show success message based on number of items restored
+    const totalCount = foldersCount + filesCount;
+    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+    const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
+    
+    toast({
+      title: "Restored",
+      description: `${folderText}${andText}${fileText} restored successfully`
+    });
+    
+    setSelectedFolders([]);
+    setSelectedFiles([]);
+    setIsBulkRestoreOpen(false);
+    setIsSelectMode(false);
+  };
+
+  const handleBulkDelete = async () => {
+    const foldersCount = selectedFolders.length;
+    const filesCount = selectedFiles.length;
+    
+    if (selectedFolders.length > 0) {
+      for (const id of selectedFolders) {
+        await deleteFolder.mutateAsync({ id });
+      }
+    }
+    if (selectedFiles.length > 0) {
+      for (const id of selectedFiles) {
+        await deleteReport.mutateAsync({ id });
+      }
+    }
+    
+    // Show success message based on number of items deleted
+    const totalCount = foldersCount + filesCount;
+    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+    const andText = foldersCount > 0 && filesCount > 0 ? ' and ' : '';
+    
+    toast({
+      title: "Deleted",
+      description: `${folderText}${andText}${fileText} deleted successfully`
+    });
+    
+    setSelectedFolders([]);
+    setSelectedFiles([]);
+    setIsBulkDeleteOpen(false);
+    setIsSelectMode(false);
+  };
+
   return (
     <LayoutWrapper>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -292,22 +358,10 @@ export default function ArchivesPage() {
           <div className="flex items-center gap-3">
             {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
               <>
-                <Button variant="outline" className="gap-2" onClick={() => {
-                  selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }));
-                  selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }));
-                  setSelectedFolders([]);
-                  setSelectedFiles([]);
-                  setIsSelectMode(false);
-                }}>
+                <Button variant="outline" className="gap-2" onClick={() => setIsBulkRestoreOpen(true)}>
                   <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length + selectedFiles.length})
                 </Button>
-                <Button variant="destructive" className="gap-2" onClick={() => {
-                  if (selectedFolders.length > 0) {
-                    setDeleteFolderId(selectedFolders[0]);
-                  } else if (selectedFiles.length > 0) {
-                    setDeleteFileId(selectedFiles[0]);
-                  }
-                }}>
+                <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
                   <Trash2 className="w-4 h-4" /> Delete ({selectedFolders.length + selectedFiles.length})
                 </Button>
               </>
@@ -410,6 +464,45 @@ export default function ArchivesPage() {
               }}
             >
               Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Restore Confirmation Dialog */}
+      <AlertDialog open={isBulkRestoreOpen} onOpenChange={setIsBulkRestoreOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore {selectedFolders.length + selectedFiles.length} item{(selectedFolders.length + selectedFiles.length) > 1 ? 's' : ''}? They will be moved back to the drive.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkRestore}>
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedFolders.length + selectedFiles.length} item{(selectedFolders.length + selectedFiles.length) > 1 ? 's' : ''}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
