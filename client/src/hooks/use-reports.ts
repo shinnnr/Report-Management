@@ -104,6 +104,7 @@ export function useDeleteReport() {
 
 export function useUpdateReport() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: number } & Partial<InsertReport>) => {
@@ -117,7 +118,7 @@ export function useUpdateReport() {
       if (!res.ok) throw new Error("Failed to update report");
       return api.reports.update.responses[200].parse(await res.json());
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // Update the cache immediately for all folder queries
       queryClient.setQueriesData({ queryKey: [api.reports.list.path] }, (old: any) => {
         if (!old || !Array.isArray(old)) return old;
@@ -133,6 +134,11 @@ export function useUpdateReport() {
       queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'active'] });
       // Force refetch for archived reports (archives page)
       queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'archived'] });
+
+      // Show toast for restore action
+      if (variables.status === 'active') {
+        toast({ title: "Restored", description: "File restored successfully" });
+      }
     },
   });
 }

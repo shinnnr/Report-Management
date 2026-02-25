@@ -1431,7 +1431,7 @@ export default function DrivePage() {
                     {filteredReports?.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20 group">
                         {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-[40%]">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4" />
                             {isSelectMode ? (
@@ -1441,13 +1441,13 @@ export default function DrivePage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-muted-foreground">
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground">
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
-                        <td className="px-6 py-4 text-muted-foreground">
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground">
                           {r.fileType || '-'}
                         </td>
-                        <td className="px-6 py-4 text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-6 py-4 w-[20%] text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>

@@ -294,28 +294,18 @@ export default function ArchivesPage() {
               <>
                 {selectedFolders.length > 0 && (
                   <Button variant="outline" className="gap-2" onClick={() => {
-                    const count = selectedFolders.length;
                     selectedFolders.forEach(id => updateFolder.mutate({ id, status: 'active' }));
                     setSelectedFolders([]);
                     setIsSelectMode(false);
-                    toast({
-                      title: "Folders restored",
-                      description: `${count} folder${count > 1 ? 's' : ''} has been restored to the drive.`,
-                    });
                   }}>
                     <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length})
                   </Button>
                 )}
                 {selectedFiles.length > 0 && (
                   <Button variant="outline" className="gap-2" onClick={() => {
-                    const count = selectedFiles.length;
                     selectedFiles.forEach(id => updateReport.mutate({ id, status: 'active' }));
                     setSelectedFiles([]);
                     setIsSelectMode(false);
-                    toast({
-                      title: "Files restored",
-                      description: `${count} file${count > 1 ? 's' : ''} has been restored to the drive.`,
-                    });
                   }}>
                     <RotateCcw className="w-4 h-4" /> Restore ({selectedFiles.length})
                   </Button>
@@ -402,10 +392,6 @@ export default function ArchivesPage() {
                 if (restoreFolderId) {
                   updateFolder.mutate({ id: restoreFolderId, status: 'active' });
                   setRestoreFolderId(null);
-                  toast({
-                    title: "Folder restored",
-                    description: "The folder has been restored to the drive.",
-                  });
                 }
               }}
             >
@@ -430,10 +416,6 @@ export default function ArchivesPage() {
                 if (restoreFileId) {
                   updateReport.mutate({ id: restoreFileId, status: 'active' });
                   setRestoreFileId(null);
-                  toast({
-                    title: "File restored",
-                    description: "The file has been restored to the drive.",
-                  });
                 }
               }}
             >
@@ -654,15 +636,15 @@ export default function ArchivesPage() {
                             />
                           </td>
                         )}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-[40%]">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4" />
                             <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-muted-foreground">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{r.fileType || '-'}</td>
-                        <td className="px-6 py-4 text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground">{r.fileType || '-'}</td>
+                        <td className="px-6 py-4 w-[20%] text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
