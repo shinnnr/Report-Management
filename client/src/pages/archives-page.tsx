@@ -179,6 +179,8 @@ export default function ArchivesPage() {
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [restoreFolderId, setRestoreFolderId] = useState<number | null>(null);
   const [restoreFileId, setRestoreFileId] = useState<number | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkRestoreOpen, setIsBulkRestoreOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -259,6 +261,7 @@ export default function ArchivesPage() {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
     let hasError = false;
+    setIsRestoring(true);
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
@@ -298,11 +301,13 @@ export default function ArchivesPage() {
     setSelectedFiles([]);
     setIsBulkRestoreOpen(false);
     setIsSelectMode(false);
+    setIsRestoring(false);
   };
 
   const handleBulkDelete = async () => {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
+    setIsDeleting(true);
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
@@ -330,6 +335,7 @@ export default function ArchivesPage() {
     setSelectedFiles([]);
     setIsBulkDeleteOpen(false);
     setIsSelectMode(false);
+    setIsDeleting(false);
   };
 
   return (
@@ -397,13 +403,16 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
+                  setIsDeleting(true);
                   deleteFolder.mutate({ id: deleteFolderId });
                   setDeleteFolderId(null);
+                  setTimeout(() => setIsDeleting(false), 1000);
                 }
               }}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -422,13 +431,16 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
+                  setIsDeleting(true);
                   deleteReport.mutate({ id: deleteFileId });
                   setDeleteFileId(null);
+                  setTimeout(() => setIsDeleting(false), 1000);
                 }
               }}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -447,6 +459,7 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={async () => {
                 if (restoreFolderId) {
+                  setIsRestoring(true);
                   try {
                     await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
                     toast({ title: "Restored", description: "Folder restored successfully" });
@@ -454,10 +467,12 @@ export default function ArchivesPage() {
                     toast({ title: "Error", description: error?.message || "A folder with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFolderId(null);
+                  setIsRestoring(false);
                 }
               }}
+              disabled={isRestoring}
             >
-              Restore
+              {isRestoring ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -476,6 +491,7 @@ export default function ArchivesPage() {
             <AlertDialogAction
               onClick={async () => {
                 if (restoreFileId) {
+                  setIsRestoring(true);
                   try {
                     await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
                     toast({ title: "Restored", description: "File restored successfully" });
@@ -483,10 +499,12 @@ export default function ArchivesPage() {
                     toast({ title: "Error", description: error?.message || "A file with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFileId(null);
+                  setIsRestoring(false);
                 }
               }}
+              disabled={isRestoring}
             >
-              Restore
+              {isRestoring ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -503,8 +521,8 @@ export default function ArchivesPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkRestore}>
-              Restore
+            <AlertDialogAction onClick={handleBulkRestore} disabled={isRestoring}>
+              {isRestoring ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -523,9 +541,10 @@ export default function ArchivesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
+              disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

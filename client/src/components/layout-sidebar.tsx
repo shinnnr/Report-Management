@@ -31,6 +31,7 @@ export function Sidebar() {
   const { user, logoutMutation } = useAuth();
   const { resetTheme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -102,12 +103,14 @@ export function Sidebar() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
+                  setIsLoggingOut(true);
                   resetTheme();
                   logoutMutation.mutate();
                 }}
+                disabled={isLoggingOut}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Log Out
+                {isLoggingOut ? "Logging out..." : "Log Out"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

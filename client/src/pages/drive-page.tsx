@@ -740,7 +740,6 @@ export default function DrivePage() {
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
-                  {createFolder.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {createFolder.isPending ? "Creating..." : "Create"}
                 </Button>
               </DialogFooter>
@@ -774,7 +773,6 @@ export default function DrivePage() {
               </div>
               <DialogFooter>
                 <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
-                  {createReport.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {createReport.isPending ? "Uploading..." : "Upload"}
                 </Button>
               </DialogFooter>
