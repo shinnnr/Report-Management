@@ -686,11 +686,23 @@ export async function registerRoutes(
         }
       }
 
+      // Check for duplicate file name and append (n) if needed
+      const existingReports = await storage.getReports(monthFolder.id);
+      let finalFileName = fileName;
+      let counter = 1;
+      const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+      const ext = fileName.includes('.') ? '.' + fileName.split('.').pop() : '';
+      
+      while (existingReports.some(r => r.fileName === finalFileName)) {
+        finalFileName = `${nameWithoutExt} (${counter})${ext}`;
+        counter++;
+      }
+
       // Create the report
       const report = await storage.createReport({
         title,
         description,
-        fileName,
+        fileName: finalFileName,
         fileType,
         fileSize,
         fileData,
