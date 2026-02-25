@@ -321,8 +321,8 @@ export default function CalendarPage() {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
       // Also refresh folders and reports so Drive page reflects changes in real-time
-      queryClient.invalidateQueries({ queryKey: ['/api/folders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
     } catch (error: any) {
       console.error('Submission error:', error);
       toast({

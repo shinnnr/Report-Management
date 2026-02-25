@@ -657,33 +657,39 @@ export async function registerRoutes(
       const activityMonthName = monthNames[activityMonth];
 
       // Create or get year folder
+      // Always create a new folder if existing one is archived (don't unarchive)
       let yearFolder = await storage.getFolderByNameAndParent(`${activityYear}`, null);
-      if (!yearFolder || yearFolder.status === 'archived') {
-        if (yearFolder && yearFolder.status === 'archived') {
-          // Reactivate the archived folder
-          yearFolder = await storage.updateFolder(yearFolder.id, { status: 'active' });
-        } else {
-          yearFolder = await storage.createFolder({
-            name: `${activityYear}`,
-            parentId: null,
-            createdBy: userId
-          });
-        }
+      if (!yearFolder) {
+        yearFolder = await storage.createFolder({
+          name: `${activityYear}`,
+          parentId: null,
+          createdBy: userId
+        });
+      } else if (yearFolder.status === 'archived') {
+        // Create a new year folder with archived status indication
+        yearFolder = await storage.createFolder({
+          name: `${activityYear}`,
+          parentId: null,
+          createdBy: userId
+        });
       }
 
       // Create or get month folder
+      // Always create a new folder if existing one is archived (don't unarchive)
       let monthFolder = await storage.getFolderByNameAndParent(activityMonthName, yearFolder.id);
-      if (!monthFolder || monthFolder.status === 'archived') {
-        if (monthFolder && monthFolder.status === 'archived') {
-          // Reactivate the archived folder
-          monthFolder = await storage.updateFolder(monthFolder.id, { status: 'active' });
-        } else {
-          monthFolder = await storage.createFolder({
-            name: activityMonthName,
-            parentId: yearFolder.id,
-            createdBy: userId
-          });
-        }
+      if (!monthFolder) {
+        monthFolder = await storage.createFolder({
+          name: activityMonthName,
+          parentId: yearFolder.id,
+          createdBy: userId
+        });
+      } else if (monthFolder.status === 'archived') {
+        // Create a new month folder with archived status indication
+        monthFolder = await storage.createFolder({
+          name: activityMonthName,
+          parentId: yearFolder.id,
+          createdBy: userId
+        });
       }
 
       // Check for duplicate file name and append (n) if needed
