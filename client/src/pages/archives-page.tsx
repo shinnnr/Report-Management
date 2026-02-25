@@ -450,8 +450,8 @@ export default function ArchivesPage() {
                   try {
                     await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
                     toast({ title: "Restored", description: "Folder restored successfully" });
-                  } catch (error) {
-                    toast({ title: "Error", description: "A folder with this name already exists in this location.", variant: "destructive" });
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error?.message || "A folder with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFolderId(null);
                 }
@@ -479,8 +479,8 @@ export default function ArchivesPage() {
                   try {
                     await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
                     toast({ title: "Restored", description: "File restored successfully" });
-                  } catch (error) {
-                    toast({ title: "Error", description: "A file with this name already exists in this location.", variant: "destructive" });
+                  } catch (error: any) {
+                    toast({ title: "Error", description: error?.message || "A file with this name already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFileId(null);
                 }

@@ -144,10 +144,11 @@ export class DatabaseStorage implements IStorage {
 
   async createFolder(insertFolder: InsertFolder): Promise<Folder> {
     return await db.transaction(async (tx) => {
-      // Prevent duplicate folder names in the same parent
+      // Prevent duplicate folder names in the same parent (only check active folders, not archived)
       const existing = await tx.select().from(folders).where(
         and(
           eq(folders.name, insertFolder.name),
+          eq(folders.status, 'active'),
           (insertFolder.parentId === null || insertFolder.parentId === 0)
             ? isNull(folders.parentId)
             : eq(folders.parentId, Number(insertFolder.parentId))
@@ -168,6 +169,44 @@ export class DatabaseStorage implements IStorage {
       // Get the folder before updating
       const currentFolder = await tx.select().from(folders).where(eq(folders.id, id)).limit(1);
       if (!currentFolder.length) throw new Error("Folder not found");
+
+      // If renaming a folder (name is being changed), check for duplicates
+      if (updates.name) {
+        const targetParentId = currentFolder[0].parentId;
+        
+        // Check for duplicate names in the same parent (only active folders)
+        const duplicate = await tx.select().from(folders).where(
+          and(
+            eq(folders.name, updates.name),
+            eq(folders.status, 'active'),
+            targetParentId === null ? isNull(folders.parentId) : eq(folders.parentId, targetParentId),
+            ne(folders.id, id) // Exclude the current folder
+          )
+        ).limit(1);
+
+        if (duplicate.length > 0) {
+          throw new Error("A folder with this name already exists in this location.");
+        }
+      }
+
+      // If restoring a folder (status is being changed to 'active'), check for duplicates
+      if (updates.status === 'active' && currentFolder[0].status !== 'active') {
+        const targetParentId = currentFolder[0].parentId;
+        
+        // Check for duplicate names in the same parent
+        const duplicate = await tx.select().from(folders).where(
+          and(
+            eq(folders.name, currentFolder[0].name),
+            eq(folders.status, 'active'),
+            targetParentId === null ? isNull(folders.parentId) : eq(folders.parentId, targetParentId),
+            ne(folders.id, id) // Exclude the current folder
+          )
+        ).limit(1);
+
+        if (duplicate.length > 0) {
+          throw new Error("A folder with this name already exists in this location.");
+        }
+      }
 
       const [folder] = await tx.update(folders).set(updates).where(eq(folders.id, id)).returning();
       if (!folder) throw new Error("Folder not found");
@@ -386,6 +425,48 @@ export class DatabaseStorage implements IStorage {
       // Get the report before updating
       const currentReport = await tx.select().from(reports).where(eq(reports.id, id)).limit(1);
       if (!currentReport.length) throw new Error("Report not found");
+
+      // If renaming a report (title or fileName is being changed), check for duplicates
+      if (updates.title || updates.fileName) {
+        const newTitle = updates.title || currentReport[0].title;
+        const newFileName = updates.fileName || currentReport[0].fileName;
+        const targetFolderId = currentReport[0].folderId;
+        
+        // Check for duplicate titles in the same folder (only active reports)
+        const duplicate = await tx.select().from(reports).where(
+          and(
+            eq(reports.title, newTitle),
+            eq(reports.fileName, newFileName),
+            eq(reports.status, 'active'),
+            targetFolderId === null ? isNull(reports.folderId) : eq(reports.folderId, targetFolderId),
+            ne(reports.id, id) // Exclude the current report
+          )
+        ).limit(1);
+
+        if (duplicate.length > 0) {
+          throw new Error("A file with this name already exists in this location.");
+        }
+      }
+
+      // If restoring a report (status is being changed to 'active'), check for duplicates
+      if (updates.status === 'active' && currentReport[0].status !== 'active') {
+        const targetFolderId = currentReport[0].folderId;
+        
+        // Check for duplicate titles in the same folder
+        const duplicate = await tx.select().from(reports).where(
+          and(
+            eq(reports.title, currentReport[0].title),
+            eq(reports.fileName, currentReport[0].fileName),
+            eq(reports.status, 'active'),
+            targetFolderId === null ? isNull(reports.folderId) : eq(reports.folderId, targetFolderId),
+            ne(reports.id, id) // Exclude the current report
+          )
+        ).limit(1);
+
+        if (duplicate.length > 0) {
+          throw new Error("A file with this name already exists in this location.");
+        }
+      }
 
       // If restoring a report
       if (updates.status === 'active' && currentReport[0].folderId !== null) {
