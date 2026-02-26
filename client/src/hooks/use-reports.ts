@@ -47,6 +47,8 @@ export function useCreateReport() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      // Also invalidate folder queries in case new Year/Month folders were created
+      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       // Only show toast if _suppressToast is not true
       if (!variables._suppressToast) {
         toast({ title: "Success", description: "File uploaded successfully" });
