@@ -265,14 +265,11 @@ export default function ArchivesPage() {
     link.href = blobUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
+    // Set the download attribute with filename for better compatibility
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    // Clean up the blob URL after a delay to allow the tab to open
-    setTimeout(() => {
-      URL.revokeObjectURL(blobUrl);
-    }, 1000);
   };
 
   const handleBulkRestore = async () => {
