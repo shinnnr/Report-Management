@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
-import { useReports } from "@/hooks/use-reports";
+import { useReports, useReportsCount } from "@/hooks/use-reports";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
@@ -33,7 +33,7 @@ import { NotificationModal } from "@/components/notification-modal";
 export default function DashboardPage() {
     const { user } = useAuth();
     const { data: folders } = useFolders('all', 'active', 5000);
-    const { data: reports } = useReports(undefined, 'active', 5000);
+    const { data: reportsCount } = useReportsCount(undefined, 'active');
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
@@ -328,7 +328,7 @@ export default function DashboardPage() {
         >
           <StatCard
             title="Total Reports"
-            value={reports?.length || 0}
+            value={reportsCount || 0}
             icon={FileText}
             color="secondary"
             trend="Across all folders"

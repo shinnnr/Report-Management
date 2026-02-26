@@ -28,6 +28,7 @@ export interface IStorage {
   // Reports
   getReports(folderId?: number | null, status?: string): Promise<Report[]>;
   getReport(id: number): Promise<Report | undefined>;
+  getReportsCount(folderId?: number | null, status?: string): Promise<number>;
   createReport(report: InsertReport): Promise<Report>;
   updateReport(id: number, updates: Partial<InsertReport>): Promise<Report>;
   moveReports(reportIds: number[], folderId: number | null): Promise<void>;
@@ -419,6 +420,25 @@ export class DatabaseStorage implements IStorage {
   async getReport(id: number): Promise<Report | undefined> {
     const [report] = await db.select().from(reports).where(eq(reports.id, id));
     return report;
+  }
+
+  async getReportsCount(folderId?: number | null, status?: string): Promise<number> {
+    let conditions = [];
+    if (folderId !== undefined) {
+      if (folderId === null || folderId === 0) {
+        conditions.push(isNull(reports.folderId));
+      } else {
+        conditions.push(eq(reports.folderId, folderId));
+      }
+    }
+    if (status) conditions.push(eq(reports.status, status));
+
+    const result = await db.select({ count: sql<number>`count(*)` }).from(reports);
+    if (conditions.length > 0) {
+      const filtered = await db.select({ count: sql<number>`count(*)` }).from(reports).where(and(...conditions));
+      return filtered[0]?.count || 0;
+    }
+    return result[0]?.count || 0;
   }
 
   async createReport(insertReport: InsertReport): Promise<Report> {

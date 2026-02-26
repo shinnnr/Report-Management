@@ -29,6 +29,31 @@ export function useReports(folderId?: number | "root", status: string = 'active'
   });
 }
 
+export function useReportsCount(folderId?: number | "root", status: string = 'active') {
+  return useQuery({
+    queryKey: [api.reports.count.path, folderId, status],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (folderId) params.append("folderId", folderId.toString());
+      if (status) params.append("status", status);
+
+      const url = `${api.reports.count.path}?${params.toString()}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`Failed to fetch reports count: ${res.status} - ${errorText}`);
+      }
+      const data = api.reports.count.responses[200].parse(await res.json());
+      return data.count;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: 3,
+  });
+}
+
 export function useCreateReport() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

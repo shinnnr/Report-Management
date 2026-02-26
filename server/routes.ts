@@ -475,6 +475,23 @@ export async function registerRoutes(
     res.json(reports);
   });
 
+  // Count reports endpoint (lightweight, no fileData)
+  app.get(api.reports.count.path, isAuthenticated, async (req, res) => {
+    const folderIdStr = req.query.folderId as string | undefined;
+    let folderId: number | null | undefined;
+
+    if (folderIdStr === "null" || folderIdStr === "root" || folderIdStr === "") {
+      folderId = null;
+    } else if (folderIdStr !== undefined) {
+      folderId = parseInt(folderIdStr);
+      if (isNaN(folderId)) folderId = null;
+    }
+
+    const status = req.query.status as string | undefined;
+    const count = await storage.getReportsCount(folderId, status);
+    res.json({ count });
+  });
+
   app.post("/api/reports/move", isAuthenticated, async (req, res) => {
     const { reportIds, folderId } = req.body;
     await storage.moveReports(reportIds, folderId === "root" ? null : folderId);

@@ -177,6 +177,17 @@ export const api = {
         200: z.array(z.custom<typeof reports.$inferSelect>()),
       },
     },
+    count: {
+      method: 'GET' as const,
+      path: '/api/reports/count',
+      input: z.object({
+        folderId: z.string().optional(),
+        status: z.string().optional(),
+      }).optional(),
+      responses: {
+        200: z.object({ count: z.number() }),
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/reports',
