@@ -701,7 +701,7 @@ export default function ArchivesPage() {
             </div>
             {archivedReports && archivedReports.length > 0 ? (
               <div className="bg-card rounded-xl border overflow-hidden">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-fixed">
                   <thead className="bg-muted">
                     <tr>
                       {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
