@@ -297,6 +297,20 @@ export const api = {
       },
     },
   },
+  dashboard: {
+    stats: {
+      method: 'GET' as const,
+      path: '/api/dashboard/stats',
+      responses: {
+        200: z.object({
+          totalReports: z.number(),
+          totalFolders: z.number(),
+          totalRootFolders: z.number(),
+          totalSubFolders: z.number(),
+        }),
+      },
+    },
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {

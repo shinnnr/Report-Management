@@ -24,6 +24,9 @@ export interface IStorage {
   renameFolder(id: number, name: string): Promise<Folder>;
   deleteFolder(id: number): Promise<void>;
   moveFolder(id: number, targetParentId: number | null): Promise<Folder>;
+  getFolderCount(): Promise<number>;
+  getRootFolderCount(): Promise<number>;
+  getSubFolderCount(): Promise<number>;
 
   // Reports
   getReports(folderId?: number | null, status?: string): Promise<Report[]>;
@@ -32,6 +35,7 @@ export interface IStorage {
   updateReport(id: number, updates: Partial<InsertReport>): Promise<Report>;
   moveReports(reportIds: number[], folderId: number | null): Promise<void>;
   deleteReport(id: number): Promise<void>;
+  getReportCount(): Promise<number>;
 
   // Activities
   getActivities(): Promise<Activity[]>;
@@ -504,6 +508,27 @@ export class DatabaseStorage implements IStorage {
       console.error(`Error deleting report ${id}:`, error);
       throw error;
     }
+  }
+
+  async getReportCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(reports).where(eq(reports.status, 'active'));
+    return result[0]?.count || 0;
+  }
+
+  // Dashboard counts
+  async getFolderCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(eq(folders.status, 'active'));
+    return result[0]?.count || 0;
+  }
+
+  async getRootFolderCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(and(eq(folders.status, 'active'), isNull(folders.parentId)));
+    return result[0]?.count || 0;
+  }
+
+  async getSubFolderCount(): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(and(eq(folders.status, 'active'), sql`${folders.parentId} IS NOT NULL`));
+    return result[0]?.count || 0;
   }
 
   // Activities

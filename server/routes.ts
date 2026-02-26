@@ -817,6 +817,27 @@ export async function registerRoutes(
     }
   });
 
+  // --- Dashboard Stats ---
+  app.get(api.dashboard.stats.path, isAuthenticated, async (req, res) => {
+    try {
+      // Get counts directly from database using COUNT queries
+      const totalReports = await storage.getReportCount();
+      const totalFolders = await storage.getFolderCount();
+      const totalRootFolders = await storage.getRootFolderCount();
+      const totalSubFolders = await storage.getSubFolderCount();
+      
+      res.json({
+        totalReports,
+        totalFolders,
+        totalRootFolders,
+        totalSubFolders,
+      });
+    } catch (err) {
+      console.error("Error fetching dashboard stats:", err);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
 
   // --- Seed Data Helper ---
   async function seed() {

@@ -41,6 +41,17 @@ export default function DashboardPage() {
     const markReadMutation = useMarkNotificationRead();
     const deleteNotificationMutation = useDeleteNotification();
 
+    // Fetch dashboard stats directly from database for fast count
+    const { data: stats } = useQuery({
+        queryKey: [api.dashboard.stats.path],
+        queryFn: async () => {
+            const res = await fetch(api.dashboard.stats.path, { credentials: 'include' });
+            if (!res.ok) throw new Error('Failed to fetch dashboard stats');
+            return api.dashboard.stats.responses[200].parse(await res.json());
+        },
+        refetchInterval: 10000, // Refresh every 10 seconds
+    });
+
     const [hoverState, setHoverState] = useState<{
         visible: boolean;
         x: number;
@@ -67,8 +78,8 @@ export default function DashboardPage() {
     }, []);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
-    const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
-    const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
+    const subFoldersCount = stats?.totalSubFolders || 0;
+    const rootFoldersCount = stats?.totalRootFolders || 0;
     const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
@@ -328,7 +339,7 @@ export default function DashboardPage() {
         >
           <StatCard
             title="Total Reports"
-            value={reports?.length || 0}
+            value={stats?.totalReports || 0}
             icon={FileText}
             color="secondary"
             trend="Across all folders"
