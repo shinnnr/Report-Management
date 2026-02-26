@@ -31,7 +31,13 @@ import { NotificationModal } from "@/components/notification-modal";
 export default function DashboardPage() {
     const { user } = useAuth();
     const { data: folders } = useFolders('all', 'active', 5000);
-    const { data: reports } = useReports('all', 'active', 10000);
+    // Use refetch to force update on mount and navigation
+    const { data: reports, refetch: refetchReports } = useReports('all', 'active', 10000);
+    
+    // Refetch reports when component mounts (when navigating from other pages)
+    useEffect(() => {
+        refetchReports();
+    }, []);
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
