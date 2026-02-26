@@ -5,8 +5,6 @@ import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, 
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
-import { useQuery } from "@tanstack/react-query";
-import { api } from "@shared/routes";
 import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,8 +30,8 @@ import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const { data: folders } = useFolders('all', 'active', 5000);
-    const { data: reports } = useReports(undefined, 'active');
+    const { data: folders } = useFolders(null);
+    const { data: reports } = useReports();
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
@@ -67,9 +65,6 @@ export default function DashboardPage() {
     }, []);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
-    const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
-    const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
-    const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
         const data: { items: any[]; total: number } = getPreviewData(type);
@@ -312,11 +307,11 @@ export default function DashboardPage() {
           className="cursor-pointer"
         >
           <StatCard
-            title="Total Root Folders"
-            value={rootFoldersCount || 0}
+            title="Total Folders"
+            value={folders?.length || 0}
             icon={Folder}
             color="primary"
-            trend={`${subFoldersCount} sub folders`}
+            trend="Root directories"
           />
         </div>
         <div
@@ -346,7 +341,7 @@ export default function DashboardPage() {
             value={activities?.length || 0}
             icon={Activity}
             color="secondary"
-            trend={`${pendingActivities} pending activities`}
+            trend="All tasks"
           />
         </div>
         <div
