@@ -33,7 +33,7 @@ import { NotificationModal } from "@/components/notification-modal";
 export default function DashboardPage() {
     const { user } = useAuth();
     const { data: folders } = useFolders('all', 'active', 10000);
-    const { data: reports } = useReports('root', 'active', 10000);
+    const { data: reports } = useReports(undefined, 'active', 10000);
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
