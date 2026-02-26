@@ -67,8 +67,8 @@ export default function DashboardPage() {
     }, []);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
-    const subFoldersCount = folders?.filter(f => f.parentId !== null).length || 0;
-    const rootFoldersCount = folders?.filter(f => f.parentId === null).length || 0;
+    const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
+    const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
     const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
