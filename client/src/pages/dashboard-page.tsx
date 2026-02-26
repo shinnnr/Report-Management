@@ -33,22 +33,6 @@ import { NotificationModal } from "@/components/notification-modal";
 export default function DashboardPage() {
     const { user } = useAuth();
     const { data: folders } = useFolders('all', 'active', 5000);
-    
-    // Use useQuery directly with refetchOnMount for real-time updates when navigating from other pages
-    const { data: reports } = useQuery({
-        queryKey: [api.reports.list.path, 'all', 'active'],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            // Don't pass folderId to get ALL reports including those in subfolders
-            params.append("status", 'active');
-            const url = `${api.reports.list.path}?${params.toString()}`;
-            const res = await fetch(url, { credentials: 'include' });
-            if (!res.ok) throw new Error('Failed to fetch reports');
-            return api.reports.list.responses[200].parse(await res.json());
-        },
-        refetchInterval: 10000, // Poll every 10 seconds
-        refetchOnMount: true, // Always fetch fresh data when component mounts
-    });
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
@@ -346,7 +330,7 @@ export default function DashboardPage() {
             value={reports?.length || 0}
             icon={FileText}
             color="secondary"
-            trend="Including all subfolders"
+            trend="Across all folders"
           />
         </div>
         <div

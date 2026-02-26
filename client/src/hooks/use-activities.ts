@@ -12,7 +12,7 @@ export function useActivities() {
       return api.activities.list.responses[200].parse(await res.json());
     },
     staleTime: 0, // Always fetch fresh data
-    refetchInterval: 10000, // Poll every 10 seconds to check for new activities
+    refetchInterval: 5000, // Poll every 5 seconds to check for new activities
   });
 }
 
