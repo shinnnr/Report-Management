@@ -433,12 +433,13 @@ export class DatabaseStorage implements IStorage {
     }
     if (status) conditions.push(eq(reports.status, status));
 
-    const result = await db.select({ count: sql<number>`count(*)` }).from(reports);
+    // Select only id field to minimize data transfer
     if (conditions.length > 0) {
-      const filtered = await db.select({ count: sql<number>`count(*)` }).from(reports).where(and(...conditions));
-      return filtered[0]?.count || 0;
+      const result = await db.select({ id: reports.id }).from(reports).where(and(...conditions));
+      return result.length;
     }
-    return result[0]?.count || 0;
+    const result = await db.select({ id: reports.id }).from(reports);
+    return result.length;
   }
 
   async createReport(insertReport: InsertReport): Promise<Report> {
