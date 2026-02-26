@@ -1450,7 +1450,7 @@ export default function DrivePage() {
                                     }
                                   }}
                                 >
-                                  {type.toUpperCase()}
+                                  {getFileExtension(type)}
                                 </DropdownMenuCheckboxItem>
                               ))}
                             </DropdownMenuContent>

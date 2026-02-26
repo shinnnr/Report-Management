@@ -762,7 +762,7 @@ export default function ArchivesPage() {
                                   checked={typeFilter.includes(type)}
                                   onCheckedChange={() => setTypeFilter(typeFilter.includes(type) ? typeFilter.filter(f => f !== type) : [...typeFilter, type])}
                                 >
-                                  {type.toUpperCase()}
+                                  {getFileExtension(type)}
                                 </DropdownMenuCheckboxItem>
                               ))}
                             </DropdownMenuContent>
