@@ -261,14 +261,7 @@ export default function ArchivesPage() {
 
   const handleFileClick = (fileData: string, fileName: string) => {
     const blobUrl = createBlobUrl(fileData);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.open(blobUrl, '_blank');
   };
 
   const handleBulkRestore = async () => {
