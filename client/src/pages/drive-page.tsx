@@ -66,6 +66,24 @@ import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { format, formatDistanceToNow } from "date-fns";
 
+// Helper function to convert MIME type to readable extension
+const getFileExtension = (mimeType: string): string => {
+  const mimeToExt: Record<string, string> = {
+    'application/pdf': 'PDF',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+    'application/msword': 'DOC',
+    'text/plain': 'TXT',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+    'application/vnd.ms-excel': 'XLS',
+    'text/csv': 'CSV',
+    'application/zip': 'ZIP',
+    'image/jpeg': 'JPG',
+    'image/png': 'PNG',
+    'image/gif': 'GIF',
+  };
+  return mimeToExt[mimeType.toLowerCase()] || mimeType.split('/').pop()?.toUpperCase() || mimeType;
+};
+
 export default function DrivePage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1535,7 +1553,7 @@ export default function DrivePage() {
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground">
-                          {r.fileType ? r.fileType.toUpperCase() : '-'}
+                          {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
                         <td className="px-6 py-4 w-[20%] text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
