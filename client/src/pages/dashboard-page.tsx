@@ -5,6 +5,8 @@ import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, 
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports } from "@/hooks/use-reports";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@shared/routes";
 import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,13 +33,22 @@ import { NotificationModal } from "@/components/notification-modal";
 export default function DashboardPage() {
     const { user } = useAuth();
     const { data: folders } = useFolders('all', 'active', 5000);
-    // Use refetch to force update on mount and navigation
-    const { data: reports, refetch: refetchReports } = useReports('all', 'active', 10000);
     
-    // Refetch reports when component mounts (when navigating from other pages)
-    useEffect(() => {
-        refetchReports();
-    }, []);
+    // Use useQuery directly with refetchOnMount for real-time updates when navigating from other pages
+    const { data: reports } = useQuery({
+        queryKey: [api.reports.list.path, 'all', 'active'],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            params.append("folderId", 'all');
+            params.append("status", 'active');
+            const url = `${api.reports.list.path}?${params.toString()}`;
+            const res = await fetch(url, { credentials: 'include' });
+            if (!res.ok) throw new Error('Failed to fetch reports');
+            return api.reports.list.responses[200].parse(await res.json());
+        },
+        refetchInterval: 10000, // Poll every 10 seconds
+        refetchOnMount: true, // Always fetch fresh data when component mounts
+    });
     const { data: activities } = useActivities();
     const { data: logs } = useLogs();
     const [, setLocation] = useLocation();
