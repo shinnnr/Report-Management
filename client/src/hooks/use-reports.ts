@@ -50,6 +50,7 @@ export function useReportsCount(folderId?: number | "root", status: string = 'ac
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: false,
+    refetchInterval: 5000, // Poll every 5 seconds to stay in sync across sessions
     retry: 3,
   });
 }
