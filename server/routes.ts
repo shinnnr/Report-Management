@@ -488,7 +488,28 @@ export async function registerRoutes(
         ...req.body,
         uploadedBy: (req.user as any).id
       });
-      const report = await storage.createReport(input);
+
+      // Check for duplicate file name in the same folder and append (n) if needed
+      const folderId = input.folderId;
+      const existingReports = await storage.getReports(folderId);
+      let finalFileName = input.fileName;
+      let counter = 1;
+      const nameWithoutExt = input.fileName.replace(/\.[^/.]+$/, '');
+      const ext = input.fileName.includes('.') ? '.' + input.fileName.split('.').pop() : '';
+
+      while (existingReports.some(r => r.fileName === finalFileName)) {
+        finalFileName = `${nameWithoutExt} (${counter})${ext}`;
+        counter++;
+      }
+
+      // Update the input with the unique filename
+      const reportInput = {
+        ...input,
+        fileName: finalFileName,
+        title: finalFileName // Also update title to match
+      };
+
+      const report = await storage.createReport(reportInput);
       await storage.createLog((req.user as any).id, "UPLOAD_REPORT", `Uploaded report: ${report.title}`);
       res.status(201).json(report);
     } catch (err) {
