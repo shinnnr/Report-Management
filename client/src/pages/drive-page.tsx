@@ -1535,7 +1535,7 @@ export default function DrivePage() {
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground">
-                          {r.fileType || '-'}
+                          {r.fileType ? r.fileType.toUpperCase() : '-'}
                         </td>
                         <td className="px-6 py-4 w-[20%] text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">

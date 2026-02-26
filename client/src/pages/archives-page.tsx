@@ -792,7 +792,7 @@ export default function ArchivesPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground">{r.fileType || '-'}</td>
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground">{r.fileType ? r.fileType.toUpperCase() : '-'}</td>
                         <td className="px-6 py-4 w-[20%] text-right">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
