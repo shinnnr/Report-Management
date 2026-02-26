@@ -39,7 +39,7 @@ export default function DashboardPage() {
         queryKey: [api.reports.list.path, 'all', 'active'],
         queryFn: async () => {
             const params = new URLSearchParams();
-            params.append("folderId", 'all');
+            // Don't pass folderId to get ALL reports including those in subfolders
             params.append("status", 'active');
             const url = `${api.reports.list.path}?${params.toString()}`;
             const res = await fetch(url, { credentials: 'include' });
@@ -346,7 +346,7 @@ export default function DashboardPage() {
             value={reports?.length || 0}
             icon={FileText}
             color="secondary"
-            trend="Across all folders"
+            trend="Including all subfolders"
           />
         </div>
         <div
