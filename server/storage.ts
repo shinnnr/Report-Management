@@ -511,23 +511,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReportCount(): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` }).from(reports).where(eq(reports.status, 'active'));
+    const result = await db.select({ count: sql<number>`count(*)` }).from(reports);
     return result[0]?.count || 0;
   }
 
   // Dashboard counts
   async getFolderCount(): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(eq(folders.status, 'active'));
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders);
     return result[0]?.count || 0;
   }
 
   async getRootFolderCount(): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(and(eq(folders.status, 'active'), isNull(folders.parentId)));
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(isNull(folders.parentId));
     return result[0]?.count || 0;
   }
 
   async getSubFolderCount(): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(and(eq(folders.status, 'active'), sql`${folders.parentId} IS NOT NULL`));
+    const result = await db.select({ count: sql<number>`count(*)` }).from(folders).where(sql`${folders.parentId} IS NOT NULL`);
     return result[0]?.count || 0;
   }
 
