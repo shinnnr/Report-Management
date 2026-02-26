@@ -571,6 +571,7 @@ export default function DrivePage() {
     link.href = blobUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
