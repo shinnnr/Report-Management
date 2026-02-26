@@ -130,10 +130,8 @@ export function useUpdateReport() {
         });
       });
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
-      // Force refetch for active reports (drive page)
-      queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'active'] });
-      // Force refetch for archived reports (archives page)
-      queryClient.refetchQueries({ queryKey: [api.reports.list.path, 'root', 'archived'] });
+      // Force refetch to update dashboard and other views immediately
+      queryClient.refetchQueries({ queryKey: [api.reports.list.path] });
 
       // Show toast for restore action only if not suppressed
       if (variables.status === 'active' && !data?.suppressToast) {
