@@ -265,8 +265,6 @@ export default function ArchivesPage() {
     link.href = blobUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    // Set the download attribute with filename for better compatibility
-    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
