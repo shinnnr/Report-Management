@@ -565,9 +565,28 @@ export default function DrivePage() {
     }
   };
 
-  const handleFileClick = (fileData: string, fileName: string) => {
+  const handleFileClick = (fileData: string, fileName: string, fileType?: string) => {
     const blobUrl = createBlobUrl(fileData);
-    window.open(blobUrl, '_blank');
+    
+    // Check if file type can be opened in browser
+    const canOpenInBrowser = fileType && [
+      'application/pdf',
+      'image/',
+      'text/',
+    ].some(type => fileType.toLowerCase().startsWith(type));
+    
+    if (canOpenInBrowser) {
+      // Try to open in new tab - browser will handle download with proper filename
+      window.open(blobUrl, '_blank');
+    } else {
+      // For Office files and others, use download with original filename
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const toggleFolderSelection = (id: number) => {
@@ -1534,7 +1553,7 @@ export default function DrivePage() {
                             {isSelectMode ? (
                               <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             ) : (
-                              <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                              <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName, r.fileType)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
                             )}
                           </div>
                         </td>
