@@ -72,6 +72,7 @@ export function useCreateReport() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.reports.count.path] });
       // Also invalidate folder queries in case new Year/Month folders were created
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       // Only show toast if _suppressToast is not true
@@ -102,6 +103,7 @@ export function useMoveReports() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.reports.count.path] });
       if (!data?.suppressToast) {
         toast({ title: "Success", description: "Files moved successfully" });
       }
@@ -122,6 +124,7 @@ export function useDeleteReport() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.reports.count.path] });
       if (!data?.suppressToast) {
         toast({ title: "Deleted", description: "File deleted successfully" });
       }
@@ -157,6 +160,7 @@ export function useUpdateReport() {
         });
       });
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.reports.count.path] });
       // Force refetch to update dashboard and other views immediately
       queryClient.refetchQueries({ queryKey: [api.reports.list.path] });
 
