@@ -689,7 +689,7 @@ function ArchivesContent() {
                         <FolderIcon className="w-10 h-10 text-secondary" />
                         <span className="truncate max-w-[100px] md:max-w-none">{f.name}</span>
                       </div>
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent>
