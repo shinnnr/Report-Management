@@ -40,9 +40,15 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Always close sidebar when entering mobile/toggleable mode
     if (isSidebarToggleable) {
+      console.log('isSidebarToggleable is true, closing sidebar');
       setSidebarOpen(false);
     }
   }, [isSidebarToggleable]);
+
+  // Debug sidebar state changes
+  useEffect(() => {
+    console.log('sidebarOpen changed to:', sidebarOpen, 'isSidebarToggleable:', isSidebarToggleable);
+  }, [sidebarOpen, isSidebarToggleable]);
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
