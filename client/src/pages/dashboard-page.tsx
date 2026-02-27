@@ -630,8 +630,9 @@ function DashboardContent() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto space-y-2 min-h-[300px] max-h-[400px]">
-            {logs && logs.length > 0 ? (
+          <ScrollArea className="h-[60vh] max-h-[500px]">
+            <div className="space-y-2 pr-4 pb-4">
+              {logs && logs.length > 0 ? (
               logs
                 .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
                 .map((log) => {
@@ -650,7 +651,7 @@ function DashboardContent() {
                             setSelectedLogIds(selectedLogIds.filter(id => id !== log.id));
                           }
                         }}
-                        className={`flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
+                        className="flex-shrink-0"
                       />
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <IconComponent className="w-4 h-4 text-primary" />
@@ -668,7 +669,7 @@ function DashboardContent() {
                       </div>
                       <button
                         onClick={() => deleteLogMutation.mutate(log.id)}
-                        className={`p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
+                        className="p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0"
                         title="Delete log"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -682,6 +683,7 @@ function DashboardContent() {
               </div>
             )}
           </div>
+          </ScrollArea>
 
           {/* Pagination Controls - outside footer, at bottom of content */}
           {logs && logs.length >= logsPerPage && (
