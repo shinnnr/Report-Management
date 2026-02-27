@@ -103,7 +103,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
               </Button>
             )}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left">
             View and manage all your notifications. Select notifications to delete them.
           </DialogDescription>
         </DialogHeader>
@@ -118,39 +118,36 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     !notification.isRead ? 'bg-primary/10 border-primary/20' : 'bg-card border-border'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1" onClick={() => handleNotificationClick(notification)}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0" onClick={() => handleNotificationClick(notification)}>
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
                       </h4>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-1 break-words">
                         {notification.content}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Type: {notification.activityId ? 'Activity' : 'System'}</span>
                         <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a') : 'Unknown'}</span>
-                        <span>{notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Unknown'}</span>
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
-                        }`}>
+                        <span className={`px-2 py-1 rounded text-xs ${notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'}`}>
                           {notification.isRead ? 'Read' : 'Unread'}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-2 ml-2 shrink-0">
                       {isAdmin && (
                         <input
                           type="checkbox"
                           checked={selectedNotifications.includes(notification.id)}
                           onChange={() => toggleSelection(notification.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity rounded"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded w-4 h-4"
                         />
                       )}
                       <button
                         onClick={() => handleDelete(notification.id)}
                         disabled={deleteMutation.isPending}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded text-destructive hover:text-destructive"
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded text-destructive hover:text-destructive"
                         title="Delete notification"
                       >
                         <Trash2 className="h-4 w-4" />

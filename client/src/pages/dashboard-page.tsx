@@ -417,7 +417,7 @@ function DashboardContent() {
                   {logs?.map((log) => {
                     const IconComponent = getActivityIcon(log.action);
                     return (
-                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50">
+                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                           <IconComponent className="w-4 h-4 text-primary" />
                         </div>
