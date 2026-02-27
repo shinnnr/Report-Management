@@ -843,7 +843,7 @@ function ArchivesContent() {
                     {filteredArchivedReports.map(r => (
                       <tr 
                         key={r.id} 
-                        className="hover:bg-muted/20 group cursor-pointer md:cursor-auto"
+                        className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
                         onClick={() => {
                           if (!isSelectMode) {
                             setSelectedFileForDialog(r);
@@ -859,10 +859,10 @@ function ArchivesContent() {
                             />
                           </td>
                         )}
-                        <td className="px-6 py-4 w-[40%]">
+                        <td className="px-6 py-4 w-[40%] min-w-0">
                           <div className="flex items-center gap-3">
-                            <FileText className="w-4 h-4" />
-                            <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName, r.fileType)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                            <FileText className="w-4 h-4 flex-shrink-0" />
+                            <span className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
@@ -870,7 +870,7 @@ function ArchivesContent() {
                         <td className="px-6 py-4 w-[20%] text-right hidden md:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 md:relative"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => handleRestoreFile(r.id)}>
                                 <RotateCcw className="w-4 h-4 mr-2" /> Restore
@@ -913,9 +913,9 @@ function ArchivesContent() {
       <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              {selectedFileForDialog?.fileName}
+            <DialogTitle className="flex items-center gap-2 break-all">
+              <FileText className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">

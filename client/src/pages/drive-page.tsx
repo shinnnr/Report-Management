@@ -1254,12 +1254,12 @@ function DriveContent() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {filteredFolders.map(f => (
                     <div key={f.id} className={`relative p-4 rounded-xl border group ${selectedFolders.includes(f.id) ? "border-primary" : "border-border"}`}>
-                      {isSelectMode && <Checkbox className="absolute top-2 left-2" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
+                      {isSelectMode && <Checkbox className="absolute top-2 left-2 z-10" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
                       <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
-                        <FolderIcon className="w-10 h-10 text-secondary" />
+                        <FolderIcon className="w-10 h-10 text-secondary flex-shrink-0" />
                         <span className="truncate">{f.name}</span>
                       </div>
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -1578,7 +1578,7 @@ function DriveContent() {
                     {filteredReports?.map(r => (
                         <tr 
                           key={r.id} 
-                          className="hover:bg-muted/20 group cursor-pointer md:cursor-auto"
+                          className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
                           onClick={() => {
                             if (!isSelectMode) {
                               setSelectedFileForDialog(r);
@@ -1587,13 +1587,13 @@ function DriveContent() {
                           }}
                         >
                         {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
-                        <td className="px-6 py-4 w-[40%]">
+                        <td className="px-6 py-4 w-[40%] min-w-0">
                           <div className="flex items-center gap-3">
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-4 h-4 flex-shrink-0" />
                             {isSelectMode ? (
-                              <span onClick={() => toggleFileSelection(r.id)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
                             ) : (
-                              <span onClick={() => r.fileData && handleFileClick(r.fileData, r.fileName, r.fileType)} className="cursor-pointer hover:text-primary">{r.fileName}</span>
+                              <span className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
                             )}
                           </div>
                         </td>
@@ -1606,7 +1606,7 @@ function DriveContent() {
                         <td className="px-6 py-4 w-[20%] text-right text-muted-foreground hidden md:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 md:relative"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
@@ -1645,9 +1645,9 @@ function DriveContent() {
       <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              {selectedFileForDialog?.fileName}
+            <DialogTitle className="flex items-center gap-2 break-all">
+              <FileText className="w-5 h-5 flex-shrink-0" />
+              <span className="truncate">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
