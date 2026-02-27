@@ -35,6 +35,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -624,6 +625,9 @@ function DashboardContent() {
         <DialogContent className="w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>All Activity Logs</DialogTitle>
+            <DialogDescription>
+              View all your recent activity logs here. You can select multiple logs to archive or delete them.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto space-y-2 min-h-[300px] max-h-[400px]">
