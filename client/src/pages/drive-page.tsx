@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -87,7 +88,8 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function DrivePage() {
   const { user } = useAuth();
-  const { toggleSidebar, isSidebarToggleable } = useSidebar();
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -715,7 +717,7 @@ export default function DrivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isSidebarToggleable ? (
+            {isMobile ? (
               <button 
                 type="button" 
                 onClick={toggleSidebar} 

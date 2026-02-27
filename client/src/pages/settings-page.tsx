@@ -1,4 +1,5 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement } from "@/hooks/use-settings";
@@ -35,7 +36,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 function SettingsContent() {
   const { user } = useAuth();
-  const { toggleSidebar, isSidebarToggleable } = useSidebar();
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
@@ -216,7 +218,7 @@ function SettingsContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isSidebarToggleable ? (
+            {isMobile ? (
               <button 
                 type="button" 
                 onClick={toggleSidebar} 

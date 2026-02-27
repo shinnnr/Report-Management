@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -62,7 +63,8 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function ArchivesPage() {
   const { user } = useAuth();
-  const { toggleSidebar, isSidebarToggleable } = useSidebar();
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -395,7 +397,7 @@ export default function ArchivesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isSidebarToggleable ? (
+            {isMobile ? (
               <button 
                 type="button" 
                 onClick={toggleSidebar} 

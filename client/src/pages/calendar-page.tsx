@@ -1,4 +1,5 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useActivities, useCreateActivity, useDeleteActivity } from "@/hooks/use-activities";
 import { 
   startOfMonth, 
@@ -33,7 +34,8 @@ import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
-  const { toggleSidebar, isSidebarToggleable } = useSidebar();
+  const { toggleSidebar } = useSidebar();
+  const isMobile = useIsMobile();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
@@ -346,7 +348,7 @@ export default function CalendarPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isSidebarToggleable ? (
+            {isMobile ? (
               <button 
                 type="button" 
                 onClick={toggleSidebar} 

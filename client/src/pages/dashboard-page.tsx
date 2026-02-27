@@ -1,4 +1,5 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu } from "lucide-react";
@@ -32,7 +33,8 @@ import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const { toggleSidebar, isSidebarToggleable } = useSidebar();
+    const { toggleSidebar } = useSidebar();
+    const isMobile = useIsMobile();
     const { data: folders } = useFolders('all', 'active', 5000);
     const { data: reportsCount } = useReportsCount(undefined, 'active');
     const { data: reports } = useReports(undefined, 'active', 5000);
@@ -213,7 +215,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              {isSidebarToggleable ? (
+              {isMobile ? (
                 <button 
                   type="button" 
                   onClick={toggleSidebar} 
