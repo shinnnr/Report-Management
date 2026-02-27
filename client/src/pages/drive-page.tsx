@@ -840,7 +840,7 @@ function DriveContent() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-full sm:max-w-lg p-4">
+            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
@@ -895,7 +895,7 @@ function DriveContent() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent className="w-full sm:max-w-lg p-4">
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <DialogDescription>Enter a new name for the file.</DialogDescription>
@@ -909,7 +909,7 @@ function DriveContent() {
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent className="w-full sm:max-w-lg p-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <DialogDescription>Enter a new name for the folder.</DialogDescription>
@@ -937,7 +937,7 @@ function DriveContent() {
           setMoveNewFolderName("");
         }
       }}>
-        <DialogContent className="w-full sm:max-w-lg max-h-[80vh] p-4">
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <DialogDescription>
