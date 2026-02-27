@@ -410,7 +410,7 @@ function CalendarContent() {
               }}
             >
               <Plus className="w-4 h-4" />
-              {selectedDate ? `Add Activity` : 'Select Date'}
+              {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -642,7 +642,7 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {/* Calendar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex items-center gap-4">
             <div className="flex gap-1">
               <Button variant="outline" size="icon" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}>
@@ -656,7 +656,7 @@ function CalendarContent() {
               {format(currentDate, 'MMMM yyyy')}
             </h2>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 mt-4 sm:mt-0">
             <div className="text-sm text-muted-foreground font-medium">
               {activitiesInCurrentMonth?.length || 0} Scheduled Activities
             </div>
