@@ -95,7 +95,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
       }
       onClose();
     }}>
-      <DialogContent>
+      <DialogContent className="max-w-lg max-h-[80vh]">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>
@@ -105,7 +105,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[60vh] max-h-[500px]">
+        <ScrollArea className="h-[400px]">
           <div className="space-y-4 pr-4 pb-4">
             {notifications && notifications.length > 0 ? (
               notifications
@@ -160,41 +160,42 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </div>
         </ScrollArea>
 
-        {/* Pagination Controls - at bottom of content, outside footer */}
-        {notifications && notifications.length >= notificationsPerPage && (
-          <div className="flex items-center justify-between py-2 mt-2">
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Footer with Delete Selected */}
-        <div className="mt-4 pt-2">
-          {/* Delete Selected Button */}
-          {selectedNotifications.length > 0 && (
-            <div className="flex justify-between items-center py-2">
+        {/* Pagination Controls and Delete Selected - fixed at bottom */}
+        <div className="flex items-center justify-between py-2 border-t mt-2">
+          <div className="flex items-center gap-4">
+            {notifications && notifications.length >= notificationsPerPage && (
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+              </span>
+            )}
+            {selectedNotifications.length > 0 && (
               <span className="text-sm text-muted-foreground font-medium">
                 {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
               </span>
+            )}
+          </div>
+          <div className="flex gap-2 items-center">
+            {notifications && notifications.length >= notificationsPerPage && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+                >
+                  Next
+                </Button>
+              </>
+            )}
+            {selectedNotifications.length > 0 && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -204,8 +205,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete Selected ({selectedNotifications.length})
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </DialogContent>
 
