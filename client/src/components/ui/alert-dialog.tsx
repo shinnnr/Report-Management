@@ -34,7 +34,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-4 top-[50%] z-50 grid w-auto max-w-lg translate-x-0 translate-y-[-50%] gap-4 border bg-background px-4 sm:px-6 py-6 shadow-lg duration-200 rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%]",
+        "fixed left-4 right-4 sm:left-auto sm:right-auto sm:left-[50%] top-[50%] z-50 grid w-auto max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border bg-background px-4 sm:px-6 py-6 shadow-lg duration-200 rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-lg",
         className
       )}
       {...props}
@@ -63,7 +63,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-row justify-end items-center gap-2 w-full",
+      "flex flex-row justify-end items-center gap-2",
       className
     )}
     {...props}
@@ -116,7 +116,6 @@ const AlertDialogCancel = React.forwardRef<
     ref={ref}
     className={cn(
       buttonVariants({ variant: "outline" }),
-      "mt-2 sm:mt-0",
       className
     )}
     {...props}
