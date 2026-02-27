@@ -684,7 +684,7 @@ function DashboardContent() {
           </div>
 
           {/* Pagination Controls - outside footer, at bottom of content */}
-          {logs && logs.length > logsPerPage && (
+          {logs && logs.length >= logsPerPage && (
             <div className="flex items-center justify-between py-2 border-t">
               <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
