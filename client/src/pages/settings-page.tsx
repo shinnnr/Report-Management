@@ -299,7 +299,7 @@ function SettingsContent() {
                     placeholder="Enter your name"
                   />
                 </div>
-                <Button type="submit" disabled={updateUserMutation.isPending || fullName.trim() === currentUser?.fullName?.trim()} className="w-full sm:w-auto">
+                <Button type="submit" disabled={updateUserMutation.isPending || fullName.trim() === currentUser?.fullName?.trim()} className="">
                   {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Name
                 </Button>
@@ -316,7 +316,7 @@ function SettingsContent() {
                     placeholder="Enter your username"
                   />
                 </div>
-                <Button type="submit" disabled={updateUsernameMutation.isPending || username.trim() === currentUser?.username?.trim()} className="w-full sm:w-auto">
+                <Button type="submit" disabled={updateUsernameMutation.isPending || username.trim() === currentUser?.username?.trim()} className="">
                   {updateUsernameMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Username
                 </Button>
@@ -424,7 +424,7 @@ function SettingsContent() {
                     !newPassword || 
                     !confirmPassword
                   }
-                  className="w-full sm:w-auto"
+                  className=""
                 >
                   {updatePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Password
@@ -683,7 +683,6 @@ function SettingsContent() {
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
-                className="flex-1"
                 onClick={() => {
                   handleUpdateRole(selectedUserForDialog.id, selectedUserForDialog.role === "admin" ? "assistant" : "admin");
                   setIsUserDialogOpen(false);
@@ -694,7 +693,7 @@ function SettingsContent() {
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="flex-1" disabled={deleteUserMutation.isPending}>
+                  <Button variant="destructive" disabled={deleteUserMutation.isPending}>
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
                   </Button>

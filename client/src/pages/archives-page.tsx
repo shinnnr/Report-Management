@@ -943,10 +943,10 @@ function ArchivesContent() {
               <span className="font-medium">{selectedFileForDialog?.createdAt ? format(new Date(selectedFileForDialog.createdAt), 'MMM d, yyyy') : '-'}</span>
             </div>
           </div>
-          <DialogFooter className="sm:justify-between">
+          <DialogFooter className="justify-end">
             <Button 
               variant="default" 
-              className="w-full sm:w-auto"
+              className=""
               onClick={() => {
                 if (selectedFileForDialog?.fileData) {
                   handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);

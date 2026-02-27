@@ -1677,7 +1677,7 @@ function DriveContent() {
           <DialogFooter className="sm:justify-between">
             <Button 
               variant="default" 
-              className="w-full sm:w-auto"
+              className=""
               onClick={() => {
                 if (selectedFileForDialog?.fileData) {
                   handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);
