@@ -51,9 +51,9 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
       <div className="px-6 pt-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={onClose}
-            className="flex-shrink-0 hover:opacity-80 transition-opacity"
-            aria-label="Close sidebar"
+            onClick={isMobile ? onClose : undefined}
+            className={`flex-shrink-0 hover:opacity-80 transition-opacity ${isMobile ? 'cursor-pointer' : 'cursor-default'}`}
+            aria-label={isMobile ? "Close sidebar" : "Sidebar logo"}
           >
             <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
           </button>
