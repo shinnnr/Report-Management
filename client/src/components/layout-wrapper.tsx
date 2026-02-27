@@ -3,8 +3,6 @@ import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
-import { Menu, X } from "lucide-react";
-import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -71,23 +69,6 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Mobile Header - visible only on mobile */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 right-0 h-16 bg-primary dark:bg-[#022420] text-white flex items-center px-4 z-30 shadow-lg">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Toggle sidebar"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <div className="flex items-center gap-2 ml-3">
-            <img src={neecoBanner} alt="NEECO Banner" className="w-8 h-8 rounded-lg object-contain" />
-            <span className="font-display font-bold text-sm">Report Management</span>
-          </div>
-        </div>
-      )}
-
       {/* Sidebar overlay - visible only on mobile when sidebar is open */}
       {isMobile && sidebarOpen && (
         <div 
@@ -106,16 +87,14 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
         }
       `}>
         <Sidebar 
-          onClose={() => setSidebarOpen(false)} 
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
           isMobile={isMobile}
+          isOpen={sidebarOpen}
         />
       </div>
 
       {/* Main Content */}
-      <main className={`
-        flex-1 overflow-y-auto h-screen p-8 relative
-        ${isMobile ? 'pt-20' : ''}
-      `}>
+      <main className="flex-1 overflow-y-auto h-screen p-8 relative">
         <div className="max-w-7xl mx-auto pb-12">
           {children}
         </div>

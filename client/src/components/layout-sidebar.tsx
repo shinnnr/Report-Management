@@ -7,8 +7,7 @@ import {
   CalendarDays,
   Archive,
   Settings,
-  LogOut,
-  X
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,11 +27,12 @@ import { useState } from "react";
 import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
 interface SidebarProps {
-  onClose?: () => void;
+  onToggle?: () => void;
   isMobile?: boolean;
+  isOpen?: boolean;
 }
 
-export function Sidebar({ onClose, isMobile }: SidebarProps) {
+export function Sidebar({ onToggle, isMobile, isOpen }: SidebarProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { resetTheme } = useTheme();
@@ -49,21 +49,15 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
 
   return (
     <div className="h-screen w-64 bg-primary dark:bg-[#022420] text-white flex flex-col shadow-2xl z-20">
-      {/* Mobile close button */}
-      {isMobile && (
-        <div className="flex justify-end p-2">
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            aria-label="Close sidebar"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-      )}
       <div className="px-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
-          <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
+          <button
+            onClick={onToggle}
+            className="flex-shrink-0 hover:opacity-80 transition-opacity"
+            aria-label="Toggle sidebar"
+          >
+            <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
+          </button>
           <div>
             <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Report Management</h1>
           </div>
@@ -81,7 +75,7 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
                       ? "bg-white/10 text-white font-medium shadow-inner border border-white/5" 
                     : "text-primary-foreground/70 dark:text-gray-300 hover:bg-white/5 hover:text-white"
                   )}
-                  onClick={() => isMobile && onClose?.()}
+                  onClick={() => isMobile && onToggle?.()}
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
