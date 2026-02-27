@@ -773,7 +773,7 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden md:table-cell">
+                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -793,7 +793,7 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden md:table-cell">
+                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -818,7 +818,7 @@ function ArchivesContent() {
                         </div>
                       </th>
                       <th className="px-6 py-3 text-right w-[20%]">
-                        <div className="flex items-center justify-end gap-1 hidden md:table-cell">
+                        <div className="flex items-center justify-end gap-1 hidden lg:table-cell">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -871,10 +871,10 @@ function ArchivesContent() {
                             <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{r.fileName}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
-                        <td className="px-6 py-4 w-[20%] text-right hidden md:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
+                        <td className="px-6 py-4 w-[20%] text-right hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-6 py-4 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
