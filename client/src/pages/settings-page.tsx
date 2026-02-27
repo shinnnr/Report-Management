@@ -565,7 +565,7 @@ function SettingsContent() {
                       }).map((user) => (
                         <div
                           key={user.id}
-                          className={`flex items-center justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto ${
+                          className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 ${
                             user.id === currentUser?.id 
                               ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
                               : "hover:bg-muted/50"
@@ -582,7 +582,7 @@ function SettingsContent() {
                               <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
                             <div>
-                              <p className="font-medium truncate max-w-[180px] md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
+                              <p className="font-medium truncate w-full sm:max-w-[180px] md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
@@ -680,7 +680,7 @@ function SettingsContent() {
             </div>
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-row justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
