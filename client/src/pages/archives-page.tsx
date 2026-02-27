@@ -844,10 +844,10 @@ function ArchivesContent() {
                     {filteredArchivedReports.map(r => (
                       <tr 
                         key={r.id} 
-                        className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
+                        className="hover:bg-muted/20 group cursor-pointer md:cursor-default relative"
                         onClick={(e) => {
                           if (!isSelectMode) {
-                            if (isMobile !== false) {
+                            if (isMobile) {
                               e.stopPropagation();
                               setSelectedFileForDialog(r);
                               setIsFileDialogOpen(true);
@@ -868,7 +868,7 @@ function ArchivesContent() {
                         <td className="px-6 py-4 w-[40%] min-w-0">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
-                            <span onClick={(e) => { e.stopPropagation(); if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{r.fileName}</span>
+                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{r.fileName}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
@@ -916,7 +916,7 @@ function ArchivesContent() {
       )}
 
       {/* Mobile File Details Dialog - Only show on mobile */}
-      <Dialog open={isFileDialogOpen && isMobile !== false} onOpenChange={setIsFileDialogOpen}>
+      <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
