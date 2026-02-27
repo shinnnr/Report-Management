@@ -160,35 +160,35 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </div>
         </ScrollArea>
 
-        {/* Footer with Pagination and Delete Selected */}
-        <div className="border-t mt-4 pt-2">
-          {/* Pagination Controls */}
-          {notifications && notifications.length > notificationsPerPage && (
-            <div className="flex items-center justify-between py-2">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                  disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-                >
-                  Next
-                </Button>
-              </div>
+        {/* Pagination Controls - at bottom of content, outside footer */}
+        {notifications && notifications.length > notificationsPerPage && (
+          <div className="flex items-center justify-between py-2 border-t">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
             </div>
-          )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
 
+        {/* Footer with Delete Selected */}
+        <div className="border-t mt-4 pt-2">
           {/* Delete Selected Button */}
           {selectedNotifications.length > 0 && (
             <div className="flex justify-between items-center py-2">

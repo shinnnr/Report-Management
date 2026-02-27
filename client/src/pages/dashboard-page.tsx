@@ -683,35 +683,35 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Footer with Pagination and Delete Selected */}
-          <div className="border-t mt-4 pt-2">
-            {/* Pagination Controls */}
-            {logs && logs.length > logsPerPage && (
-              <div className="flex items-center justify-between py-2">
-                <div className="text-sm text-muted-foreground">
-                  Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
-                    disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
-                  >
-                    Next
-                  </Button>
-                </div>
+          {/* Pagination Controls - outside footer, at bottom of content */}
+          {logs && logs.length > logsPerPage && (
+            <div className="flex items-center justify-between py-2 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
               </div>
-            )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
 
+          {/* Footer with Delete Selected */}
+          <div className="border-t mt-4 pt-2">
             {/* Delete Selected Button */}
             {selectedLogIds.length > 0 && (
               <div className="flex justify-between items-center py-2">
