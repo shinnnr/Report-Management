@@ -280,7 +280,7 @@ function SettingsContent() {
                   <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
                 </div>
                 <div>
-                  <p className="text-lg font-medium truncate max-w-[200px]">{currentUser?.fullName}</p>
+                  <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
                   <p className="text-muted-foreground">@{currentUser?.username}</p>
                   <Badge variant={currentUser?.role === "admin" ? "default" : "secondary"} className="mt-1">
                     {currentUser?.role === "admin" ? "Administrator" : "Assistant"}
@@ -582,7 +582,7 @@ function SettingsContent() {
                               <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
                             <div>
-                              <p className="font-medium truncate w-full sm:max-w-[180px] md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
+                              <p className="font-medium truncate max-w-[150px]">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
@@ -649,7 +649,7 @@ function SettingsContent() {
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8 text-left break-all">
+            <DialogTitle className="flex items-center gap-2 pr-8 text-left truncate max-w-[150px]">
               <User className="w-5 h-5 flex-shrink-0" />
               {selectedUserForDialog?.fullName}
             </DialogTitle>

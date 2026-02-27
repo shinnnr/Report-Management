@@ -241,7 +241,7 @@ function DashboardContent() {
               Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Welcome back, <span className="font-medium truncate">{user?.fullName}</span>. Here's what's happening today.
+              Welcome back, <span className="font-medium truncate max-w-[150px]">{user?.fullName}</span>. Here's what's happening today.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -438,7 +438,7 @@ function DashboardContent() {
                             </span>
                           </div>
                           <div className="ml-4 mt-1">
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground truncate max-w-[150px]">
                               {log.userFullName || 'Unknown'}{log.userRole && ` | ${log.userRole === 'admin' ? 'Admin' : 'Assistant'}`}
                             </p>
                           </div>
