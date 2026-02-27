@@ -161,7 +161,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
         {/* Pagination Controls and Delete Selected - fixed at bottom */}
-        <div className="flex items-center justify-between py-2 border-t mt-2">
+        <div className="flex items-center justify-between py-2">
           <div className="flex items-center gap-2">
             {notifications && notifications.length >= notificationsPerPage && (
               <>
@@ -190,7 +190,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           <div className="flex items-center gap-4">
             {selectedNotifications.length > 0 && (
               <>
-                <span className="text-sm text-muted-foreground font-medium">
+                <span className="text-sm text-muted-foreground">
                   {selectedNotifications.length} selected
                 </span>
                 <Button
@@ -199,8 +199,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                   onClick={handleDeleteSelected}
                   disabled={deleteMutation.isPending}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete Selected ({selectedNotifications.length})
+                  Delete Selected
                 </Button>
               </>
             )}
