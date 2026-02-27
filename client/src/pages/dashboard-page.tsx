@@ -437,7 +437,7 @@ function DashboardContent() {
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
-                  {logs?.map((log) => {
+                  {logs?.slice(0, 10).map((log) => {
                     const IconComponent = getActivityIcon(log.action);
                     return (
                       <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
@@ -622,7 +622,7 @@ function DashboardContent() {
           setCurrentPage(1);
         }
       }}>
-        <DialogContent className="w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col mx-4">
           <DialogHeader>
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>

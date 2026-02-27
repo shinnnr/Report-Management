@@ -489,7 +489,7 @@ function SettingsContent() {
                       Add User
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-full sm:max-w-lg">
+                  <DialogContent className="w-full sm:max-w-lg mx-4">
                     <DialogHeader>
                       <DialogTitle>Create New User</DialogTitle>
                       <DialogDescription>Add a new user to the system</DialogDescription>
