@@ -604,6 +604,11 @@ function SettingsContent() {
                   <div className="flex items-center justify-center h-32">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <Users className="h-10 w-10 mb-2 opacity-50" />
+                    <p>No users found</p>
+                  </div>
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
                     <div className="space-y-3">
