@@ -294,7 +294,7 @@ function DashboardContent() {
                                   e.stopPropagation();
                                   deleteNotificationMutation.mutate(notification.id);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
+                                className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
                                 title="Delete notification"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
