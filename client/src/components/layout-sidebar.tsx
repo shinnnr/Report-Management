@@ -50,13 +50,9 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
     <div className="h-screen w-64 bg-primary dark:bg-[#022420] text-white flex flex-col shadow-2xl z-20">
       <div className="px-6 pt-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
-          <button
-            onClick={isMobile ? onClose : undefined}
-            className={`flex-shrink-0 hover:opacity-80 transition-opacity ${isMobile ? 'cursor-pointer' : 'cursor-default'}`}
-            aria-label={isMobile ? "Close sidebar" : "Sidebar logo"}
-          >
+          <div className="flex-shrink-0">
             <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
-          </button>
+          </div>
           <div>
             <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Report Management</h1>
           </div>
