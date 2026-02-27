@@ -499,18 +499,22 @@ function SettingsContent() {
                         <Label htmlFor="newUsername">Username</Label>
                         <Input
                           id="newUsername"
+                          name="newUsername"
                           value={newUserData.username}
                           onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
                           placeholder="Enter username"
+                          autoComplete="username"
                         />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="newFullName">Full Name</Label>
                         <Input
                           id="newFullName"
+                          name="newFullName"
                           value={newUserData.fullName}
                           onChange={(e) => setNewUserData({ ...newUserData, fullName: e.target.value })}
                           placeholder="Enter full name"
+                          autoComplete="name"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -518,6 +522,7 @@ function SettingsContent() {
                         <Select
                           value={newUserData.role}
                           onValueChange={(value) => setNewUserData({ ...newUserData, role: value as "admin" | "assistant" })}
+                          name="newUserRole"
                         >
                           <SelectTrigger id="newUserRole">
                             <SelectValue placeholder="Select role" />
@@ -533,11 +538,13 @@ function SettingsContent() {
                         <div className="relative">
                           <Input
                             id="newPassword"
+                            name="newPassword"
                             type={showCreateUserPassword ? "text" : "password"}
                             value={newUserData.password}
                             onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
                             placeholder="Enter password (min 8 characters)"
                             className="pr-10"
+                            autoComplete="new-password"
                           />
                           <Button
                             type="button"
@@ -555,11 +562,13 @@ function SettingsContent() {
                         <div className="relative">
                           <Input
                             id="newConfirmPassword"
+                            name="newConfirmPassword"
                             type={showCreateUserConfirmPassword ? "text" : "password"}
                             value={newUserData.confirmPassword}
                             onChange={(e) => setNewUserData({ ...newUserData, confirmPassword: e.target.value })}
                             placeholder="Confirm password"
                             className="pr-10"
+                            autoComplete="new-password"
                           />
                           <Button
                             type="button"
@@ -605,9 +614,11 @@ function SettingsContent() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : filteredUsers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                    <Users className="h-10 w-10 mb-2 opacity-50" />
-                    <p>No users found</p>
+                  <div className="text-center py-12 border-t">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Users className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No users found</p>
                   </div>
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
