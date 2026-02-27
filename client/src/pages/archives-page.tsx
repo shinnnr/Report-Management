@@ -61,13 +61,6 @@ const getFileExtension = (mimeType: string): string => {
   return mimeToExt[mimeType.toLowerCase()] || mimeType.split('/').pop()?.toUpperCase() || mimeType;
 };
 
-export default function ArchivesPage() {
-  return (
-    <LayoutWrapper>
-      <ArchivesContent />
-    </LayoutWrapper>
-  );
-}
 
 function ArchivesContent() {
   const { user } = useAuth();
@@ -887,6 +880,14 @@ function ArchivesContent() {
           </section>
         </div>
       )}
+    </LayoutWrapper>
+  );
+}
+
+export default function ArchivesPage() {
+  return (
+    <LayoutWrapper>
+      <ArchivesContent />
     </LayoutWrapper>
   );
 }

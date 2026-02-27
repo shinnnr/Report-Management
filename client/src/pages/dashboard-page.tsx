@@ -31,14 +31,6 @@ import { useNotifications, useMarkNotificationRead, useDeleteNotification } from
 import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
 
-export default function DashboardPage() {
-  return (
-    <LayoutWrapper>
-      <DashboardContent />
-    </LayoutWrapper>
-  );
-}
-
 function DashboardContent() {
     const { user } = useAuth();
     const { openSidebar } = useSidebar();
@@ -590,6 +582,14 @@ function DashboardContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </LayoutWrapper>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <LayoutWrapper>
+      <DashboardContent />
     </LayoutWrapper>
   );
 }
