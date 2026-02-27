@@ -1609,7 +1609,7 @@ function DriveContent() {
                           {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
                         <td className="px-6 py-4 w-[20%] text-right text-muted-foreground hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="px-0 py-4 text-right relative">
+                        <td className="py-4 pl-4 pr-0 text-right align-top">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
