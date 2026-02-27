@@ -63,7 +63,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-row justify-end items-center gap-2",
+      "flex flex-row justify-end items-center gap-2 w-full",
       className
     )}
     {...props}
