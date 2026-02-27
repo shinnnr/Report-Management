@@ -35,7 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 function SettingsContent() {
   const { user } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, toggleSidebar } = useSidebar();
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
@@ -218,7 +218,7 @@ function SettingsContent() {
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             <button 
               type="button" 
-              onClick={openSidebar} 
+              onClick={toggleSidebar} 
               className="p-1 hover:bg-muted rounded-md transition-colors"
               aria-label="Open menu"
             >

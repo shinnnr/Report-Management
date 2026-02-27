@@ -7,15 +7,45 @@ import { Redirect } from "wouter";
 // Create context for sidebar
 interface SidebarContextType {
   openSidebar: () => void;
+  closeSidebar: () => void;
+  toggleSidebar: () => void;
+  isSidebarOpen: boolean;
 }
 
-const SidebarContext = createContext<SidebarContextType>({ openSidebar: () => {} });
+const SidebarContext = createContext<SidebarContextType>({ 
+  openSidebar: () => {},
+  closeSidebar: () => {},
+  toggleSidebar: () => {},
+  isSidebarOpen: false
+});
 
 export const useSidebar = () => useContext(SidebarContext);
+
+// Custom hook to check if sidebar should be toggleable (screens smaller than lg)
+function useSidebarToggle() {
+  const isMobile = useIsMobile();
+  const [isToggleable, setIsToggleable] = useState(false);
+
+  useEffect(() => {
+    const checkToggleable = () => {
+      setIsToggleable(window.innerWidth < 1024);
+    };
+    
+    checkToggleable();
+    
+    const mql = window.matchMedia("(max-width: 1023px)");
+    const onChange = () => checkToggleable();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isMobile || isToggleable;
+}
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
+  const isSidebarToggleable = useSidebarToggle();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
@@ -59,6 +89,10 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     }
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -72,15 +106,20 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarContext.Provider value={{ openSidebar: () => setSidebarOpen(true) }}>
+    <SidebarContext.Provider value={{ 
+      openSidebar: () => setSidebarOpen(true),
+      closeSidebar: () => setSidebarOpen(false),
+      toggleSidebar,
+      isSidebarOpen: sidebarOpen 
+    }}>
     <div 
       className="flex min-h-screen bg-background text-foreground"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Sidebar overlay - visible only on mobile when sidebar is open */}
-      {isMobile && sidebarOpen && (
+      {/* Sidebar overlay - visible when sidebar is open on toggleable screens */}
+      {isSidebarToggleable && sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40"
           onClick={() => setSidebarOpen(false)}
@@ -89,7 +128,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
 
       {/* Sidebar */}
       <div className={`
-        ${isMobile ? 
+        ${isSidebarToggleable ? 
           `fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }` 

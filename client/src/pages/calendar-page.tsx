@@ -33,7 +33,7 @@ import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, toggleSidebar } = useSidebar();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
@@ -348,7 +348,7 @@ export default function CalendarPage() {
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             <button 
               type="button" 
-              onClick={openSidebar} 
+              onClick={toggleSidebar} 
               className="p-1 hover:bg-muted rounded-md transition-colors"
               aria-label="Open menu"
             >
