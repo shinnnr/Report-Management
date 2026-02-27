@@ -213,12 +213,9 @@ export default function DashboardPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  openSidebar();
-                }}
+              <button 
+                type="button" 
+                onClick={openSidebar} 
                 className="p-1 hover:bg-muted rounded-md transition-colors"
                 aria-label="Open menu"
               >

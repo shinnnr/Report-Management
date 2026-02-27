@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect, useRef, createContext, useContext, useMemo } from "react";
+import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,9 +15,7 @@ export const useSidebar = () => useContext(SidebarContext);
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
-  const isMobileRaw = useIsMobile();
-  // Ensure isMobile is always a boolean - defaults to false during initial render
-  const isMobile = isMobileRaw ?? false;
+  const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
@@ -73,12 +71,8 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     return <Redirect to="/login" />;
   }
 
-  const sidebarContextValue = useMemo(() => ({
-    openSidebar: () => setSidebarOpen(true),
-  }), []);
-
   return (
-    <SidebarContext.Provider value={sidebarContextValue}>
+    <SidebarContext.Provider value={{ openSidebar: () => setSidebarOpen(true) }}>
     <div 
       className="flex min-h-screen bg-background text-foreground"
       onTouchStart={handleTouchStart}
@@ -109,7 +103,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-y-auto h-screen p-4 sm:p-8 relative z-10 ${isMobile && sidebarOpen ? 'overflow-hidden' : ''}`}>
+      <main className="flex-1 overflow-y-auto h-screen p-8 relative">
         <div className="max-w-7xl mx-auto pb-12">
           {children}
         </div>
