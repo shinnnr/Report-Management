@@ -70,7 +70,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
         
-        <div className="relative z-10 flex flex-col items-center text-center lg:items-start lg:text-start">
+        <div className="relative z-10 flex flex-col text-center lg:text-start">
           <div className="mb-6">
             <img src={neecoBanner} alt="NEECO Banner" className="h-16 lg:h-20 w-auto rounded-lg shadow-lg" />
           </div>
