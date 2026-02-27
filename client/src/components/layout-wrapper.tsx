@@ -36,10 +36,10 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Close sidebar when switching to non-toggleable mode
+  // Always start with sidebar open on mobile (toggleable screens)
   useEffect(() => {
-    if (!isSidebarToggleable) {
-      setSidebarOpen(false);
+    if (isSidebarToggleable) {
+      setSidebarOpen(true);
     }
   }, [isSidebarToggleable]);
 
