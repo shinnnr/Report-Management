@@ -396,7 +396,10 @@ export default function ArchivesPage() {
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             <button 
               type="button" 
-              onClick={openSidebar} 
+              onClick={(e) => {
+                e.preventDefault();
+                openSidebar();
+              }} 
               className="p-1 hover:bg-muted rounded-md transition-colors"
               aria-label="Open menu"
             >
