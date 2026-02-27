@@ -13,7 +13,7 @@ import {
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -187,15 +187,6 @@ function CalendarContent() {
         });
         continue;
       }
-      // Validate file size (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: `File "${file.name}" exceeds 10MB limit.`,
-          variant: "destructive"
-        });
-        continue;
-      }
       validFiles.push(file);
     }
 
@@ -230,15 +221,6 @@ function CalendarContent() {
         toast({
           title: "Invalid file type",
           description: `File "${file.name}" is not supported. Please select PDF or Word documents only.`,
-          variant: "destructive"
-        });
-        continue;
-      }
-      // Validate file size (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: `File "${file.name}" exceeds 10MB limit.`,
           variant: "destructive"
         });
         continue;
@@ -447,7 +429,7 @@ function CalendarContent() {
             setSelectedActivity(null);
           }
         }}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -535,24 +517,29 @@ function CalendarContent() {
                   </div>
 
                   {selectedFiles.length > 0 && (
-                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <div className="text-left p-3 bg-muted/30 rounded-lg">
                       <p className="text-sm font-medium mb-2">
                         {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected:
                       </p>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {selectedFiles.map((file, index) => (
-                          <div key={index} className="text-xs text-muted-foreground flex justify-between">
-                            <span className="truncate">{file.name}</span>
-                            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
+                            <span className="truncate max-w-[150px]" title={file.name}>{file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}</span>
+                            <div className="flex items-center gap-2">
+                              <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedFiles(selectedFiles.filter((_, i) => i !== index))}
+                                className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-
-                  <p className="text-xs text-muted-foreground text-center">
-                    Supported formats: PDF, DOC, DOCX (Max 10MB)
-                  </p>
                 </div>
               )}
             </div>

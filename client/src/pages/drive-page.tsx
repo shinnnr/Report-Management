@@ -26,6 +26,7 @@ import {
   Archive,
   Menu,
   Download,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -122,6 +123,16 @@ function DriveContent() {
   const [dateFilter, setDateFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [sizeFilter, setSizeFilter] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Calculate active filters count
+  const activeFiltersCount = nameFilter.length + dateFilter.length + typeFilter.length + sizeFilter.length;
+
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [driveSearchQuery, nameFilter, dateFilter, typeFilter, sizeFilter]);
 
   // Helper function to categorize file name
   const getNameCategory = (fileName: string): string => {
@@ -257,6 +268,14 @@ function DriveContent() {
       }
     });
   }, [reports, driveSearchQuery, nameFilter, dateFilter, typeFilter, sizeFilter, sortBy]);
+
+  // Paginated reports
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredReports.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredReports, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -796,7 +815,7 @@ function DriveContent() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-full sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <DialogDescription>Create a new folder in the current location.</DialogDescription>
@@ -821,7 +840,7 @@ function DriveContent() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-full sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
@@ -839,6 +858,31 @@ function DriveContent() {
                     <span>{uploadFiles.length > 0 ? `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} selected` : "Click to select or drag and drop"}</span>
                   </Label>
                 </div>
+
+                {uploadFiles.length > 0 && (
+                  <div className="text-left p-3 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium mb-2">
+                      {uploadFiles.length} file{uploadFiles.length > 1 ? 's' : ''} selected:
+                    </p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {uploadFiles.map((file, index) => (
+                        <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
+                          <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                            <button
+                              type="button"
+                              onClick={() => setUploadFiles(uploadFiles.filter((_, i) => i !== index))}
+                              className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
@@ -851,7 +895,7 @@ function DriveContent() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent>
+        <DialogContent className="w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <DialogDescription>Enter a new name for the file.</DialogDescription>
@@ -865,7 +909,7 @@ function DriveContent() {
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent>
+        <DialogContent className="w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <DialogDescription>Enter a new name for the folder.</DialogDescription>
@@ -893,7 +937,7 @@ function DriveContent() {
           setMoveNewFolderName("");
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="w-full sm:max-w-lg max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <DialogDescription>
@@ -1315,14 +1359,17 @@ function DriveContent() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredReports.length} onCheckedChange={(c) => setSelectedFiles(c ? filteredReports.map(r => r.id) : [])} /></th>}
+                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === paginatedReports.length} onCheckedChange={(c) => setSelectedFiles(c ? paginatedReports.map(r => r.id) : [])} /></th>}
                       <th className="px-6 py-3 text-left w-[40%]">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {nameFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1396,8 +1443,11 @@ function DriveContent() {
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {dateFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -1471,8 +1521,11 @@ function DriveContent() {
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {typeFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
@@ -1501,8 +1554,11 @@ function DriveContent() {
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {sizeFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
@@ -1575,7 +1631,7 @@ function DriveContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {filteredReports?.map(r => (
+                    {paginatedReports?.map(r => (
                         <tr 
                           key={r.id} 
                           className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
@@ -1632,6 +1688,33 @@ function DriveContent() {
                       <FolderOpen className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm text-muted-foreground">No files found</p>
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {filteredReports && filteredReports.length > itemsPerPage && (
+                  <div className="flex items-center justify-between py-3 px-4 border-t bg-muted/20">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredReports.length)} of {filteredReports.length} files
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

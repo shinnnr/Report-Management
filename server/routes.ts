@@ -837,6 +837,29 @@ export async function registerRoutes(
     res.json(logs);
   });
 
+  // Delete a single log (admin only)
+  app.delete(api.logs.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete logs" });
+      }
+      
+      const logId = parseInt(req.params.id);
+      if (isNaN(logId)) {
+        return res.status(400).json({ message: "Invalid log ID" });
+      }
+      
+      await storage.deleteLog(logId);
+      res.json({ message: "Log deleted successfully" });
+    } catch (err) {
+      console.error("Error deleting log:", err);
+      res.status(500).json({ message: "Failed to delete log" });
+    }
+  });
+
   // Delete all logs (admin only)
   app.delete(api.logs.list.path, isAuthenticated, async (req, res) => {
     try {

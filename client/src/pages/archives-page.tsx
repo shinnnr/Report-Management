@@ -116,6 +116,16 @@ function ArchivesContent() {
   const [dateFilter, setDateFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [sizeFilter, setSizeFilter] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Calculate active filters count
+  const activeFiltersCount = nameFilter.length + dateFilter.length + typeFilter.length + sizeFilter.length;
+
+  // Reset to page 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [archivesSearchQuery, nameFilter, dateFilter, typeFilter, sizeFilter]);
 
   // Helper function to categorize file name
   const getNameCategory = (fileName: string): string => {
@@ -193,6 +203,14 @@ function ArchivesContent() {
       return 0;
     });
   }, [archivedReports, archivesSearchQuery, sortBy, nameFilter, dateFilter, typeFilter, sizeFilter]);
+
+  // Paginated archived reports
+  const paginatedArchivedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredArchivedReports.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredArchivedReports, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredArchivedReports.length / itemsPerPage);
 
   // Sync navigation on folder click
   const handleFolderClick = (id: number) => {
@@ -758,8 +776,11 @@ function ArchivesContent() {
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {nameFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -778,8 +799,11 @@ function ArchivesContent() {
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {dateFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -798,8 +822,11 @@ function ArchivesContent() {
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {typeFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
@@ -822,8 +849,11 @@ function ArchivesContent() {
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 relative">
                                 <ChevronDown className="h-3 w-3" />
+                                {sizeFilter.length > 0 && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
@@ -841,7 +871,7 @@ function ArchivesContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {filteredArchivedReports.map(r => (
+                    {paginatedArchivedReports.map(r => (
                       <tr 
                         key={r.id} 
                         className="hover:bg-muted/20 group cursor-pointer md:cursor-default relative"
@@ -903,6 +933,33 @@ function ArchivesContent() {
                     )}
                   </tbody>
                 </table>
+
+                {/* Pagination Controls */}
+                {filteredArchivedReports.length > itemsPerPage && (
+                  <div className="flex items-center justify-between py-3 px-4 border-t bg-muted/20">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredArchivedReports.length)} of {filteredArchivedReports.length} files
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage >= totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-20 border-2 border-dashed rounded-xl">

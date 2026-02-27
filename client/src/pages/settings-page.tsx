@@ -76,16 +76,6 @@ function SettingsContent() {
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
-  // Sort users: current logged-in user first
-  const sortedUsers = useMemo(() => {
-    if (!users) return [];
-    return [...users].sort((a, b) => {
-      if (a.id === currentUser?.id) return -1;
-      if (b.id === currentUser?.id) return 1;
-      return 0;
-    });
-  }, [users, currentUser]);
-
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,7 +280,7 @@ function SettingsContent() {
                   <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
                 </div>
                 <div>
-                  <p className="text-lg font-medium truncate max-w-[200px]">{currentUser?.fullName}</p>
+                  <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
                   <p className="text-muted-foreground">@{currentUser?.username}</p>
                   <Badge variant={currentUser?.role === "admin" ? "default" : "secondary"} className="mt-1">
                     {currentUser?.role === "admin" ? "Administrator" : "Assistant"}
@@ -463,7 +453,7 @@ function SettingsContent() {
                       Add User
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="w-full sm:max-w-lg">
                     <DialogHeader>
                       <DialogTitle>Create New User</DialogTitle>
                       <DialogDescription>Add a new user to the system</DialogDescription>
@@ -560,6 +550,15 @@ function SettingsContent() {
                 </Dialog>
               </CardHeader>
               <CardContent>
+                {/* Search Input */}
+                <div className="mb-4">
+                  <Input
+                    placeholder="Search users by name or username..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
                 {isLoadingUsers ? (
                   <div className="flex items-center justify-center h-32">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -567,10 +566,15 @@ function SettingsContent() {
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
                     <div className="space-y-3">
-                      {sortedUsers.map((user) => (
+                      {/* Sort users: current logged-in user first */}
+                      {users?.sort((a, b) => {
+                        if (a.id === currentUser?.id) return -1;
+                        if (b.id === currentUser?.id) return 1;
+                        return 0;
+                      }).map((user) => (
                         <div
                           key={user.id}
-                          className={`flex items-center justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto ${
+                          className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 ${
                             user.id === currentUser?.id 
                               ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
                               : "hover:bg-muted/50"
@@ -587,7 +591,7 @@ function SettingsContent() {
                               <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
                             <div>
-                              <p className="font-medium truncate max-w-[180px] md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
+                              <p className="font-medium truncate max-w-[150px]">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
@@ -640,12 +644,40 @@ function SettingsContent() {
                             )}
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                  
+                  {/* Pagination controls */}
+                  {filteredUsers.length > 0 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <span className="text-sm text-muted-foreground">
+                        Showing {Math.min((userCurrentPage - 1) * usersPerPage + 1, filteredUsers.length)} to {Math.min(userCurrentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={userCurrentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserCurrentPage(p => Math.min(totalUserPages, p + 1))}
+                          disabled={userCurrentPage >= totalUserPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
           </TabsContent>
         )}
       </Tabs>
@@ -654,7 +686,7 @@ function SettingsContent() {
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8 text-left break-all">
+            <DialogTitle className="flex items-center gap-2 pr-8 text-left truncate max-w-[150px]">
               <User className="w-5 h-5 flex-shrink-0" />
               {selectedUserForDialog?.fullName}
             </DialogTitle>
@@ -685,7 +717,7 @@ function SettingsContent() {
             </div>
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-row justify-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => {

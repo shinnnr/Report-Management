@@ -95,3 +95,29 @@ export function useDeleteAllLogs() {
     },
   });
 }
+
+export function useDeleteLog() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (logId: number) => {
+      const res = await fetch(buildUrl(api.logs.delete.path, { id: logId }), {
+        method: api.logs.delete.method,
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete log");
+      }
+      return api.logs.delete.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
+      toast({ title: "Deleted", description: "Log removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}
