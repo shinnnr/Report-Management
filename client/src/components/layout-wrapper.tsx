@@ -1,8 +1,17 @@
-import { ReactNode, useState, useEffect, useRef } from "react";
+import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
+
+// Create context for sidebar
+interface SidebarContextType {
+  openSidebar: () => void;
+}
+
+const SidebarContext = createContext<SidebarContextType>({ openSidebar: () => {} });
+
+export const useSidebar = () => useContext(SidebarContext);
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -87,16 +96,17 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
         }
       `}>
         <Sidebar 
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          onClose={() => setSidebarOpen(false)}
           isMobile={isMobile}
-          isOpen={sidebarOpen}
         />
       </div>
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto h-screen p-8 relative">
         <div className="max-w-7xl mx-auto pb-12">
-          {children}
+          <SidebarContext.Provider value={{ openSidebar: () => setSidebarOpen(true) }}>
+            {children}
+          </SidebarContext.Provider>
         </div>
       </main>
     </div>

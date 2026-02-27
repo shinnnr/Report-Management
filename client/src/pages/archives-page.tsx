@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { LayoutWrapper } from "@/components/layout-wrapper";
+import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,6 +61,7 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function ArchivesPage() {
   const { user } = useAuth();
+  const { openSidebar } = useSidebar();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -393,7 +394,13 @@ export default function ArchivesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <Archive className="w-8 h-8" /> Archives
+            <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+              <Archive className="w-8 h-8" />
+            </button>
+            <span className="hidden lg:inline">
+              <Archive className="w-8 h-8" />
+            </span>
+            Archives
           </h1>
           <p className="text-muted-foreground mb-4">View and manage archived documents.</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

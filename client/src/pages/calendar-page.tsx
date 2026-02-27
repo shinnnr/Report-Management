@@ -1,4 +1,4 @@
-import { LayoutWrapper } from "@/components/layout-wrapper";
+import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useActivities, useCreateActivity, useDeleteActivity } from "@/hooks/use-activities";
 import { 
   startOfMonth, 
@@ -33,6 +33,7 @@ import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
+  const { openSidebar } = useSidebar();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
@@ -345,7 +346,12 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <CalendarIcon className="w-8 h-8" />
+            <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+              <CalendarIcon className="w-8 h-8" />
+            </button>
+            <span className="hidden lg:inline">
+              <CalendarIcon className="w-8 h-8" />
+            </span>
             Activity Calendar
           </h1>
           <p className="text-muted-foreground">Manage your schedule and deadlines.</p>
