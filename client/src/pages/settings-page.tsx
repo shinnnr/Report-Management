@@ -106,6 +106,12 @@ function SettingsContent() {
   // Calculate total pages
   const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
 
+  // Paginate filtered users
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (userCurrentPage - 1) * usersPerPage;
+    return filteredUsers.slice(startIndex, startIndex + usersPerPage);
+  }, [filteredUsers, userCurrentPage, usersPerPage]);
+
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -585,7 +591,12 @@ function SettingsContent() {
                   <Input
                     placeholder="Search users by name or username..."
                     value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setUserSearchQuery(e.target.value);
+                      setUserCurrentPage(1); // Reset to first page when searching
+                    }}
+                    name="userSearch"
+                    id="userSearch"
                     className="max-w-sm"
                   />
                 </div>
@@ -596,7 +607,7 @@ function SettingsContent() {
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
                     <div className="space-y-3">
-                      {sortedUsers.map((user) => (
+                      {paginatedUsers.map((user) => (
                         <div
                           key={user.id}
                           className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 ${
@@ -674,8 +685,8 @@ function SettingsContent() {
                   </ScrollArea>
                   )}
 
-                  {/* Pagination controls */}
-                  {filteredUsers.length > 0 && (
+                  {/* Pagination controls - only show when more than 10 users */}
+                  {filteredUsers.length > usersPerPage && (
                     <div className="flex items-center justify-between mt-4 pt-4 border-t">
                       <span className="text-sm text-muted-foreground">
                         Showing {Math.min((userCurrentPage - 1) * usersPerPage + 1, filteredUsers.length)} to {Math.min(userCurrentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
