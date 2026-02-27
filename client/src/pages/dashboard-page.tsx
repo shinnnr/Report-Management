@@ -2,13 +2,13 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@shared/routes";
-import { useActivities, useLogs, useDeleteAllLogs } from "@/hooks/use-activities";
+import { api, buildUrl } from "@shared/routes";
+import { useActivities, useLogs, useDeleteAllLogs, useDeleteLog } from "@/hooks/use-activities";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,14 @@ import { Button } from "@/components/ui/button";
 import { useNotifications, useMarkNotificationRead, useDeleteNotification } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function DashboardPage() {
   return (
@@ -64,7 +72,12 @@ function DashboardContent() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const [showDeleteLogsConfirm, setShowDeleteLogsConfirm] = useState(false);
+    const [showViewAllLogs, setShowViewAllLogs] = useState(false);
+    const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const logsPerPage = 10;
     const deleteAllLogsMutation = useDeleteAllLogs();
+    const deleteLogMutation = useDeleteLog();
     const notificationRef = useRef<HTMLDivElement>(null);
 
     // Close notifications when clicking outside
@@ -402,13 +415,22 @@ function DashboardContent() {
                 Recent System Activity
               </CardTitle>
               {user?.role === 'admin' && (
-                <button
-                  onClick={() => setShowDeleteLogsConfirm(true)}
-                  className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded"
-                  title="Delete all logs"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </button>
+                <div className="absolute top-4 right-4 flex gap-1">
+                  <button
+                    onClick={() => setShowViewAllLogs(true)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-primary/20 rounded md:opacity-100"
+                    title="View all logs"
+                  >
+                    <Eye className="h-4 w-4 text-primary" />
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteLogsConfirm(true)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded md:opacity-100"
+                    title="Delete all logs"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
               )}
             </CardHeader>
             <CardContent>
@@ -590,6 +612,121 @@ function DashboardContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View All Activity Logs Dialog */}
+      <Dialog open={showViewAllLogs} onOpenChange={(open) => {
+        setShowViewAllLogs(open);
+        if (!open) {
+          setSelectedLogIds([]);
+          setCurrentPage(1);
+        }
+      }}>
+        <DialogContent className="w-full sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>All Activity Logs</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto space-y-2 min-h-[300px] max-h-[400px]">
+            {logs && logs.length > 0 ? (
+              logs
+                .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
+                .map((log) => {
+                  const IconComponent = getActivityIcon(log.action);
+                  return (
+                    <div 
+                      key={log.id} 
+                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50 group hover:bg-muted/50 transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedLogIds.includes(log.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedLogIds([...selectedLogIds, log.id]);
+                          } else {
+                            setSelectedLogIds(selectedLogIds.filter(id => id !== log.id));
+                          }
+                        }}
+                        className="flex-shrink-0 md:hidden"
+                      />
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <IconComponent className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{log.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {log.userFullName || 'Unknown'}{log.userRole && ` | ${log.userRole === 'admin' ? 'Admin' : 'Assistant'}`}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => deleteLogMutation.mutate(log.id)}
+                        className="opacity-0 group-hover:opacity-100 md:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0"
+                        title="Delete log"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </button>
+                    </div>
+                  );
+                })
+            ) : (
+              <div className="text-center py-10 text-muted-foreground">
+                No activity logs found.
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {logs && logs.length > logsPerPage && (
+            <div className="flex items-center justify-between py-2 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Selected Button */}
+          {selectedLogIds.length > 0 && (
+            <div className="flex justify-between items-center py-2 border-t">
+              <span className="text-sm text-muted-foreground">
+                {selectedLogIds.length} selected
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
+                  setSelectedLogIds([]);
+                }}
+                disabled={deleteLogMutation.isPending}
+              >
+                Delete Selected
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

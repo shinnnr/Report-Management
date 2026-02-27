@@ -710,6 +710,10 @@ export class DatabaseStorage implements IStorage {
   async deleteAllLogs(): Promise<void> {
     await db.delete(activityLogs);
   }
+
+  async deleteLog(id: number): Promise<void> {
+    await db.delete(activityLogs).where(eq(activityLogs.id, id));
+  }
 }
 
 export const storage = new DatabaseStorage();
