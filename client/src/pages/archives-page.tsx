@@ -976,7 +976,7 @@ function ArchivesContent() {
 
       {/* Mobile File Details Dialog - Only show on mobile */}
       <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>
-        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />

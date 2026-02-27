@@ -724,7 +724,7 @@ function SettingsContent() {
 
       {/* Mobile User Details Dialog */}
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 pr-8 text-left truncate max-w-[150px]">
               <User className="w-5 h-5 flex-shrink-0" />

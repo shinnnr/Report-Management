@@ -815,7 +815,7 @@ function DriveContent() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-full sm:max-w-lg">
+            <DialogContent className="w-full sm:max-w-lg mx-4">
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <DialogDescription>Create a new folder in the current location.</DialogDescription>
@@ -840,7 +840,7 @@ function DriveContent() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-full sm:max-w-lg">
+            <DialogContent className="w-full sm:max-w-lg mx-4">
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
@@ -895,7 +895,7 @@ function DriveContent() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent className="w-full sm:max-w-lg">
+        <DialogContent className="w-full sm:max-w-lg mx-4">
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <DialogDescription>Enter a new name for the file.</DialogDescription>
@@ -909,7 +909,7 @@ function DriveContent() {
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent className="w-full sm:max-w-lg">
+        <DialogContent className="w-full sm:max-w-lg mx-4">
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <DialogDescription>Enter a new name for the folder.</DialogDescription>
@@ -937,7 +937,7 @@ function DriveContent() {
           setMoveNewFolderName("");
         }
       }}>
-        <DialogContent className="w-full sm:max-w-lg max-h-[80vh]">
+        <DialogContent className="w-full sm:max-w-lg max-h-[80vh] mx-4">
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <DialogDescription>
@@ -1733,7 +1733,7 @@ function DriveContent() {
 
       {/* Mobile File Details Dialog - Only show on mobile */}
       <Dialog open={isFileDialogOpen && isMobile !== false} onOpenChange={setIsFileDialogOpen}>
-        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
