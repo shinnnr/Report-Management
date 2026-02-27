@@ -912,17 +912,17 @@ function ArchivesContent() {
 
       {/* Mobile File Details Dialog */}
       <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
-        <DialogContent className="rounded-lg sm:max-w-lg">
+        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 break-all">
-              <FileText className="w-5 h-5 flex-shrink-0" />
-              <span className="truncate">{selectedFileForDialog?.fileName}</span>
+            <DialogTitle className="flex items-start gap-2 pr-8">
+              <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span className="break-all">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
               File details and download option
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Type</span>
               <span className="font-medium">{selectedFileForDialog?.fileType ? getFileExtension(selectedFileForDialog.fileType) : '-'}</span>
@@ -936,10 +936,10 @@ function ArchivesContent() {
               <span className="font-medium">{selectedFileForDialog?.createdAt ? format(new Date(selectedFileForDialog.createdAt), 'MMM d, yyyy') : '-'}</span>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-between">
             <Button 
               variant="default" 
-              className="w-full"
+              className="w-full sm:w-auto"
               onClick={() => {
                 if (selectedFileForDialog?.fileData) {
                   handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);
