@@ -1,6 +1,6 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement } from "@/hooks/use-settings";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,16 @@ function SettingsContent() {
   // Mobile user dialog state
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+
+  // Sort users: current logged-in user first
+  const sortedUsers = useMemo(() => {
+    if (!users) return [];
+    return [...users].sort((a, b) => {
+      if (a.id === currentUser?.id) return -1;
+      if (b.id === currentUser?.id) return 1;
+      return 0;
+    });
+  }, [users, currentUser]);
 
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
@@ -557,12 +567,7 @@ function SettingsContent() {
                 ) : (
                   <ScrollArea className="h-[400px] pr-4">
                     <div className="space-y-3">
-                      {/* Sort users: current logged-in user first */}
-                      {users?.sort((a, b) => {
-                        if (a.id === currentUser?.id) return -1;
-                        if (b.id === currentUser?.id) return 1;
-                        return 0;
-                      }).map((user) => (
+                      {sortedUsers.map((user) => (
                         <div
                           key={user.id}
                           className={`flex items-center justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto ${
