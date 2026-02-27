@@ -23,37 +23,15 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export const useSidebar = () => useContext(SidebarContext);
 
-// Custom hook to check if sidebar should be toggleable (screens smaller than lg)
+// Custom hook to check if sidebar should be toggleable (mobile screens)
 function useSidebarToggle() {
-  const isMobile = useIsMobile();
-  const [isToggleable, setIsToggleable] = useState(() => {
-    // Check immediately on first render
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 1024;
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    const checkToggleable = () => {
-      setIsToggleable(window.innerWidth < 1024);
-    };
-    
-    checkToggleable();
-    
-    const mql = window.matchMedia("(max-width: 1023px)");
-    const onChange = () => checkToggleable();
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return isMobile || isToggleable;
+  return useIsMobile();
 }
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
-  const isSidebarToggleable = useSidebarToggle();
+  const isSidebarToggleable = isMobile; // Use isMobile directly
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
