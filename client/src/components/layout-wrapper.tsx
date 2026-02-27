@@ -32,7 +32,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
   const isSidebarToggleable = isMobile; // Use isMobile directly
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(isMobile); // Start as open on mobile
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
