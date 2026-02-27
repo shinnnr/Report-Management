@@ -76,6 +76,16 @@ function SettingsContent() {
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
+  // User search and pagination state
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const usersPerPage = 10;
+
+  // Reset to page 1 when users list changes or search changes
+  useEffect(() => {
+    setUserCurrentPage(1);
+  }, [users]);
+
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,15 +560,44 @@ function SettingsContent() {
                 </Dialog>
               </CardHeader>
               <CardContent>
+                {/* Search Input */}
+                <div className="mb-4">
+                  <Input
+                    placeholder="Search users by name or username..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
                 {isLoadingUsers ? (
                   <div className="flex items-center justify-center h-32">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <ScrollArea className="h-[400px] pr-4">
-                    <div className="space-y-3">
-                      {/* Sort users: current logged-in user first */}
-                      {users?.sort((a, b) => {
+                  <>
+                    {/* Filtered and paginated users */}
+                    {(() => {
+                      const filteredUsers = users?.filter(u => 
+                        !userSearchQuery || 
+                        u.fullName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                        u.username?.toLowerCase().includes(userSearchQuery.toLowerCase())
+                      ).sort((a, b) => {
+                        if (a.id === currentUser?.id) return -1;
+                        if (b.id === currentUser?.id) return 1;
+                        return 0;
+                      }) || [];
+                      
+                      const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
+                      const paginatedUsers = filteredUsers.slice(
+                        (userCurrentPage - 1) * usersPerPage,
+                        userCurrentPage * usersPerPage
+                      );
+
+                      return (
+                        <>
+                          <ScrollArea className="h-[400px] pr-4">
+                            <div className="space-y-3">
+                              {paginatedUsers.map((user) => (
                         if (a.id === currentUser?.id) return -1;
                         if (b.id === currentUser?.id) return 1;
                         return 0;
@@ -635,12 +674,40 @@ function SettingsContent() {
                             )}
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                  
+                  {/* Pagination controls */}
+                  {filteredUsers.length > 0 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <span className="text-sm text-muted-foreground">
+                        Showing {Math.min((userCurrentPage - 1) * usersPerPage + 1, filteredUsers.length)} to {Math.min(userCurrentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={userCurrentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserCurrentPage(p => Math.min(totalUserPages, p + 1))}
+                          disabled={userCurrentPage >= totalUserPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
           </TabsContent>
         )}
       </Tabs>
