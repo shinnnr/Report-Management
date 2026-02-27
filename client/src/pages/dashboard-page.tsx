@@ -416,17 +416,17 @@ function DashboardContent() {
                 Recent System Activity
               </CardTitle>
               {user?.role === 'admin' && (
-                <div className="absolute top-4 right-4 flex gap-1">
+                <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                   <button
                     onClick={() => setShowViewAllLogs(true)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-primary/20 rounded md:opacity-100"
+                    className="p-1 hover:bg-primary/20 rounded"
                     title="View all logs"
                   >
                     <Eye className="h-4 w-4 text-primary" />
                   </button>
                   <button
                     onClick={() => setShowDeleteLogsConfirm(true)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/20 rounded md:opacity-100"
+                    className="p-1 hover:bg-destructive/20 rounded"
                     title="Delete all logs"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -650,7 +650,7 @@ function DashboardContent() {
                             setSelectedLogIds(selectedLogIds.filter(id => id !== log.id));
                           }
                         }}
-                        className="flex-shrink-0 md:hidden"
+                        className={`flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
                       />
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <IconComponent className="w-4 h-4 text-primary" />
@@ -668,7 +668,7 @@ function DashboardContent() {
                       </div>
                       <button
                         onClick={() => deleteLogMutation.mutate(log.id)}
-                        className="opacity-0 group-hover:opacity-100 md:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0"
+                        className={`p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
                         title="Delete log"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
