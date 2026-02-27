@@ -489,7 +489,7 @@ function SettingsContent() {
                       Add User
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-full sm:max-w-lg mx-4">
+                  <DialogContent className="w-full sm:max-w-lg p-4">
                     <DialogHeader>
                       <DialogTitle>Create New User</DialogTitle>
                       <DialogDescription>Add a new user to the system</DialogDescription>
@@ -724,7 +724,7 @@ function SettingsContent() {
 
       {/* Mobile User Details Dialog */}
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+        <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto p-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 pr-8 text-left truncate max-w-[150px]">
               <User className="w-5 h-5 flex-shrink-0" />

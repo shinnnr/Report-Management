@@ -395,7 +395,7 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-4">
             <DialogHeader>
               <DialogTitle>New Activity</DialogTitle>
               <DialogDescription>
@@ -429,7 +429,7 @@ function CalendarContent() {
             setSelectedActivity(null);
           }
         }}>
-          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto p-4">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
