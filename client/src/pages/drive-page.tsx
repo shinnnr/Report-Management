@@ -1311,7 +1311,7 @@ function DriveContent() {
               </DropdownMenu>
             </div>
             {reports && reports.length > 0 ? (
-              <div className="bg-card rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border-x-0 md:border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>

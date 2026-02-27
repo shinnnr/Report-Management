@@ -748,7 +748,7 @@ function ArchivesContent() {
               </div>
             </div>
             {archivedReports && archivedReports.length > 0 ? (
-              <div className="bg-card rounded-xl border overflow-hidden">
+              <div className="bg-card rounded-xl border-x-0 md:border overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
@@ -817,8 +817,8 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right w-[20%]">
-                        <div className="flex items-center justify-end gap-1 hidden lg:table-cell">
+                      <th className="px-6 py-3 text-right w-[20%] hidden lg:table-cell border-none">
+                        <div className="flex items-center justify-end gap-1">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
