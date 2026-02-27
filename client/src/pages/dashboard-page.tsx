@@ -212,8 +212,8 @@ export default function DashboardPage() {
       <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+            <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+              <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
                 <LayoutDashboard className="w-8 h-8" />
               </button>
               <span className="hidden lg:inline">

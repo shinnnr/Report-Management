@@ -343,10 +343,10 @@ export default function CalendarPage() {
 
   return (
     <LayoutWrapper>
-      <div className="flex items-center justify-between mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
               <CalendarIcon className="w-8 h-8" />
             </button>
             <span className="hidden lg:inline">
@@ -354,11 +354,11 @@ export default function CalendarPage() {
             </span>
             Activity Calendar
           </h1>
-          <p className="text-muted-foreground">Manage your schedule and deadlines.</p>
+          <p className="text-muted-foreground text-sm lg:text-base">Manage your schedule and deadlines.</p>
         </div>
         
         {/* Action buttons - kept together in a flex container */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
           {/* Delete All Activities Button - shows when date is selected with activities */}
           {selectedDate && selectedDateActivities.length > 0 && (
             <Button
@@ -375,7 +375,7 @@ export default function CalendarPage() {
           <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
           <DialogTrigger asChild>
             <Button
-              className="gap-2 shadow-lg shadow-primary/20 bg-primary"
+              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm"
               disabled={!selectedDate}
               onClick={() => {
                 if (!selectedDate) {
@@ -391,7 +391,7 @@ export default function CalendarPage() {
               }}
             >
               <Plus className="w-4 h-4" />
-              {selectedDate ? `Add Activity for ${format(selectedDate, 'MMM d')}` : 'Select a Date First'}
+              {selectedDate ? `Add Activity` : 'Select Date'}
             </Button>
           </DialogTrigger>
           <DialogContent>

@@ -393,8 +393,8 @@ export default function ArchivesPage() {
     <LayoutWrapper>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+          <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
               <Archive className="w-8 h-8" />
             </button>
             <span className="hidden lg:inline">

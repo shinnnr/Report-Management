@@ -213,10 +213,10 @@ function SettingsContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+          <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
+            <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
               <Settings className="w-8 h-8" />
             </button>
             <span className="hidden lg:inline">
@@ -224,7 +224,7 @@ function SettingsContent() {
             </span>
             Settings
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm lg:text-base">
             {isAdmin ? "Manage your account settings and user permissions" : "Manage your account settings"}
           </p>
         </div>
@@ -423,17 +423,17 @@ function SettingsContent() {
         {isAdmin && (
           <TabsContent value="users" className="space-y-4">
             <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <Users className="h-5 w-5" />
                     User Management
                   </CardTitle>
-                  <CardDescription>Manage user accounts, roles, and permissions</CardDescription>
+                  <CardDescription className="text-sm">Manage user accounts, roles, and permissions</CardDescription>
                 </div>
                 <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
                   <DialogTrigger asChild>
-                    <Button>
+                    <Button size="sm" className="text-xs sm:text-sm">
                       <UserPlus className="mr-2 h-4 w-4" />
                       Add User
                     </Button>
