@@ -797,7 +797,7 @@ function DriveContent() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="w-full sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <DialogDescription>Create a new folder in the current location.</DialogDescription>
@@ -822,7 +822,7 @@ function DriveContent() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="w-full sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
@@ -877,7 +877,7 @@ function DriveContent() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <DialogDescription>Enter a new name for the file.</DialogDescription>
@@ -891,7 +891,7 @@ function DriveContent() {
       </Dialog>
 
       <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Rename Folder</DialogTitle>
             <DialogDescription>Enter a new name for the folder.</DialogDescription>
@@ -919,7 +919,7 @@ function DriveContent() {
           setMoveNewFolderName("");
         }
       }}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh]">
+        <DialogContent className="w-full sm:max-w-lg max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <DialogDescription>

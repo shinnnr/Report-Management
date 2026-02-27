@@ -429,7 +429,7 @@ function CalendarContent() {
             setSelectedActivity(null);
           }
         }}>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
