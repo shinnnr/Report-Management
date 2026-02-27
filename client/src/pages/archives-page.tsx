@@ -13,6 +13,7 @@ import {
   Trash2,
   Archive,
   Home,
+  Menu,
   ChevronRight,
   ChevronDown,
   Search,
@@ -61,7 +62,7 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function ArchivesPage() {
   const { user } = useAuth();
-  const { openSidebar, toggleSidebar } = useSidebar();
+  const { toggleSidebar, isSidebarToggleable } = useSidebar();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -394,14 +395,18 @@ export default function ArchivesPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={toggleSidebar} 
-              className="p-1 hover:bg-muted rounded-md transition-colors"
-              aria-label="Open menu"
-            >
+            {isSidebarToggleable ? (
+              <button 
+                type="button" 
+                onClick={toggleSidebar} 
+                className="p-1 hover:bg-muted rounded-md transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu className="w-8 h-8" />
+              </button>
+            ) : (
               <Archive className="w-8 h-8" />
-            </button>
+            )}
             Archives
           </h1>
           <p className="text-muted-foreground mb-4">View and manage archived documents.</p>

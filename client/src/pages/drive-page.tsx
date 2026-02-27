@@ -23,6 +23,7 @@ import {
   Filter,
   FolderOpen,
   Archive,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +87,7 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function DrivePage() {
   const { user } = useAuth();
-  const { openSidebar, toggleSidebar } = useSidebar();
+  const { toggleSidebar, isSidebarToggleable } = useSidebar();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -714,14 +715,18 @@ export default function DrivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={toggleSidebar} 
-              className="p-1 hover:bg-muted rounded-md transition-colors"
-              aria-label="Open menu"
-            >
+            {isSidebarToggleable ? (
+              <button 
+                type="button" 
+                onClick={toggleSidebar} 
+                className="p-1 hover:bg-muted rounded-md transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu className="w-8 h-8" />
+              </button>
+            ) : (
               <FolderOpen className="w-8 h-8" />
-            </button>
+            )}
             My Drive
           </h1>
           <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>

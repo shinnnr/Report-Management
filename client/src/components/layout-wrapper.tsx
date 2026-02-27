@@ -10,13 +10,15 @@ interface SidebarContextType {
   closeSidebar: () => void;
   toggleSidebar: () => void;
   isSidebarOpen: boolean;
+  isSidebarToggleable: boolean;
 }
 
 const SidebarContext = createContext<SidebarContextType>({ 
   openSidebar: () => {},
   closeSidebar: () => {},
   toggleSidebar: () => {},
-  isSidebarOpen: false
+  isSidebarOpen: false,
+  isSidebarToggleable: false
 });
 
 export const useSidebar = () => useContext(SidebarContext);
@@ -110,7 +112,8 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       openSidebar: () => setSidebarOpen(true),
       closeSidebar: () => setSidebarOpen(false),
       toggleSidebar,
-      isSidebarOpen: sidebarOpen 
+      isSidebarOpen: sidebarOpen,
+      isSidebarToggleable
     }}>
     <div 
       className="flex min-h-screen bg-background text-foreground"

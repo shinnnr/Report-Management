@@ -12,7 +12,7 @@ import {
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
   const { user } = useAuth();
-  const { openSidebar, toggleSidebar } = useSidebar();
+  const { toggleSidebar, isSidebarToggleable } = useSidebar();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
@@ -346,14 +346,18 @@ export default function CalendarPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={toggleSidebar} 
-              className="p-1 hover:bg-muted rounded-md transition-colors"
-              aria-label="Open menu"
-            >
+            {isSidebarToggleable ? (
+              <button 
+                type="button" 
+                onClick={toggleSidebar} 
+                className="p-1 hover:bg-muted rounded-md transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu className="w-8 h-8" />
+              </button>
+            ) : (
               <CalendarIcon className="w-8 h-8" />
-            </button>
+            )}
             Activity Calendar
           </h1>
           <p className="text-muted-foreground text-sm lg:text-base">Manage your schedule and deadlines.</p>

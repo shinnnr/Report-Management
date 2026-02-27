@@ -29,13 +29,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 function SettingsContent() {
   const { user } = useAuth();
-  const { openSidebar, toggleSidebar } = useSidebar();
+  const { toggleSidebar, isSidebarToggleable } = useSidebar();
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
@@ -216,14 +216,18 @@ function SettingsContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button 
-              type="button" 
-              onClick={toggleSidebar} 
-              className="p-1 hover:bg-muted rounded-md transition-colors"
-              aria-label="Open menu"
-            >
+            {isSidebarToggleable ? (
+              <button 
+                type="button" 
+                onClick={toggleSidebar} 
+                className="p-1 hover:bg-muted rounded-md transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu className="w-8 h-8" />
+              </button>
+            ) : (
               <Settings className="w-8 h-8" />
-            </button>
+            )}
             Settings
           </h1>
           <p className="text-muted-foreground text-sm lg:text-base">

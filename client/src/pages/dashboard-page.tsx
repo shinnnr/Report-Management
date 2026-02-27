@@ -1,7 +1,7 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
@@ -32,7 +32,7 @@ import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const { openSidebar, toggleSidebar } = useSidebar();
+    const { toggleSidebar, isSidebarToggleable } = useSidebar();
     const { data: folders } = useFolders('all', 'active', 5000);
     const { data: reportsCount } = useReportsCount(undefined, 'active');
     const { data: reports } = useReports(undefined, 'active', 5000);
@@ -213,14 +213,18 @@ export default function DashboardPage() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              <button 
-                type="button" 
-                onClick={toggleSidebar} 
-                className="p-1 hover:bg-muted rounded-md transition-colors"
-                aria-label="Open menu"
-              >
+              {isSidebarToggleable ? (
+                <button 
+                  type="button" 
+                  onClick={toggleSidebar} 
+                  className="p-1 hover:bg-muted rounded-md transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-8 h-8" />
+                </button>
+              ) : (
                 <LayoutDashboard className="w-8 h-8" />
-              </button>
+              )}
               Dashboard
             </h1>
             <p className="text-muted-foreground">
