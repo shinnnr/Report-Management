@@ -714,12 +714,14 @@ export default function DrivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+            <button 
+              type="button" 
+              onClick={openSidebar} 
+              className="p-1 hover:bg-muted rounded-md transition-colors"
+              aria-label="Open menu"
+            >
               <FolderOpen className="w-8 h-8" />
             </button>
-            <span className="hidden lg:inline">
-              <FolderOpen className="w-8 h-8" />
-            </span>
             My Drive
           </h1>
           <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>

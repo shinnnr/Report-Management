@@ -346,12 +346,14 @@ export default function CalendarPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            <button type="button" onClick={openSidebar} className="lg:hidden p-1 hover:bg-muted rounded-md transition-colors">
+            <button 
+              type="button" 
+              onClick={openSidebar} 
+              className="p-1 hover:bg-muted rounded-md transition-colors"
+              aria-label="Open menu"
+            >
               <CalendarIcon className="w-8 h-8" />
             </button>
-            <span className="hidden lg:inline">
-              <CalendarIcon className="w-8 h-8" />
-            </span>
             Activity Calendar
           </h1>
           <p className="text-muted-foreground text-sm lg:text-base">Manage your schedule and deadlines.</p>
