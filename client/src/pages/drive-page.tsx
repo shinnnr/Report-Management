@@ -25,6 +25,7 @@ import {
   FolderOpen,
   Archive,
   Menu,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -111,6 +112,10 @@ function DriveContent() {
   const [driveSearchQuery, setDriveSearchQuery] = useState("");
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
+
+  // Mobile file dialog state
+  const [selectedFileForDialog, setSelectedFileForDialog] = useState<any>(null);
+  const [isFileDialogOpen, setIsFileDialogOpen] = useState(false);
 
   // Filter states
   const [nameFilter, setNameFilter] = useState<string[]>([]);
@@ -1386,7 +1391,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%]">
+                      <th className="px-6 py-3 text-left w-[20%] hidden md:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -1571,7 +1576,16 @@ function DriveContent() {
                   </thead>
                   <tbody className="divide-y">
                     {filteredReports?.map(r => (
-                        <tr key={r.id} className="hover:bg-muted/20 group">
+                        <tr 
+                          key={r.id} 
+                          className="hover:bg-muted/20 group cursor-pointer md:cursor-auto"
+                          onClick={() => {
+                            if (!isSelectMode) {
+                              setSelectedFileForDialog(r);
+                              setIsFileDialogOpen(true);
+                            }
+                          }}
+                        >
                         {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
                         <td className="px-6 py-4 w-[40%]">
                           <div className="flex items-center gap-3">
@@ -1583,13 +1597,13 @@ function DriveContent() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground">
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground">
+                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">
                           {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-right text-muted-foreground">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-6 py-4 w-[20%] text-right text-muted-foreground hidden md:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
@@ -1626,6 +1640,47 @@ function DriveContent() {
           </section>
         </div>
       )}
+
+      {/* Mobile File Details Dialog */}
+      <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {selectedFileForDialog?.fileName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Type</span>
+              <span className="font-medium">{selectedFileForDialog?.fileType ? getFileExtension(selectedFileForDialog.fileType) : '-'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Size</span>
+              <span className="font-medium">{selectedFileForDialog ? (selectedFileForDialog.fileSize / 1024).toFixed(1) : '-'} KB</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Date</span>
+              <span className="font-medium">{selectedFileForDialog?.createdAt ? format(new Date(selectedFileForDialog.createdAt), 'MMM d, yyyy') : '-'}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="default" 
+              className="w-full"
+              onClick={() => {
+                if (selectedFileForDialog?.fileData) {
+                  handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);
+                  setIsFileDialogOpen(false);
+                }
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -72,6 +72,10 @@ function SettingsContent() {
 
   const isAdmin = user?.role === "admin";
 
+  // Mobile user dialog state
+  const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -561,11 +565,17 @@ function SettingsContent() {
                       }).map((user) => (
                         <div
                           key={user.id}
-                          className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${
+                          className={`flex items-center justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto ${
                             user.id === currentUser?.id 
                               ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
                               : "hover:bg-muted/50"
                           }`}
+                          onClick={() => {
+                            if (isMobile) {
+                              setSelectedUserForDialog(user);
+                              setIsUserDialogOpen(true);
+                            }
+                          }}
                         >
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -576,7 +586,7 @@ function SettingsContent() {
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="hidden md:flex items-center gap-3">
                             <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                               {user.role === "admin" ? (
                                 <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
@@ -634,6 +644,83 @@ function SettingsContent() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Mobile User Details Dialog */}
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent className="rounded-lg sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              {selectedUserForDialog?.fullName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Username</span>
+              <span className="font-medium">@{selectedUserForDialog?.username}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Role</span>
+              <Badge variant={selectedUserForDialog?.role === "admin" ? "default" : "secondary"}>
+                {selectedUserForDialog?.role === "admin" ? (
+                  <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
+                ) : (
+                  <><Shield className="mr-1 h-3 w-3" /> Assistant</>
+                )}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <Badge variant="outline">
+                {selectedUserForDialog?.status}
+              </Badge>
+            </div>
+          </div>
+          {selectedUserForDialog?.id !== currentUser?.id && (
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  handleUpdateRole(selectedUserForDialog.id, selectedUserForDialog.role === "admin" ? "assistant" : "admin");
+                  setIsUserDialogOpen(false);
+                }}
+                disabled={updateUserMutation.isPending}
+              >
+                {selectedUserForDialog?.role === "admin" ? "Remove Admin" : "Make Admin"}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="flex-1" disabled={deleteUserMutation.isPending}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {selectedUserForDialog?.fullName}? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        handleDeleteUser(selectedUserForDialog?.id);
+                        setIsUserDialogOpen(false);
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
