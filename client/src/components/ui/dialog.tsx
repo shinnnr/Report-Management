@@ -19,9 +19,8 @@ const DialogOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
-    ref={ref}
     className={cn(
-      "fixed inset-x-4 top-[50%] z-50 grid w-auto max-w-lg -translate-y-1/2 gap-4 border bg-background px-4 sm:px-6 py-6 shadow-lg duration-200 rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%] sm:-translate-y-1/2 sm:max-w-lg",
+      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -38,7 +37,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-4 right-4 top-[50%] z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-y-1/2 gap-4 border bg-background px-6 sm:px-8 py-6 shadow-lg duration-200 rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:inset-x-auto sm:left-[50%] sm:right-auto sm:w-auto sm:max-w-lg sm:translate-x-[-50%] sm:-translate-y-1/2",
+        "fixed inset-x-4 top-[50%] z-50 grid w-auto max-w-lg -translate-y-1/2 gap-4 border bg-background px-4 sm:px-6 py-6 shadow-lg duration-200 rounded-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:inset-x-auto sm:left-[50%] sm:translate-x-[-50%] sm:-translate-y-1/2 sm:max-w-lg",
         className
       )}
       {...props}
