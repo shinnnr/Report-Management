@@ -917,6 +917,9 @@ function ArchivesContent() {
               <FileText className="w-5 h-5 flex-shrink-0" />
               <span className="truncate">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              File details and download option
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">

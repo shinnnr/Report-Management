@@ -653,6 +653,9 @@ function SettingsContent() {
               <User className="w-5 h-5" />
               {selectedUserForDialog?.fullName}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              User details and actions
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-between">
