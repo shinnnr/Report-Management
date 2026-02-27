@@ -81,6 +81,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   };
 
   const openSidebar = () => {
+    console.log('openSidebar called, setting sidebarOpen to true');
     setSidebarOpen(true);
   };
 

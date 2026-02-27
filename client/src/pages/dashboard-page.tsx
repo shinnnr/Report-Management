@@ -220,9 +220,10 @@ export default function DashboardPage() {
                   type="button" 
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log('Menu clicked, calling openSidebar');
                     openSidebar();
                   }} 
-                  className="p-1 hover:bg-muted rounded-md transition-colors"
+                  className="p-1 hover:bg-muted rounded-md transition-colors cursor-pointer"
                   aria-label="Open menu"
                 >
                   <Menu className="w-8 h-8" />
