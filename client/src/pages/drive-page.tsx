@@ -710,59 +710,63 @@ export default function DrivePage() {
 
   return (
     <LayoutWrapper>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 lg:mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="hidden lg:block">
           <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             <FolderOpen className="w-8 h-8" />
             My Drive
           </h1>
           <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <button onClick={() => setLocation("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
-              <Home className="w-4 h-4" /> Home
-            </button>
-            {breadcrumbs.map((crumb) => (
-              <div key={crumb.id} className="flex items-center gap-2">
-                <ChevronRight className="w-4 h-4" />
-                <button
-                  onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
-                  className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
-                >
-                  {crumb.name}
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4">
-            <Input
-              name="drive-search"
-              placeholder="Search folders and files..."
-              value={driveSearchQuery}
-              onChange={(e) => setDriveSearchQuery(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
+        </div>
+        {/* Mobile: show breadcrumb as title */}
+        <div className="lg:hidden">
+          <p className="text-lg font-semibold text-primary">My Drive</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-x-auto">
+          <button onClick={() => setLocation("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors whitespace-nowrap ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
+            <Home className="w-4 h-4" /> Home
+          </button>
+          {breadcrumbs.map((crumb) => (
+            <div key={crumb.id} className="flex items-center gap-2">
+              <ChevronRight className="w-4 h-4" />
+              <button
+                onClick={() => setLocation(`/drive?folder=${crumb.id}`)}
+                className="hover:text-primary transition-colors whitespace-nowrap truncate max-w-[100px]"
+              >
+                {crumb.name}
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 lg:mt-0">
+          <Input
+            name="drive-search"
+            placeholder="Search..."
+            value={driveSearchQuery}
+            onChange={(e) => setDriveSearchQuery(e.target.value)}
+            className="w-full sm:max-w-xs"
+          />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
             <>
-              <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
-                <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
+              <Button variant="outline" className="gap-1 lg:gap-2" onClick={() => setIsMoveOpen(true)}>
+                <MoveHorizontal className="w-4 h-4" /> <span className="hidden sm:inline">Move</span> ({selectedFiles.length + selectedFolders.length})
               </Button>
-              <Button variant="outline" className="gap-2" onClick={() => setIsBulkArchiveOpen(true)}>
-                <Archive className="w-4 h-4" /> Archive ({selectedFiles.length + selectedFolders.length})
+              <Button variant="outline" className="gap-1 lg:gap-2" onClick={() => setIsBulkArchiveOpen(true)}>
+                <Archive className="w-4 h-4" /> <span className="hidden sm:inline">Archive</span> ({selectedFiles.length + selectedFolders.length})
               </Button>
-              <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
-                <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
+              <Button variant="destructive" className="gap-1 lg:gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
+                <Trash2 className="w-4 h-4" /> <span className="hidden sm:inline">Delete</span> ({selectedFiles.length + selectedFolders.length})
               </Button>
             </>
           )}
 
           <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Plus className="w-4 h-4" /> New Folder
+              <Button variant="outline" className="gap-1 lg:gap-2">
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New Folder</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -786,8 +790,8 @@ export default function DrivePage() {
 
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-primary">
-                <UploadCloud className="w-4 h-4" /> Upload
+              <Button className="gap-1 lg:gap-2 bg-primary">
+                <UploadCloud className="w-4 h-4" /> <span className="hidden sm:inline">Upload</span>
               </Button>
             </DialogTrigger>
             <DialogContent>

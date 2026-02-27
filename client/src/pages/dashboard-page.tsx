@@ -208,15 +208,21 @@ export default function DashboardPage() {
 
   return (
     <LayoutWrapper>
-      <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex justify-between items-start">
-          <div>
+      <header className="mb-4 lg:mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="hidden lg:block">
             <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
               <LayoutDashboard className="w-8 h-8" />
               Dashboard
             </h1>
             <p className="text-muted-foreground">
               Welcome back, {user?.fullName}. Here's what's happening today.
+            </p>
+          </div>
+          {/* Mobile shows greeting only */}
+          <div className="lg:hidden">
+            <p className="text-lg font-semibold text-primary">
+              Welcome, {user?.fullName}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -236,7 +242,7 @@ export default function DashboardPage() {
                 )}
               </Button>
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-popover border rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 lg:left-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 bg-popover border rounded-lg shadow-lg z-50">
                 <div className="p-4">
                   <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
                 </div>
@@ -304,7 +310,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-6 lg:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         <div
           onMouseEnter={(e) => handleMouseEnter('folders', e)}
           onMouseMove={handleMouseMove}
