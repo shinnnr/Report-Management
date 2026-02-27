@@ -875,6 +875,7 @@ function ArchivesContent() {
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
                         <td className="px-6 py-4 w-[20%] text-right hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -886,6 +887,7 @@ function ArchivesContent() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        </div>
                         </td>
                       </tr>
                     ))}

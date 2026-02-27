@@ -1466,7 +1466,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%]">
+                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -1496,7 +1496,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right w-[20%]">
+                      <th className="px-6 py-3 text-right w-[20%] hidden lg:table-cell">
                         <div className="flex items-center justify-end gap-1">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
@@ -1610,6 +1610,7 @@ function DriveContent() {
                         </td>
                         <td className="px-6 py-4 w-[20%] text-right text-muted-foreground hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
@@ -1619,6 +1620,7 @@ function DriveContent() {
                               <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                        </div>
                         </td>
                       </tr>
                     ))}
