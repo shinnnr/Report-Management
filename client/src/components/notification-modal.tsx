@@ -118,13 +118,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    {isAdmin && (
-                      <Checkbox
-                        checked={selectedNotifications.includes(notification.id)}
-                        onCheckedChange={() => toggleSelection(notification.id)}
-                        className="flex-shrink-0 mt-1"
-                      />
-                    )}
+                    <Checkbox
+                      checked={selectedNotifications.includes(notification.id)}
+                      onCheckedChange={() => toggleSelection(notification.id)}
+                      className="flex-shrink-0 mt-1"
+                    />
                     <div className="flex-1 min-w-0" onClick={() => handleNotificationClick(notification)}>
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
@@ -164,7 +162,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
         {/* Pagination Controls */}
         {notifications && notifications.length > notificationsPerPage && (
-          <div className="flex items-center justify-between py-2 border-t">
+          <div className="flex items-center justify-between py-2 border-t mt-2">
             <div className="text-sm text-muted-foreground">
               Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
             </div>
@@ -190,8 +188,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         )}
 
         {/* Delete Selected Button */}
-        {isAdmin && selectedNotifications.length > 0 && (
-          <div className="flex justify-between items-center py-3 px-4 -mx-4 -mb-4 mt-2 border-t bg-muted/30 rounded-b-lg">
+        {selectedNotifications.length > 0 && (
+          <div className="flex justify-between items-center py-2 border-t mt-2">
             <span className="text-sm text-muted-foreground font-medium">
               {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
             </span>
