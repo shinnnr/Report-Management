@@ -669,7 +669,7 @@ function DashboardContent() {
                       </div>
                       <button
                         onClick={() => deleteLogMutation.mutate(log.id)}
-                        className="p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0"
+                        className={`p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
                         title="Delete log"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
