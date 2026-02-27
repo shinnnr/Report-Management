@@ -845,9 +845,10 @@ function ArchivesContent() {
                       <tr 
                         key={r.id} 
                         className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
-                        onClick={() => {
+                        onClick={(e) => {
                           if (!isSelectMode) {
-                            if (isMobile) {
+                            if (isMobile !== false) {
+                              e.stopPropagation();
                               setSelectedFileForDialog(r);
                               setIsFileDialogOpen(true);
                             } else if (r.fileData) {
@@ -915,7 +916,7 @@ function ArchivesContent() {
       )}
 
       {/* Mobile File Details Dialog - Only show on mobile */}
-      <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>
+      <Dialog open={isFileDialogOpen && isMobile !== false} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
