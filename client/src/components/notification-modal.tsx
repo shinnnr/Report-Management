@@ -129,7 +129,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Type: {notification.activityId ? 'Activity' : 'System'}</span>
                         <span>{notification.createdAt ? format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a') : 'Unknown'}</span>
-                        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-xs ${notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'}`}>
+                        <span className={`px-2 py-1 rounded text-xs self-start sm:self-auto ${notification.isRead ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'}`}>
                           {notification.isRead ? 'Read' : 'Unread'}
                         </span>
                       </div>
