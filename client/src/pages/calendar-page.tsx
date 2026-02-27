@@ -395,7 +395,7 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>New Activity</DialogTitle>
               <DialogDescription>
@@ -429,7 +429,7 @@ function CalendarContent() {
             setSelectedActivity(null);
           }
         }}>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -574,7 +574,7 @@ function CalendarContent() {
 
         {/* Delete Confirmation Modal */}
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Activity</DialogTitle>
               <DialogDescription>
@@ -604,7 +604,7 @@ function CalendarContent() {
 
         {/* Delete All Activities by Date Confirmation Modal */}
         <Dialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete All Activities</DialogTitle>
               <DialogDescription>

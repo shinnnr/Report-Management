@@ -95,7 +95,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
       }
       onClose();
     }}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent>
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>

@@ -622,7 +622,7 @@ function DashboardContent() {
           setCurrentPage(1);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>

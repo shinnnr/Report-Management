@@ -815,7 +815,7 @@ function DriveContent() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <DialogDescription>Create a new folder in the current location.</DialogDescription>
@@ -840,7 +840,7 @@ function DriveContent() {
                 <UploadCloud className="w-4 h-4" /> Upload
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Files</DialogTitle>
                 <DialogDescription>Select and upload files to the current location.</DialogDescription>
@@ -895,7 +895,7 @@ function DriveContent() {
       </div>
 
       <Dialog open={isRenameFileOpen} onOpenChange={setIsRenameFileOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename File</DialogTitle>
             <DialogDescription>Enter a new name for the file.</DialogDescription>
@@ -937,7 +937,7 @@ function DriveContent() {
           setMoveNewFolderName("");
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-4">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Move Items</DialogTitle>
             <DialogDescription>
