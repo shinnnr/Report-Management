@@ -1596,9 +1596,9 @@ function DriveContent() {
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             {isSelectMode ? (
-                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
+                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{r.fileName}</span>
                             ) : (
-                              <span className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
+                              <span className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{r.fileName}</span>
                             )}
                           </div>
                         </td>
