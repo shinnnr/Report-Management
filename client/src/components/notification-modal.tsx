@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Check, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog,
@@ -90,18 +91,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>
-            {isAdmin && selectedNotifications.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteSelected}
-                disabled={deleteMutation.isPending}
-                className="mr-2"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete Selected ({selectedNotifications.length})
-              </Button>
-            )}
           </DialogTitle>
           <DialogDescription className="text-left">
             View and manage all your notifications. Select notifications to delete them.
@@ -119,6 +108,13 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
+                    {isAdmin && (
+                      <Checkbox
+                        checked={selectedNotifications.includes(notification.id)}
+                        onCheckedChange={() => toggleSelection(notification.id)}
+                        className="flex-shrink-0 mt-1"
+                      />
+                    )}
                     <div className="flex-1 min-w-0" onClick={() => handleNotificationClick(notification)}>
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
@@ -136,14 +132,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     </div>
 
                     <div className="flex items-center gap-2 ml-2 shrink-0">
-                      {isAdmin && (
-                        <input
-                          type="checkbox"
-                          checked={selectedNotifications.includes(notification.id)}
-                          onChange={() => toggleSelection(notification.id)}
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity rounded w-4 h-4"
-                        />
-                      )}
                       <button
                         onClick={() => handleDelete(notification.id)}
                         disabled={deleteMutation.isPending}
@@ -163,6 +151,24 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
             )}
           </div>
         </ScrollArea>
+
+        {/* Delete Selected Button */}
+        {isAdmin && selectedNotifications.length > 0 && (
+          <div className="flex justify-between items-center py-2 border-t">
+            <span className="text-sm text-muted-foreground">
+              {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelected}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete Selected ({selectedNotifications.length})
+            </Button>
+          </div>
+        )}
       </DialogContent>
 
       {/* Delete Confirmation Dialog */}
