@@ -161,7 +161,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex items-center justify-between py-2 border-t mt-2 -mb-2">
+          <div className="flex items-center justify-between py-2 -mt-2">
             <div className="flex items-center gap-2">
               {notifications && notifications.length >= notificationsPerPage && (
                 <>
