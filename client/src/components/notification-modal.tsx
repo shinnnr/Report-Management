@@ -154,8 +154,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
         {/* Delete Selected Button */}
         {isAdmin && selectedNotifications.length > 0 && (
-          <div className="flex justify-between items-center py-2 border-t">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex justify-between items-center py-3 px-4 -mx-4 -mb-4 mt-2 border-t bg-muted/30 rounded-b-lg">
+            <span className="text-sm text-muted-foreground font-medium">
               {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
             </span>
             <Button
