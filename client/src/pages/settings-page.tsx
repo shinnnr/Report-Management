@@ -184,25 +184,26 @@ function SettingsContent() {
   // Create new user
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: string[] = [];
 
-    if (!newUserData.username.trim()) errors.push("Username is required");
-    if (!newUserData.fullName.trim()) errors.push("Full name is required");
-    if (!newUserData.password) errors.push("Password is required");
-    
+    // Validate fields in order and show first error only
+    if (!newUserData.username.trim()) {
+      toast({ title: "Error", description: "Username is required", variant: "destructive" });
+      return;
+    }
+    if (!newUserData.fullName.trim()) {
+      toast({ title: "Error", description: "Full name is required", variant: "destructive" });
+      return;
+    }
+    if (!newUserData.password) {
+      toast({ title: "Error", description: "Password is required", variant: "destructive" });
+      return;
+    }
     if (newUserData.password.length < 8) {
-      errors.push("Password must be at least 8 characters long");
+      toast({ title: "Error", description: "Password must be at least 8 characters long", variant: "destructive" });
+      return;
     }
-
     if (newUserData.password !== newUserData.confirmPassword) {
-      errors.push("Passwords do not match");
-    }
-
-    if (errors.length > 0) {
-      // Show all errors as toast notifications
-      errors.forEach((error) => {
-        toast({ title: "Error", description: error, variant: "destructive" });
-      });
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
     }
 
@@ -585,9 +586,17 @@ function SettingsContent() {
                         <Button type="button" variant="outline" onClick={() => setIsCreateUserOpen(false)}>
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={createUserMutation.isPending}>
-                          {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Create User
+                        <Button 
+                          type="submit" 
+                          disabled={
+                            createUserMutation.isPending ||
+                            !newUserData.username.trim() ||
+                            !newUserData.fullName.trim() ||
+                            !newUserData.password ||
+                            !newUserData.confirmPassword
+                          }
+                        >
+                          {createUserMutation.isPending ? "Creating..." : "Create User"}
                         </Button>
                       </DialogFooter>
                     </form>
