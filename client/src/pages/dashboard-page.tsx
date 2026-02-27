@@ -241,7 +241,7 @@ function DashboardContent() {
               Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Welcome back, {user?.fullName}. Here's what's happening today.
+              Welcome back, <span className="font-medium truncate">{user?.fullName}</span>. Here's what's happening today.
             </p>
           </div>
           <div className="flex items-center gap-2">

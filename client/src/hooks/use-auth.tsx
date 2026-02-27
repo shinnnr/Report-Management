@@ -12,6 +12,7 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: ReturnType<typeof useLoginMutation>;
   logoutMutation: ReturnType<typeof useLogoutMutation>;
+  refetchUser: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -97,7 +98,7 @@ export function useLogoutMutation() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data: user, isLoading, error } = useUser();
+  const { data: user, isLoading, error, refetch } = useUser();
   const loginMutation = useLoginMutation();
   const logoutMutation = useLogoutMutation();
 
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: error as Error | null,
         loginMutation,
         logoutMutation,
+        refetchUser: () => refetch(),
       }}
     >
       {children}

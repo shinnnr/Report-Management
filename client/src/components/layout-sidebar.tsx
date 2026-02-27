@@ -33,7 +33,7 @@ interface SidebarProps {
 
 export function Sidebar({ onClose, isMobile }: SidebarProps) {
   const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, refetchUser } = useAuth();
   const { resetTheme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -82,7 +82,11 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
       </div>
 
       <div className="mt-auto p-6 border-t border-white/10 bg-black/10">
-        <div className="flex items-center gap-3 mb-4 px-2">
+        <div 
+          className="flex items-center gap-3 mb-4 px-2 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => refetchUser()}
+          title="Click to refresh user info"
+        >
           <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm">
             {user?.fullName?.charAt(0) || 'U'}
           </div>
