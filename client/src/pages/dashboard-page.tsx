@@ -684,8 +684,8 @@ function DashboardContent() {
           </div>
 
           {/* Pagination Controls */}
-          {logs && logs.length > logsPerPage && (
-            <div className="flex items-center justify-between py-2 border-t">
+          {logs && logs.length >= logsPerPage && (
+            <div className="flex items-center justify-between py-2 border-t bg-muted/30 px-4 -mx-4 -mb-4 mt-2">
               <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
               </div>

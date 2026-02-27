@@ -34,6 +34,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const [selectedNotifications, setSelectedNotifications] = useState<number[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const notificationsPerPage = 10;
 
   const handleNotificationClick = (notification: any) => {
     if (user?.id) {
@@ -86,7 +88,13 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        setCurrentPage(1);
+        setSelectedNotifications([]);
+      }
+      onClose();
+    }}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center justify-between pr-8">
@@ -100,7 +108,9 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         <ScrollArea className="h-[60vh] max-h-[500px]">
           <div className="space-y-4 pr-4 pb-4">
             {notifications && notifications.length > 0 ? (
-              notifications.map((notification) => (
+              notifications
+                .slice((currentPage - 1) * notificationsPerPage, currentPage * notificationsPerPage)
+                .map((notification) => (
                 <div
                   key={notification.id}
                   className={`p-4 rounded-lg border cursor-pointer hover:bg-muted transition-colors group ${
@@ -151,6 +161,33 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
             )}
           </div>
         </ScrollArea>
+
+        {/* Pagination Controls */}
+        {notifications && notifications.length > notificationsPerPage && (
+          <div className="flex items-center justify-between py-2 border-t">
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Delete Selected Button */}
         {isAdmin && selectedNotifications.length > 0 && (
