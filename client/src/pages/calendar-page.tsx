@@ -352,7 +352,7 @@ function CalendarContent() {
   };
 
   return (
-    <LayoutWrapper>
+    <>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
@@ -730,6 +730,6 @@ function CalendarContent() {
           })}
         </div>
       </div>
-    </LayoutWrapper>
+    </>
   );
 }

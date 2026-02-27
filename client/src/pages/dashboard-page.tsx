@@ -31,6 +31,14 @@ import { useNotifications, useMarkNotificationRead, useDeleteNotification } from
 import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
 
+export default function DashboardPage() {
+  return (
+    <LayoutWrapper>
+      <DashboardContent />
+    </LayoutWrapper>
+  );
+}
+
 function DashboardContent() {
     const { user } = useAuth();
     const { openSidebar } = useSidebar();
@@ -210,7 +218,7 @@ function DashboardContent() {
   const storagePercentage = Math.min((usedStorageBytes / totalStorageBytes) * 100, 100);
 
   return (
-    <LayoutWrapper>
+    <>
       <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex justify-between items-start">
           <div>
@@ -582,14 +590,6 @@ function DashboardContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </LayoutWrapper>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <LayoutWrapper>
-      <DashboardContent />
-    </LayoutWrapper>
+    </>
   );
 }
