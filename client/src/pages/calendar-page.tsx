@@ -33,6 +33,14 @@ import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
 
 export default function CalendarPage() {
+  return (
+    <LayoutWrapper>
+      <CalendarContent />
+    </LayoutWrapper>
+  );
+}
+
+function CalendarContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();

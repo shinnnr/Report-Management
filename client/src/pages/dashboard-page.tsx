@@ -32,6 +32,14 @@ import { formatDistanceToNow } from "date-fns";
 import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
+  return (
+    <LayoutWrapper>
+      <DashboardContent />
+    </LayoutWrapper>
+  );
+}
+
+function DashboardContent() {
     const { user } = useAuth();
     const { openSidebar } = useSidebar();
     const isMobile = useIsMobile();
@@ -220,7 +228,6 @@ export default function DashboardPage() {
                   type="button" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Menu clicked, calling openSidebar');
                     openSidebar();
                   }} 
                   className="p-1 hover:bg-muted rounded-md transition-colors cursor-pointer"

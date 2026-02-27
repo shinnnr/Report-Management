@@ -87,6 +87,14 @@ const getFileExtension = (mimeType: string): string => {
 };
 
 export default function DrivePage() {
+  return (
+    <LayoutWrapper>
+      <DriveContent />
+    </LayoutWrapper>
+  );
+}
+
+function DriveContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();

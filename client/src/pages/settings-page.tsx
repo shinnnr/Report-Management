@@ -223,7 +223,6 @@ function SettingsContent() {
                 type="button" 
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('Settings Menu clicked, calling openSidebar');
                   openSidebar();
                 }} 
                 className="p-1 hover:bg-muted rounded-md transition-colors cursor-pointer"

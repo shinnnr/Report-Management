@@ -62,6 +62,14 @@ const getFileExtension = (mimeType: string): string => {
 };
 
 export default function ArchivesPage() {
+  return (
+    <LayoutWrapper>
+      <ArchivesContent />
+    </LayoutWrapper>
+  );
+}
+
+function ArchivesContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();
