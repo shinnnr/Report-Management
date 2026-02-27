@@ -221,7 +221,10 @@ function SettingsContent() {
             {isMobile ? (
               <button 
                 type="button" 
-                onClick={toggleSidebar} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSidebar();
+                }} 
                 className="p-1 hover:bg-muted rounded-md transition-colors"
                 aria-label="Open menu"
               >
