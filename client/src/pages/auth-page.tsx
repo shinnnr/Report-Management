@@ -64,29 +64,29 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      {/* Left: Branding */}
-      <div className="hidden lg:flex flex-col justify-between bg-primary p-12 text-white relative overflow-hidden">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      {/* Top: Branding - visible on mobile at top, on desktop at left */}
+      <div className="flex flex-col justify-between bg-primary p-8 lg:p-12 text-white relative overflow-hidden order-1">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
         
         <div className="relative z-10">
           <div className="mb-6">
-            <img src={neecoBanner} alt="NEECO Banner" className="h-20 w-auto rounded-lg shadow-lg" />
+            <img src={neecoBanner} alt="NEECO Banner" className="h-16 lg:h-20 w-auto rounded-lg shadow-lg" />
           </div>
-          <h1 className="text-4xl font-display font-bold mb-4">Report Management System</h1>
-          <p className="text-lg opacity-80 max-w-md">
+          <h1 className="text-2xl lg:text-4xl font-display font-bold mb-4">Report Management System</h1>
+          <p className="text-sm lg:text-lg opacity-80 max-w-md">
             Streamline your workflow, organize reports, and track activities with our comprehensive management solution.
           </p>
         </div>
         
-        <div className="relative z-10 text-sm opacity-60">
+        <div className="relative z-10 text-xs lg:text-sm opacity-60">
           © {new Date().getFullYear()} RMS Inc. Secure & Encrypted.
         </div>
       </div>
 
-      {/* Right: Login Form */}
-      <div className="flex items-center justify-center p-8 bg-gray-50">
+      {/* Bottom: Login Form */}
+      <div className="flex items-center justify-center p-8 bg-gray-50 order-2">
         <Card className="w-full max-w-lg border-2 border-gray-200 shadow-lg bg-white mx-4">
           <CardHeader className="space-y-1 px-8">
             <CardTitle className="text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
