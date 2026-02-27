@@ -33,7 +33,7 @@ import { NotificationModal } from "@/components/notification-modal";
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const { toggleSidebar } = useSidebar();
+    const { openSidebar } = useSidebar();
     const isMobile = useIsMobile();
     const { data: folders } = useFolders('all', 'active', 5000);
     const { data: reportsCount } = useReportsCount(undefined, 'active');
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                   type="button" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleSidebar();
+                    openSidebar();
                   }} 
                   className="p-1 hover:bg-muted rounded-md transition-colors"
                   aria-label="Open menu"

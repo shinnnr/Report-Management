@@ -88,7 +88,7 @@ const getFileExtension = (mimeType: string): string => {
 
 export default function DrivePage() {
   const { user } = useAuth();
-  const { toggleSidebar } = useSidebar();
+  const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -722,7 +722,7 @@ export default function DrivePage() {
                 type="button" 
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleSidebar();
+                  openSidebar();
                 }} 
                 className="p-1 hover:bg-muted rounded-md transition-colors"
                 aria-label="Open menu"

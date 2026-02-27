@@ -36,10 +36,10 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Always start with sidebar open on mobile (toggleable screens)
+  // Always start with sidebar closed on mobile (toggleable screens)
   useEffect(() => {
     if (isSidebarToggleable) {
-      setSidebarOpen(true);
+      setSidebarOpen(false);
     }
   }, [isSidebarToggleable]);
 
@@ -79,6 +79,10 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     setSidebarOpen(prev => !prev);
   };
 
+  const openSidebar = () => {
+    setSidebarOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -93,7 +97,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
 
   return (
     <SidebarContext.Provider value={{ 
-      openSidebar: () => setSidebarOpen(true),
+      openSidebar,
       closeSidebar: () => setSidebarOpen(false),
       toggleSidebar,
       isSidebarOpen: sidebarOpen,
