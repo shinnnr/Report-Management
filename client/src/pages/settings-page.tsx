@@ -299,7 +299,7 @@ function SettingsContent() {
                     placeholder="Enter your name"
                   />
                 </div>
-                <Button type="submit" disabled={updateUserMutation.isPending || !fullName.trim()} className="w-full sm:w-auto">
+                <Button type="submit" disabled={updateUserMutation.isPending || fullName.trim() === currentUser?.fullName?.trim()} className="w-full sm:w-auto">
                   {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Name
                 </Button>
@@ -316,7 +316,7 @@ function SettingsContent() {
                     placeholder="Enter your username"
                   />
                 </div>
-                <Button type="submit" disabled={updateUsernameMutation.isPending || !username.trim()} className="w-full sm:w-auto">
+                <Button type="submit" disabled={updateUsernameMutation.isPending || username.trim() === currentUser?.username?.trim()} className="w-full sm:w-auto">
                   {updateUsernameMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Username
                 </Button>
