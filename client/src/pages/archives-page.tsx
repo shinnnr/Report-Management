@@ -847,8 +847,12 @@ function ArchivesContent() {
                         className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
                         onClick={() => {
                           if (!isSelectMode) {
-                            setSelectedFileForDialog(r);
-                            setIsFileDialogOpen(true);
+                            if (isMobile) {
+                              setSelectedFileForDialog(r);
+                              setIsFileDialogOpen(true);
+                            } else if (r.fileData) {
+                              handleFileClick(r.fileData, r.fileName, r.fileType);
+                            }
                           }
                         }}
                       >
@@ -863,7 +867,7 @@ function ArchivesContent() {
                         <td className="px-6 py-4 w-[40%] min-w-0">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
-                            <span className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
+                            <span onClick={(e) => { e.stopPropagation(); if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate">{r.fileName}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden md:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
@@ -873,10 +877,10 @@ function ArchivesContent() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 md:relative"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => handleRestoreFile(r.id)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreFile(r.id); }}>
                                 <RotateCcw className="w-4 h-4 mr-2" /> Restore
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>
+                              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id); }}>
                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -910,11 +914,11 @@ function ArchivesContent() {
         </div>
       )}
 
-      {/* Mobile File Details Dialog */}
-      <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+      {/* Mobile File Details Dialog - Only show on mobile */}
+      <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-start gap-2 pr-8">
+            <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <span className="break-all">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>

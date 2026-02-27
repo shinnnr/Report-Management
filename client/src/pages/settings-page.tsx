@@ -646,10 +646,10 @@ function SettingsContent() {
       </Tabs>
 
       {/* Mobile User Details Dialog */}
-      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+      <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8">
+            <DialogTitle className="flex items-center gap-2 pr-8 text-left">
               <User className="w-5 h-5" />
               {selectedUserForDialog?.fullName}
             </DialogTitle>

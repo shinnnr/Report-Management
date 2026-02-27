@@ -1581,8 +1581,12 @@ function DriveContent() {
                           className="hover:bg-muted/20 group cursor-pointer md:cursor-auto relative"
                           onClick={() => {
                             if (!isSelectMode) {
-                              setSelectedFileForDialog(r);
-                              setIsFileDialogOpen(true);
+                              if (isMobile) {
+                                setSelectedFileForDialog(r);
+                                setIsFileDialogOpen(true);
+                              } else if (r.fileData) {
+                                handleFileClick(r.fileData, r.fileName, r.fileType);
+                              }
                             }
                           }}
                         >
@@ -1608,10 +1612,10 @@ function DriveContent() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 md:relative"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => {setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setArchiveFileId(r.id)}>Archive</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFileId(r.id)}>Delete</DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setArchiveFileId(r.id);}}>Archive</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
@@ -1641,11 +1645,11 @@ function DriveContent() {
         </div>
       )}
 
-      {/* Mobile File Details Dialog */}
-      <Dialog open={isFileDialogOpen} onOpenChange={setIsFileDialogOpen}>
+      {/* Mobile File Details Dialog - Only show on mobile */}
+      <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>
         <DialogContent className="rounded-lg sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-start gap-2 pr-8">
+            <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <span className="break-all">{selectedFileForDialog?.fileName}</span>
             </DialogTitle>
