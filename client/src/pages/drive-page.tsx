@@ -815,7 +815,7 @@ function DriveContent() {
                 <Plus className="w-4 h-4" /> New Folder
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-full sm:max-w-lg p-4">
+            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>Create New Folder</DialogTitle>
                 <DialogDescription>Create a new folder in the current location.</DialogDescription>
