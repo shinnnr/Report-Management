@@ -160,50 +160,53 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </div>
         </ScrollArea>
 
-        {/* Pagination Controls */}
-        {notifications && notifications.length > notificationsPerPage && (
-          <div className="flex items-center justify-between py-2 border-t mt-2">
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+        {/* Footer with Pagination and Delete Selected */}
+        <div className="border-t mt-4 pt-2">
+          {/* Pagination Controls */}
+          {notifications && notifications.length > notificationsPerPage && (
+            <div className="flex items-center justify-between py-2">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Delete Selected Button */}
-        {selectedNotifications.length > 0 && (
-          <div className="flex justify-between items-center py-2 border-t mt-2">
-            <span className="text-sm text-muted-foreground font-medium">
-              {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
-            </span>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteSelected}
-              disabled={deleteMutation.isPending}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete Selected ({selectedNotifications.length})
-            </Button>
-          </div>
-        )}
+          {/* Delete Selected Button */}
+          {selectedNotifications.length > 0 && (
+            <div className="flex justify-between items-center py-2">
+              <span className="text-sm text-muted-foreground font-medium">
+                {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected ({selectedNotifications.length})
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
 
       {/* Delete Confirmation Dialog */}

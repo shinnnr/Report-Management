@@ -683,52 +683,55 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Pagination Controls */}
-          {logs && logs.length > logsPerPage && (
-            <div className="flex items-center justify-between py-2 border-t bg-muted/30 px-4 -mx-4 -mb-4 mt-2">
-              <div className="text-sm text-muted-foreground">
-                Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+          {/* Footer with Pagination and Delete Selected */}
+          <div className="border-t mt-4 pt-2">
+            {/* Pagination Controls */}
+            {logs && logs.length > logsPerPage && (
+              <div className="flex items-center justify-between py-2">
+                <div className="text-sm text-muted-foreground">
+                  Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
+                    disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
-                  disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Delete Selected Button */}
-          {selectedLogIds.length > 0 && (
-            <div className="flex justify-between items-center py-2 border-t">
-              <span className="text-sm text-muted-foreground">
-                {selectedLogIds.length} selected
-              </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
-                  setSelectedLogIds([]);
-                }}
-                disabled={deleteLogMutation.isPending}
-              >
-                Delete Selected
-              </Button>
-            </div>
-          )}
+            {/* Delete Selected Button */}
+            {selectedLogIds.length > 0 && (
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedLogIds.length} selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
+                    setSelectedLogIds([]);
+                  }}
+                  disabled={deleteLogMutation.isPending}
+                >
+                  Delete Selected
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </>
