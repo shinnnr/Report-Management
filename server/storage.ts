@@ -696,7 +696,7 @@ export class DatabaseStorage implements IStorage {
       timestamp: activityLogs.timestamp,
       userFullName: users.fullName,
       userRole: users.role,
-    }).from(activityLogs).leftJoin(users, eq(activityLogs.userId, users.id)).orderBy(desc(activityLogs.timestamp)).limit(10);
+    }).from(activityLogs).leftJoin(users, eq(activityLogs.userId, users.id)).orderBy(desc(activityLogs.timestamp)).limit(1000);
   }
 
   async createLog(userId: number, action: string, description: string): Promise<void> {
