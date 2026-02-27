@@ -161,8 +161,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
         {/* Pagination Controls - at bottom of content, outside footer */}
-        {notifications && notifications.length > notificationsPerPage && (
-          <div className="flex items-center justify-between py-2 border-t">
+        {notifications && notifications.length >= notificationsPerPage && (
+          <div className="flex items-center justify-between py-2 mt-2">
             <div className="text-sm text-muted-foreground">
               Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
             </div>
@@ -188,7 +188,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         )}
 
         {/* Footer with Delete Selected */}
-        <div className="border-t mt-4 pt-2">
+        <div className="mt-4 pt-2">
           {/* Delete Selected Button */}
           {selectedNotifications.length > 0 && (
             <div className="flex justify-between items-center py-2">

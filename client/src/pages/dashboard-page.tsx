@@ -685,7 +685,7 @@ function DashboardContent() {
 
           {/* Pagination Controls - outside footer, at bottom of content */}
           {logs && logs.length >= logsPerPage && (
-            <div className="flex items-center justify-between py-2 border-t">
+            <div className="flex items-center justify-between py-2 mt-2">
               <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
               </div>
@@ -711,7 +711,7 @@ function DashboardContent() {
           )}
 
           {/* Footer with Delete Selected */}
-          <div className="border-t mt-4 pt-2">
+          <div className="mt-4 pt-2">
             {/* Delete Selected Button */}
             {selectedLogIds.length > 0 && (
               <div className="flex justify-between items-center py-2">
