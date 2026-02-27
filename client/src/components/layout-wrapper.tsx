@@ -50,12 +50,12 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Close sidebar when switching to desktop
+  // Close sidebar when switching to non-toggleable mode
   useEffect(() => {
-    if (!isMobile) {
+    if (!isSidebarToggleable) {
       setSidebarOpen(false);
     }
-  }, [isMobile]);
+  }, [isSidebarToggleable]);
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {
