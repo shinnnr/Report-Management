@@ -66,11 +66,11 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       {/* Top: Branding - visible on mobile at top, on desktop at left */}
-      <div className="flex flex-col justify-between bg-primary p-8 lg:p-12 text-white relative overflow-hidden order-1 min-h-[100vh]">
+      <div className="flex flex-col justify-between bg-primary p-8 lg:p-12 text-white relative overflow-hidden order-1 min-h-[50vh]">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
         
-        <div className="relative z-10 flex flex-col text-center lg:text-start">
+        <div className="relative z-10">
           <div className="mb-6">
             <img src={neecoBanner} alt="NEECO Banner" className="h-16 lg:h-20 w-auto rounded-lg shadow-lg" />
           </div>
@@ -86,7 +86,7 @@ export default function AuthPage() {
       </div>
 
       {/* Bottom: Login Form */}
-      <div className="flex items-center justify-center p-8 bg-gray-50 order-2 min-h-[100vh]">
+      <div className="flex items-center justify-center p-8 bg-gray-50 order-2 min-h-[50vh]">
         <Card className="w-full max-w-lg border-2 border-gray-200 shadow-lg bg-white mx-4">
           <CardHeader className="space-y-1 px-8">
             <CardTitle className="text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
