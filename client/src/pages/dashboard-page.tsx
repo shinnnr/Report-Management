@@ -395,7 +395,7 @@ function DashboardContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         {/* Recent Activity Logs */}
         <div className="lg:col-span-2">
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group">
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
@@ -422,7 +422,7 @@ function DashboardContent() {
                           <IconComponent className="w-4 h-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start gap-2">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>

@@ -437,7 +437,7 @@ function SettingsContent() {
         {/* User Management Tab (Admin Only) */}
         {isAdmin && (
           <TabsContent value="users" className="space-y-4">
-            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
