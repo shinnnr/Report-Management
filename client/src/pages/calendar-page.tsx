@@ -535,14 +535,14 @@ function CalendarContent() {
                   </div>
 
                   {selectedFiles.length > 0 && (
-                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <div className="text-left p-3 bg-muted/30 rounded-lg">
                       <p className="text-sm font-medium mb-2">
                         {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected:
                       </p>
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {selectedFiles.map((file, index) => (
                           <div key={index} className="text-xs text-muted-foreground flex justify-between">
-                            <span className="truncate">{file.name}</span>
+                            <span className="truncate max-w-[150px]" title={file.name}>{file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}</span>
                             <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                           </div>
                         ))}
