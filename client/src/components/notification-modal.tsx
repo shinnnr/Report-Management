@@ -162,21 +162,12 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
         {/* Pagination Controls and Delete Selected - fixed at bottom */}
         <div className="flex items-center justify-between py-2 border-t mt-2">
-          <div className="flex items-center gap-4">
-            {notifications && notifications.length >= notificationsPerPage && (
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-              </span>
-            )}
-            {selectedNotifications.length > 0 && (
-              <span className="text-sm text-muted-foreground font-medium">
-                {selectedNotifications.length} notification{selectedNotifications.length !== 1 ? 's' : ''} selected
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex items-center gap-2">
             {notifications && notifications.length >= notificationsPerPage && (
               <>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -195,16 +186,23 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 </Button>
               </>
             )}
+          </div>
+          <div className="flex items-center gap-4">
             {selectedNotifications.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteSelected}
-                disabled={deleteMutation.isPending}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete Selected ({selectedNotifications.length})
-              </Button>
+              <>
+                <span className="text-sm text-muted-foreground font-medium">
+                  {selectedNotifications.length} selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected ({selectedNotifications.length})
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -687,21 +687,12 @@ function DashboardContent() {
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
           <div className="flex items-center justify-between py-2 border-t mt-2">
-            <div className="flex items-center gap-4">
-              {logs && logs.length >= logsPerPage && (
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
-                </span>
-              )}
-              {selectedLogIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedLogIds.length} selected
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               {logs && logs.length >= logsPerPage && (
                 <>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -720,18 +711,25 @@ function DashboardContent() {
                   </Button>
                 </>
               )}
+            </div>
+            <div className="flex items-center gap-4">
               {selectedLogIds.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
-                    setSelectedLogIds([]);
-                  }}
-                  disabled={deleteLogMutation.isPending}
-                >
-                  Delete Selected
-                </Button>
+                <>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedLogIds.length} selected
+                  </span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
+                      setSelectedLogIds([]);
+                    }}
+                    disabled={deleteLogMutation.isPending}
+                  >
+                    Delete Selected
+                  </Button>
+                </>
               )}
             </div>
           </div>
