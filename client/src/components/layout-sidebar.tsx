@@ -49,7 +49,7 @@ export function Sidebar({ onToggle, isMobile, isOpen }: SidebarProps) {
 
   return (
     <div className="h-screen w-64 bg-primary dark:bg-[#022420] text-white flex flex-col shadow-2xl z-20">
-      <div className="px-6 pb-6">
+      <div className="px-6 pt-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
           <button
             onClick={onToggle}
