@@ -874,9 +874,10 @@ function ArchivesContent() {
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
                         <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
                         <td className="px-6 py-4 w-[20%] text-right hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="py-2 md:py-4 pl-4 pr-2 md:pr-0 text-right align-top">
+                        <td className="py-2 md:py-4 pl-4 pr-2 md:pr-0 text-right align-middle">
+                          <div className="flex items-center justify-end h-full">
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity absolute right-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreFile(r.id); }}>
                                 <RotateCcw className="w-4 h-4 mr-2" /> Restore
@@ -886,6 +887,7 @@ function ArchivesContent() {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          </div>
                         </td>
                       </tr>
                     ))}
