@@ -31,13 +31,14 @@ function useSidebarToggle() {
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
-  const isSidebarToggleable = isMobile; // Use isMobile directly
-  const [sidebarOpen, setSidebarOpen] = useState(isMobile); // Start as open on mobile
+  const isSidebarToggleable = isMobile === true; // Only true when explicitly true
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Always start closed
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Always start with sidebar closed on mobile (toggleable screens)
+  // Handle sidebar state based on mobile/toggleable status
   useEffect(() => {
+    // Always close sidebar when entering mobile/toggleable mode
     if (isSidebarToggleable) {
       setSidebarOpen(false);
     }
