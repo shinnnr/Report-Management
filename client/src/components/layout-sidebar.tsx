@@ -7,7 +7,8 @@ import {
   CalendarDays,
   Archive,
   Settings,
-  LogOut
+  LogOut,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,12 @@ import { useState } from "react";
 
 import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export function Sidebar({ onClose, isMobile }: SidebarProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { resetTheme } = useTheme();
@@ -43,7 +49,19 @@ export function Sidebar() {
 
   return (
     <div className="h-screen w-64 bg-primary dark:bg-[#022420] text-white flex flex-col shadow-2xl z-20">
-      <div className="p-6">
+      {/* Mobile close button */}
+      {isMobile && (
+        <div className="flex justify-end p-2">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close sidebar"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      )}
+      <div className="px-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
           <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
           <div>
@@ -56,12 +74,15 @@ export function Sidebar() {
             const isActive = location === item.href || location.startsWith(item.href + '/');
             return (
               <Link key={item.href} href={item.href}>
-                <div className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200",
-                  isActive 
-                    ? "bg-white/10 text-white font-medium shadow-inner border border-white/5" 
+                <div 
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200",
+                    isActive 
+                      ? "bg-white/10 text-white font-medium shadow-inner border border-white/5" 
                     : "text-primary-foreground/70 dark:text-gray-300 hover:bg-white/5 hover:text-white"
-                )}>
+                  )}
+                  onClick={() => isMobile && onClose?.()}
+                >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
                 </div>
