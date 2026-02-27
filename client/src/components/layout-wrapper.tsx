@@ -72,6 +72,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   }
 
   return (
+    <SidebarContext.Provider value={{ openSidebar: () => setSidebarOpen(true) }}>
     <div 
       className="flex min-h-screen bg-background text-foreground"
       onTouchStart={handleTouchStart}
@@ -104,11 +105,10 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto h-screen p-8 relative">
         <div className="max-w-7xl mx-auto pb-12">
-          <SidebarContext.Provider value={{ openSidebar: () => setSidebarOpen(true) }}>
-            {children}
-          </SidebarContext.Provider>
+          {children}
         </div>
       </main>
     </div>
+    </SidebarContext.Provider>
   );
 }
