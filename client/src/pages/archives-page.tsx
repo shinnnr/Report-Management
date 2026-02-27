@@ -390,45 +390,41 @@ export default function ArchivesPage() {
 
   return (
     <LayoutWrapper>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 lg:mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="hidden lg:block">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div>
           <h1 className="text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             <Archive className="w-8 h-8" /> Archives
           </h1>
           <p className="text-muted-foreground mb-4">View and manage archived documents.</p>
-        </div>
-        {/* Mobile: show simple title */}
-        <div className="lg:hidden">
-          <p className="text-lg font-semibold text-primary">Archives</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground overflow-x-auto">
-          <button onClick={() => setLocation("/archives")} className={`hover:text-primary flex items-center gap-1 transition-colors whitespace-nowrap ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
-            <Home className="w-4 h-4" /> Home
-          </button>
-          {breadcrumbs.map((crumb) => (
-            <div key={crumb.id} className="flex items-center gap-2">
-              <ChevronRight className="w-4 h-4" />
-              <button
-                onClick={() => setLocation(`/archives?folder=${crumb.id}`)}
-                className="hover:text-primary transition-colors whitespace-nowrap truncate max-w-[100px]"
-              >
-                {crumb.name}
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-2 lg:mt-0">
-          <Input
-            name="archives-search"
-            placeholder="Search..."
-            value={archivesSearchQuery}
-            onChange={(e) => setArchivesSearchQuery(e.target.value)}
-            className="w-full sm:max-w-xs"
-          />
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button onClick={() => setLocation("/archives")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
+              <Home className="w-4 h-4" /> Home
+            </button>
+            {breadcrumbs.map((crumb) => (
+              <div key={crumb.id} className="flex items-center gap-2">
+                <ChevronRight className="w-4 h-4" />
+                <button
+                  onClick={() => setLocation(`/archives?folder=${crumb.id}`)}
+                  className={`hover:text-primary transition-colors ${crumb.id === currentFolderId ? "font-medium text-foreground" : ""}`}
+                >
+                  {crumb.name}
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <Input
+              name="archives-search"
+              placeholder="Search archived folders and files..."
+              value={archivesSearchQuery}
+              onChange={(e) => setArchivesSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
         </div>
         {/* Bulk actions in header - shown when items are selected */}
         {(isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0)) && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-3">
             {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
               <>
                 <Button variant="outline" className="gap-2" onClick={() => setIsBulkRestoreOpen(true)}>

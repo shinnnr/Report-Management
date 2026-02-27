@@ -64,23 +64,8 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      {/* Top: Branding - shows on mobile at top, on lg screens at left */}
-      <div className="flex lg:hidden flex-col justify-between bg-primary p-6 text-white relative overflow-hidden min-h-[200px]">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
-        
-        <div className="relative z-10 flex items-center justify-between">
-          <img src={neecoBanner} alt="NEECO Banner" className="h-12 w-auto rounded-lg shadow-lg" />
-          <span className="text-xl font-display font-bold">RMS</span>
-        </div>
-        
-        <div className="relative z-10">
-          <h1 className="text-2xl font-display font-bold mb-2">Report Management System</h1>
-        </div>
-      </div>
-
-      {/* Desktop: Branding - hidden on mobile, shows on lg screens at left */}
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Left: Branding */}
       <div className="hidden lg:flex flex-col justify-between bg-primary p-12 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center" />
         <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent" />
@@ -100,16 +85,16 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Bottom: Login Form - on mobile at bottom, on lg screens at right */}
-      <div className="flex items-center justify-center p-6 lg:p-8 bg-gray-50">
+      {/* Right: Login Form */}
+      <div className="flex items-center justify-center p-8 bg-gray-50">
         <Card className="w-full max-w-lg border-2 border-gray-200 shadow-lg bg-white mx-4">
-          <CardHeader className="space-y-1 px-6 lg:px-8">
-            <CardTitle className="text-2xl lg:text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
+          <CardHeader className="space-y-1 px-8">
+            <CardTitle className="text-3xl font-display font-bold text-primary">Welcome back</CardTitle>
             <CardDescription className="text-base">
               Enter your credentials to access your dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-6 lg:px-8">
+          <CardContent className="px-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
