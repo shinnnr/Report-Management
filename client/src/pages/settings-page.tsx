@@ -76,6 +76,11 @@ function SettingsContent() {
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
+  // User search and pagination state
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const usersPerPage = 10;
+
   // Sort users: current logged-in user first
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -85,6 +90,21 @@ function SettingsContent() {
       return 0;
     });
   }, [users, currentUser]);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!sortedUsers) return [];
+    if (!userSearchQuery.trim()) return sortedUsers;
+    const query = userSearchQuery.toLowerCase();
+    return sortedUsers.filter(
+      (user) =>
+        user.fullName?.toLowerCase().includes(query) ||
+        user.username?.toLowerCase().includes(query)
+    );
+  }, [sortedUsers, userSearchQuery]);
+
+  // Calculate total pages
+  const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
