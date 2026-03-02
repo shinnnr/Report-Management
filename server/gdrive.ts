@@ -75,6 +75,11 @@ export async function uploadToGoogleDrive(
   webContentLink: string;
   name: string;
 }> {
+  console.log('Attempting to upload to Google Drive...');
+  console.log('- File:', fileName);
+  console.log('- Type:', mimeType);
+  console.log('- Configured:', isGDriveConfigured());
+  
   const drive = await getDriveClient();
   
   // If drive client is not initialized, skip upload
@@ -143,8 +148,14 @@ export async function deleteFromGoogleDrive(fileId: string): Promise<void> {
 export function isGDriveConfigured(): boolean {
   // Check if credentials exist (either as JSON or file) and folder ID is set
   const hasJsonCredentials = !!process.env.GOOGLE_CREDENTIALS_JSON;
-  const hasFileCredentials = fs.existsSync(config.credentialsPath);
+  const hasFileCredentials = fs.existsSync('./gdrive-credentials.json');
   const hasFolderId = !!config.folderId;
+  
+  console.log('GDrive Config Check:');
+  console.log('- Has JSON credentials:', hasJsonCredentials);
+  console.log('- Has file credentials:', hasFileCredentials);
+  console.log('- Has folder ID:', hasFolderId);
+  
   return (hasJsonCredentials || hasFileCredentials) && hasFolderId;
 }
 
