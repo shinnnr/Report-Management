@@ -524,10 +524,15 @@ export async function registerRoutes(
       let gdriveId: string | undefined;
       let gdriveWebLink: string | undefined;
 
+      console.log('[DEBUG] fileData present:', !!input.fileData);
+      console.log('[DEBUG] GDrive configured:', isGDriveConfigured());
+
       if (input.fileData && isGDriveConfigured()) {
         try {
+          console.log('[GDrive] Starting upload for:', finalFileName);
           const buffer = Buffer.from(input.fileData, 'base64');
           const mimeType = input.fileType || 'application/octet-stream';
+          console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
           
           const gdriveResult = await uploadFileToDrive(
             buffer,
@@ -538,7 +543,7 @@ export async function registerRoutes(
           if (gdriveResult.success) {
             gdriveId = gdriveResult.fileId;
             gdriveWebLink = gdriveResult.webViewLink;
-            console.log(`[GDrive] File uploaded successfully: ${finalFileName}`);
+            console.log(`[GDrive] File uploaded successfully: ${finalFileName}, ID: ${gdriveId}`);
           } else {
             console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
           }
@@ -546,6 +551,8 @@ export async function registerRoutes(
           console.error('[GDrive] Error during upload:', gdriveError);
           // Continue without GDrive link if upload fails
         }
+      } else {
+        console.log('[GDrive] Skipping upload - no fileData or not configured');
       }
 
       // Update the input with the unique filename and GDrive info
