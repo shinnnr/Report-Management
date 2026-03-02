@@ -774,8 +774,10 @@ export async function registerRoutes(
       });
 
       // Upload to Google Drive if configured and fileData exists
+      console.log('Checking GDrive upload - Configured:', isGDriveConfigured(), 'Has fileData:', !!report.fileData);
       if (isGDriveConfigured() && report.fileData) {
         try {
+          console.log('Starting GDrive upload for:', report.fileName);
           const gdriveResult = await uploadToGoogleDrive(
             report.fileData,
             report.fileName,
