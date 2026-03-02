@@ -14,7 +14,7 @@ interface GDriveConfig {
 let config: GDriveConfig = {
   credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './gdrive-credentials.json',
   credentialsJson: process.env.GOOGLE_CREDENTIALS_JSON || '',
-  folderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
+  folderId: process.env.GOOGLE_DRIVE_FOLDER_ID || '1_l0arYV5YJjouuU54RxOIod04u4bd3oA',
 };
 
 let driveInstance: any = null;
