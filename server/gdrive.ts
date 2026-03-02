@@ -168,6 +168,10 @@ export async function getDriveFileLink(fileId: string): Promise<string | null> {
  * Check if Google Drive is properly configured
  */
 export function isGDriveConfigured(): boolean {
+  console.log('[GDrive] Checking configuration...');
+  console.log('[GDrive] GOOGLE_DRIVE_FOLDER_ID:', process.env.GOOGLE_DRIVE_FOLDER_ID);
+  console.log('[GDrive] GOOGLE_APPLICATION_CREDENTIALS:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   
   // Check if folder ID is configured
