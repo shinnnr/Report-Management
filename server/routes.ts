@@ -669,6 +669,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/activities/:id/submit", isAuthenticated, async (req, res) => {
+    console.log('ACTIVITY SUBMIT ENDPOINT REACHED - activityId:', req.params.id);
     try {
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
