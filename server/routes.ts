@@ -12,7 +12,6 @@ import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { userSessions, type User } from "@shared/schema";
 import { format } from "date-fns";
-import { uploadToGoogleDrive, isGDriveConfigured } from "./gdrive";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -528,34 +527,6 @@ export async function registerRoutes(
       };
 
       const report = await storage.createReport(reportInput);
-
-      // Upload to Google Drive if configured and fileData exists
-      if (isGDriveConfigured() && report.fileData) {
-        try {
-          const gdriveResult = await uploadToGoogleDrive(
-            report.fileData,
-            report.fileName,
-            report.fileType
-          );
-
-          // Update the report with Google Drive info
-          await storage.updateReport(report.id, {
-            gdriveId: gdriveResult.fileId,
-            gdriveLink: gdriveResult.webViewLink,
-            gdriveWebLink: gdriveResult.webContentLink
-          });
-
-          // Refresh the report to get updated data
-          const updatedReport = await storage.getReport(report.id);
-          if (updatedReport) {
-            await storage.createLog((req.user as any).id, "UPLOAD_REPORT", `Uploaded report: ${report.title} (also saved to Google Drive)`);
-            return res.status(201).json(updatedReport);
-          }
-        } catch (gdriveError) {
-          console.error('Google Drive upload failed:', gdriveError);
-        }
-      }
-
       await storage.createLog((req.user as any).id, "UPLOAD_REPORT", `Uploaded report: ${report.title}`);
       res.status(201).json(report);
     } catch (err) {
@@ -669,7 +640,6 @@ export async function registerRoutes(
   });
 
   app.post("/api/activities/:id/submit", isAuthenticated, async (req, res) => {
-    console.log('ACTIVITY SUBMIT ENDPOINT REACHED - activityId:', req.params.id);
     try {
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
@@ -773,36 +743,6 @@ export async function registerRoutes(
         month: deadline.getMonth() + 1,
         status: 'active'
       });
-
-      // Upload to Google Drive if configured and fileData exists
-      console.log('Checking GDrive upload - Configured:', isGDriveConfigured(), 'Has fileData:', !!report.fileData);
-      if (isGDriveConfigured() && report.fileData) {
-        try {
-          console.log('Starting GDrive upload for:', report.fileName);
-          const gdriveResult = await uploadToGoogleDrive(
-            report.fileData,
-            report.fileName,
-            report.fileType
-          );
-
-          // Update the report with Google Drive info
-          await storage.updateReport(report.id, {
-            gdriveId: gdriveResult.fileId,
-            gdriveLink: gdriveResult.webViewLink,
-            gdriveWebLink: gdriveResult.webContentLink
-          });
-
-          // Refresh the report to get updated data
-          const updatedReport = await storage.getReport(report.id);
-          if (updatedReport) {
-            report.gdriveId = updatedReport.gdriveId;
-            report.gdriveLink = updatedReport.gdriveLink;
-            report.gdriveWebLink = updatedReport.gdriveWebLink;
-          }
-        } catch (gdriveError) {
-          console.error('Google Drive upload failed:', gdriveError);
-        }
-      }
 
       // Create submission record
       const submission = await storage.createActivitySubmission({

@@ -11,7 +11,6 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "googleapis": "^144.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@radix-ui/react-accordion": "^1.2.4",
@@ -94,6 +93,8 @@
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
