@@ -87,7 +87,13 @@ export async function uploadToGoogleDrive(
     throw new Error('Google Drive not configured');
   }
 
-  const buffer = Buffer.from(fileData, 'base64');
+  // Extract base64 data from data URL if present (e.g., "data:image/png;base64,iVBORw0KGgo...")
+  let base64Data = fileData;
+  if (fileData.includes(',')) {
+    base64Data = fileData.split(',')[1];
+  }
+  
+  const buffer = Buffer.from(base64Data, 'base64');
   const targetFolderId = folderId || config.folderId;
 
   const requestBody: any = {
