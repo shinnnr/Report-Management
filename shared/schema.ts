@@ -40,6 +40,10 @@ export const reports = pgTable("reports", {
   year: integer("report_year"),
   month: integer("report_month"),
   createdAt: timestamp("created_at").defaultNow(),
+  // Google Drive fields (already exist in database)
+  gdriveId: text("gdrive_id"),
+  gdriveLink: text("gdrive_link"),
+  gdriveWebLink: text("gdrive_web_link"),
 });
 
 // === ACTIVITIES ===

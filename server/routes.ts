@@ -12,6 +12,7 @@ import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { userSessions, type User } from "@shared/schema";
 import { format } from "date-fns";
+import { uploadFileToDrive, isGDriveConfigured } from "./gdrive";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -519,11 +520,41 @@ export async function registerRoutes(
         counter++;
       }
 
-      // Update the input with the unique filename
+      // Upload file to Google Drive if fileData is provided
+      let gdriveId: string | undefined;
+      let gdriveWebLink: string | undefined;
+
+      if (input.fileData && isGDriveConfigured()) {
+        try {
+          const buffer = Buffer.from(input.fileData, 'base64');
+          const mimeType = input.fileType || 'application/octet-stream';
+          
+          const gdriveResult = await uploadFileToDrive(
+            buffer,
+            finalFileName,
+            mimeType
+          );
+
+          if (gdriveResult.success) {
+            gdriveId = gdriveResult.fileId;
+            gdriveWebLink = gdriveResult.webViewLink;
+            console.log(`[GDrive] File uploaded successfully: ${finalFileName}`);
+          } else {
+            console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
+          }
+        } catch (gdriveError) {
+          console.error('[GDrive] Error during upload:', gdriveError);
+          // Continue without GDrive link if upload fails
+        }
+      }
+
+      // Update the input with the unique filename and GDrive info
       const reportInput = {
         ...input,
         fileName: finalFileName,
-        title: finalFileName // Also update title to match
+        title: finalFileName, // Also update title to match
+        gdriveId,
+        gdriveWebLink
       };
 
       const report = await storage.createReport(reportInput);
@@ -847,7 +878,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only admins can delete logs" });
       }
       
-      const logId = parseInt(req.params.id);
+      const logId = parseInt(req.params.id as string);
       if (isNaN(logId)) {
         return res.status(400).json({ message: "Invalid log ID" });
       }
