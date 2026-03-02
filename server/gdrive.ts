@@ -1,8 +1,32 @@
 import { google } from 'googleapis';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, statSync } from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 let drive: any = null;
+
+// Helper to resolve credential file path
+function resolveCredentialsPath(): string | null {
+  const possiblePaths = [
+    process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    './gdrive-credentials.json',
+    path.join(process.cwd(), 'gdrive-credentials.json'),
+    path.join(process.cwd(), '..', 'gdrive-credentials.json'),
+  ].filter(Boolean) as string[];
+
+  for (const credPath of possiblePaths) {
+    try {
+      const fullPath = path.resolve(credPath);
+      if (existsSync(fullPath) && statSync(fullPath).isFile()) {
+        console.log('[GDrive] Found credentials at:', fullPath);
+        return fullPath;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 /**
  * Initialize Google Drive API client using service account credentials
@@ -10,26 +34,28 @@ let drive: any = null;
 function getDriveClient() {
   if (drive) return drive;
 
-  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './gdrive-credentials.json';
+  const credentialsPath = resolveCredentialsPath();
   
-  let credentials: any;
-  
-  try {
-    // Try to read from file
-    const fullPath = path.resolve(credentialsPath);
-    credentials = JSON.parse(readFileSync(fullPath, 'utf-8'));
-  } catch (error) {
-    console.error('Error reading Google credentials file:', error);
+  if (!credentialsPath) {
+    console.error('[GDrive] ERROR: Could not find Google credentials file');
     throw new Error('Failed to load Google Drive credentials');
   }
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
-  });
+  try {
+    const credentials = JSON.parse(readFileSync(credentialsPath, 'utf-8'));
+    console.log('[GDrive] Successfully loaded credentials from:', credentialsPath);
 
-  drive = google.drive({ version: 'v3', auth });
-  return drive;
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/drive.file'],
+    });
+
+    drive = google.drive({ version: 'v3', auth });
+    return drive;
+  } catch (error) {
+    console.error('[GDrive] Error loading credentials:', error);
+    throw new Error('Failed to load Google Drive credentials');
+  }
 }
 
 export interface UploadResult {
@@ -57,6 +83,8 @@ export async function uploadFileToDrive(
     const driveClient = getDriveClient();
     const targetFolderId = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
 
+    console.log('[GDrive] Upload params - File:', fileName, 'Size:', fileBuffer.length, 'MimeType:', mimeType, 'Folder:', targetFolderId);
+
     const requestBody: any = {
       name: fileName,
     };
@@ -64,11 +92,14 @@ export async function uploadFileToDrive(
     // Add parent folder if specified
     if (targetFolderId) {
       requestBody.parents = [targetFolderId];
+      console.log('[GDrive] Uploading to folder:', targetFolderId);
+    } else {
+      console.log('[GDrive] WARNING: No folder ID specified, uploading to root');
     }
 
     const media = {
       mimeType,
-      body: fileBuffer,
+      body: Readable.from(fileBuffer),
     };
 
     const response = await driveClient.files.create({
@@ -78,6 +109,7 @@ export async function uploadFileToDrive(
     });
 
     console.log(`[GDrive] Uploaded file: ${fileName} (ID: ${response.data.id})`);
+    console.log(`[GDrive] WebViewLink: ${response.data.webViewLink}`);
 
     return {
       success: true,
@@ -87,6 +119,10 @@ export async function uploadFileToDrive(
     };
   } catch (error) {
     console.error('[GDrive] Error uploading file:', error);
+    if (error instanceof Error) {
+      console.error('[GDrive] Error name:', error.name);
+      console.error('[GDrive] Error stack:', error.stack);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -132,12 +168,21 @@ export async function getDriveFileLink(fileId: string): Promise<string | null> {
  * Check if Google Drive is properly configured
  */
 export function isGDriveConfigured(): boolean {
-  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './gdrive-credentials.json';
-  try {
-    const fullPath = path.resolve(credentialsPath);
-    const stats = require('fs').statSync(fullPath);
-    return stats.isFile();
-  } catch {
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  
+  // Check if folder ID is configured
+  if (!folderId) {
+    console.log('[GDrive] Not configured: GOOGLE_DRIVE_FOLDER_ID is not set');
     return false;
   }
+  
+  const credentialsPath = resolveCredentialsPath();
+  
+  if (!credentialsPath) {
+    console.log('[GDrive] Not configured: credentials file not found');
+    return false;
+  }
+  
+  console.log('[GDrive] Configuration OK - Credentials:', credentialsPath, 'Folder ID:', folderId);
+  return true;
 }

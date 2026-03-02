@@ -566,7 +566,14 @@ export async function registerRoutes(
 
       const report = await storage.createReport(reportInput);
       await storage.createLog((req.user as any).id, "UPLOAD_REPORT", `Uploaded report: ${report.title}`);
-      res.status(201).json(report);
+      
+      // Build success message
+      let message = "Report uploaded successfully";
+      if (gdriveWebLink) {
+        message = "Report uploaded successfully to both local storage and Google Drive";
+      }
+      
+      res.status(201).json({ ...report, message });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
