@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import * as fs from 'fs';
 
 // Google Drive API scope for file operations
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
@@ -19,6 +20,12 @@ let driveInstance: any = null;
 async function getDriveClient() {
   if (driveInstance) return driveInstance;
   
+  // Check if credentials file exists
+  if (!fs.existsSync(config.credentialsPath)) {
+    console.log('Google Drive credentials file not found, GDrive upload disabled');
+    return null;
+  }
+  
   try {
     const auth = new google.auth.GoogleAuth({
       keyFile: config.credentialsPath,
@@ -28,7 +35,7 @@ async function getDriveClient() {
     return driveInstance;
   } catch (error) {
     console.error('Failed to initialize Google Drive client:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -48,6 +55,12 @@ export async function uploadToGoogleDrive(
   name: string;
 }> {
   const drive = await getDriveClient();
+  
+  // If drive client is not initialized, skip upload
+  if (!drive) {
+    throw new Error('Google Drive not configured');
+  }
+
   const buffer = Buffer.from(fileData, 'base64');
   const targetFolderId = folderId || config.folderId;
 
@@ -107,7 +120,10 @@ export async function deleteFromGoogleDrive(fileId: string): Promise<void> {
 }
 
 export function isGDriveConfigured(): boolean {
-  return !!(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GOOGLE_DRIVE_FOLDER_ID || config.folderId);
+  // Check if credentials file exists and folder ID is set
+  const hasCredentials = fs.existsSync(config.credentialsPath);
+  const hasFolderId = !!config.folderId;
+  return hasCredentials || hasFolderId;
 }
 
 export default { configureGDrive, uploadToGoogleDrive, deleteFromGoogleDrive, isGDriveConfigured };
