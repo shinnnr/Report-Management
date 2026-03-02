@@ -7,11 +7,13 @@ const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 // Google Drive configuration
 interface GDriveConfig {
   credentialsPath: string;
+  credentialsJson: string;
   folderId?: string;
 }
 
 let config: GDriveConfig = {
   credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || './gdrive-credentials.json',
+  credentialsJson: process.env.GOOGLE_CREDENTIALS_JSON || '',
   folderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
 };
 
@@ -20,15 +22,34 @@ let driveInstance: any = null;
 async function getDriveClient() {
   if (driveInstance) return driveInstance;
   
-  // Check if credentials file exists
-  if (!fs.existsSync(config.credentialsPath)) {
-    console.log('Google Drive credentials file not found, GDrive upload disabled');
+  // Try to get credentials from JSON env var first, then from file
+  let credentials: any = null;
+  
+  if (config.credentialsJson) {
+    try {
+      credentials = JSON.parse(config.credentialsJson);
+    } catch (e) {
+      console.error('Failed to parse GOOGLE_CREDENTIALS_JSON:', e);
+    }
+  }
+  
+  if (!credentials && fs.existsSync(config.credentialsPath)) {
+    try {
+      const fileContent = fs.readFileSync(config.credentialsPath, 'utf8');
+      credentials = JSON.parse(fileContent);
+    } catch (e) {
+      console.error('Failed to read credentials file:', e);
+    }
+  }
+  
+  if (!credentials) {
+    console.log('Google Drive credentials not found, GDrive upload disabled');
     return null;
   }
   
   try {
     const auth = new google.auth.GoogleAuth({
-      keyFile: config.credentialsPath,
+      credentials: credentials,
       scopes: SCOPES,
     });
     driveInstance = google.drive({ version: 'v3', auth });
@@ -120,10 +141,11 @@ export async function deleteFromGoogleDrive(fileId: string): Promise<void> {
 }
 
 export function isGDriveConfigured(): boolean {
-  // Check if credentials file exists and folder ID is set
-  const hasCredentials = fs.existsSync(config.credentialsPath);
+  // Check if credentials exist (either as JSON or file) and folder ID is set
+  const hasJsonCredentials = !!process.env.GOOGLE_CREDENTIALS_JSON;
+  const hasFileCredentials = fs.existsSync(config.credentialsPath);
   const hasFolderId = !!config.folderId;
-  return hasCredentials || hasFolderId;
+  return (hasJsonCredentials || hasFileCredentials) && hasFolderId;
 }
 
 export default { configureGDrive, uploadToGoogleDrive, deleteFromGoogleDrive, isGDriveConfigured };
