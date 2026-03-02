@@ -773,6 +773,34 @@ export async function registerRoutes(
         status: 'active'
       });
 
+      // Upload to Google Drive if configured and fileData exists
+      if (isGDriveConfigured() && report.fileData) {
+        try {
+          const gdriveResult = await uploadToGoogleDrive(
+            report.fileData,
+            report.fileName,
+            report.fileType
+          );
+
+          // Update the report with Google Drive info
+          await storage.updateReport(report.id, {
+            gdriveId: gdriveResult.fileId,
+            gdriveLink: gdriveResult.webViewLink,
+            gdriveWebLink: gdriveResult.webContentLink
+          });
+
+          // Refresh the report to get updated data
+          const updatedReport = await storage.getReport(report.id);
+          if (updatedReport) {
+            report.gdriveId = updatedReport.gdriveId;
+            report.gdriveLink = updatedReport.gdriveLink;
+            report.gdriveWebLink = updatedReport.gdriveWebLink;
+          }
+        } catch (gdriveError) {
+          console.error('Google Drive upload failed:', gdriveError);
+        }
+      }
+
       // Create submission record
       const submission = await storage.createActivitySubmission({
         activityId,
