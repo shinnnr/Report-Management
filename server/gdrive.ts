@@ -3,8 +3,10 @@ import { readFileSync, existsSync, statSync } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 
-// Enable legacy OpenSSL provider for Node.js 22 compatibility
-process.env.NODE_OPTIONS = '--openssl-legacy-provider ' + (process.env.NODE_OPTIONS || '');
+// Legacy OpenSSL provider note:
+// If you encounter ERR_OSSL_UNSUPPORTED errors, ensure NODE_OPTIONS='--openssl-legacy-provider'
+// is set when starting Node.js (not at runtime). Add to your start script:
+//   "start": "NODE_OPTIONS='--openssl-legacy-provider' node dist/index.cjs"
 
 let drive: any = null;
 
