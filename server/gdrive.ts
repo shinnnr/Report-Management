@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import * as fs from 'fs';
+import { Readable } from 'stream';
 
 // Google Drive API scope for file operations
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
@@ -94,6 +95,8 @@ export async function uploadToGoogleDrive(
   }
   
   const buffer = Buffer.from(base64Data, 'base64');
+  // Convert buffer to Readable stream for Google API
+  const stream = Readable.from(buffer);
   const targetFolderId = folderId || config.folderId;
 
   const requestBody: any = {
@@ -107,7 +110,7 @@ export async function uploadToGoogleDrive(
 
   const media = {
     mimeType: mimeType,
-    body: buffer,
+    body: stream,
   };
 
   try {
