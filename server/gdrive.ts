@@ -3,6 +3,9 @@ import { readFileSync, existsSync, statSync } from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 
+// Enable legacy OpenSSL provider for Node.js 22 compatibility
+process.env.NODE_OPTIONS = '--openssl-legacy-provider ' + (process.env.NODE_OPTIONS || '');
+
 let drive: any = null;
 
 // Helper to resolve credential file path
