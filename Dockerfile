@@ -4,6 +4,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
+# Clear npm cache and force fresh install
+RUN npm cache clean --force
+
 RUN npm ci
 
 COPY . .
