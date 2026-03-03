@@ -4,7 +4,6 @@ import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/theme-context";
-import { useLocation } from "wouter";
 
 type AuthContextType = {
   user: User | null;
@@ -18,8 +17,6 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useUser() {
-  const [location] = useLocation();
-  const isLoginPage = location === "/login";
 
   return useQuery({
     queryKey: [api.auth.me.path],
@@ -38,8 +35,6 @@ export function useUser() {
       // Don't throw on auth errors to suppress console errors
       return error.name === "AuthError" ? false : true;
     },
-    // Don't fetch user data on login page to avoid 401 errors
-    enabled: !isLoginPage,
   });
 }
 
