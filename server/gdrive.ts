@@ -12,16 +12,25 @@ let drive: any = null;
 
 // Helper to resolve credential file path
 function resolveCredentialsPath(): string | null {
+  console.log('[GDrive] Resolving credentials path...');
+  console.log('[GDrive] CWD:', process.cwd());
+  console.log('[GDrive] GOOGLE_APPLICATION_CREDENTIALS env:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  
   const possiblePaths = [
     process.env.GOOGLE_APPLICATION_CREDENTIALS,
     './gdrive-credentials.json',
     path.join(process.cwd(), 'gdrive-credentials.json'),
     path.join(process.cwd(), '..', 'gdrive-credentials.json'),
+    path.join(__dirname, '..', 'gdrive-credentials.json'),
+    path.join(__dirname, 'gdrive-credentials.json'),
   ].filter(Boolean) as string[];
+
+  console.log('[GDrive] Checking these paths:', possiblePaths);
 
   for (const credPath of possiblePaths) {
     try {
       const fullPath = path.resolve(credPath);
+      console.log('[GDrive] Checking path:', fullPath);
       if (existsSync(fullPath) && statSync(fullPath).isFile()) {
         console.log('[GDrive] Found credentials at:', fullPath);
         return fullPath;
@@ -30,6 +39,7 @@ function resolveCredentialsPath(): string | null {
       continue;
     }
   }
+  console.log('[GDrive] ERROR: Could not find credentials file');
   return null;
 }
 
@@ -43,12 +53,22 @@ function getDriveClient() {
   
   if (!credentialsPath) {
     console.error('[GDrive] ERROR: Could not find Google credentials file');
+    console.error('[GDrive] Current directory:', process.cwd());
+    console.error('[GDrive] Files in current directory:');
+    try {
+      const fs = require('fs');
+      console.error(fs.readdirSync(process.cwd()));
+    } catch (e) {
+      console.error('Could not list directory');
+    }
     throw new Error('Failed to load Google Drive credentials');
   }
 
   try {
     const credentials = JSON.parse(readFileSync(credentialsPath, 'utf-8'));
     console.log('[GDrive] Successfully loaded credentials from:', credentialsPath);
+    console.log('[GDrive] Service account email:', credentials.client_email);
+    console.log('[GDrive] Project ID:', credentials.project_id);
 
     const auth = new google.auth.GoogleAuth({
       credentials,
@@ -56,9 +76,14 @@ function getDriveClient() {
     });
 
     drive = google.drive({ version: 'v3', auth });
+    console.log('[GDrive] Drive client initialized successfully');
     return drive;
   } catch (error) {
     console.error('[GDrive] Error loading credentials:', error);
+    if (error instanceof Error) {
+      console.error('[GDrive] Error message:', error.message);
+      console.error('[GDrive] Error stack:', error.stack);
+    }
     throw new Error('Failed to load Google Drive credentials');
   }
 }
@@ -176,6 +201,8 @@ export function isGDriveConfigured(): boolean {
   console.log('[GDrive] Checking configuration...');
   console.log('[GDrive] GOOGLE_DRIVE_FOLDER_ID:', process.env.GOOGLE_DRIVE_FOLDER_ID);
   console.log('[GDrive] GOOGLE_APPLICATION_CREDENTIALS:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  console.log('[GDrive] RAILWAY_ENVIRONMENT:', process.env.RAILWAY_ENVIRONMENT || 'not detected');
+  console.log('[GDrive] Current working directory:', process.cwd());
   
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   
@@ -189,9 +216,43 @@ export function isGDriveConfigured(): boolean {
   
   if (!credentialsPath) {
     console.log('[GDrive] Not configured: credentials file not found');
+    console.log('[GDrive] Please ensure gdrive-credentials.json is available in Railway project files');
     return false;
   }
   
   console.log('[GDrive] Configuration OK - Credentials:', credentialsPath, 'Folder ID:', folderId);
   return true;
+}
+
+/**
+ * Verify GDrive connection at startup
+ */
+export async function verifyGDriveConnection(): Promise<boolean> {
+  try {
+    console.log('[GDrive] Verifying connection at startup...');
+    const configured = isGDriveConfigured();
+    
+    if (!configured) {
+      console.log('[GDrive] WARNING: GDrive is not configured properly');
+      return false;
+    }
+    
+    // Try to get the drive client to verify credentials work
+    const driveClient = getDriveClient();
+    
+    // Try a simple API call to verify connection
+    await driveClient.files.list({
+      pageSize: 1,
+      fields: 'files(id, name)',
+    });
+    
+    console.log('[GDrive] Connection verified successfully!');
+    return true;
+  } catch (error) {
+    console.error('[GDrive] Failed to verify connection:', error);
+    if (error instanceof Error) {
+      console.error('[GDrive] Error:', error.message);
+    }
+    return false;
+  }
 }

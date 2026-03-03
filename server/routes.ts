@@ -773,6 +773,41 @@ export async function registerRoutes(
         counter++;
       }
 
+      // Upload file to Google Drive if fileData is provided
+      let gdriveId: string | undefined;
+      let gdriveWebLink: string | undefined;
+
+      console.log('[DEBUG] Activity submit - fileData present:', !!fileData);
+      console.log('[DEBUG] Activity submit - GDrive configured:', isGDriveConfigured());
+
+      if (fileData && isGDriveConfigured()) {
+        try {
+          console.log('[GDrive] Starting upload for activity submission:', finalFileName);
+          const buffer = Buffer.from(fileData, 'base64');
+          const mimeType = fileType || 'application/octet-stream';
+          console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
+          
+          const gdriveResult = await uploadFileToDrive(
+            buffer,
+            finalFileName,
+            mimeType
+          );
+
+          if (gdriveResult.success) {
+            gdriveId = gdriveResult.fileId;
+            gdriveWebLink = gdriveResult.webViewLink;
+            console.log(`[GDrive] File uploaded successfully: ${finalFileName}, ID: ${gdriveId}`);
+          } else {
+            console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
+          }
+        } catch (gdriveError) {
+          console.error('[GDrive] Error during upload:', gdriveError);
+          // Continue without GDrive link if upload fails
+        }
+      } else {
+        console.log('[GDrive] Skipping upload - no fileData or not configured');
+      }
+
       // Create the report
       const report = await storage.createReport({
         title,
@@ -786,7 +821,9 @@ export async function registerRoutes(
         activityId,
         year: activityYear,
         month: deadline.getMonth() + 1,
-        status: 'active'
+        status: 'active',
+        gdriveId,
+        gdriveWebLink
       });
 
       // Create submission record
