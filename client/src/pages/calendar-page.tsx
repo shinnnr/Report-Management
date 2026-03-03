@@ -17,7 +17,7 @@ import {
   isBefore,
   isAfter
 } from "date-fns";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays } from "lucide-react";
@@ -79,8 +79,21 @@ function CalendarContent() {
   // Drag state for rescheduling
   const [draggedActivity, setDraggedActivity] = useState<any>(null);
   const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null);
+  const [dropTargetTime, setDropTargetTime] = useState<string | null>(null);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState<Date | null>(null);
+  const [rescheduleTargetTime, setRescheduleTargetTime] = useState<string | null>(null);
+  const [isDraggingOverTimeSlot, setIsDraggingOverTimeSlot] = useState(false);
+  
+  // Touch drag state
+  const touchDragRef = useRef<{
+    activity: any;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
   
   // Filter activities based on current filter
   const filteredActivities = activities?.filter(a => {
@@ -217,6 +230,119 @@ function CalendarContent() {
     setDraggedActivity(activity);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(activity.id));
+    // Also store the activity as JSON for touch support
+    e.dataTransfer.setData('application/json', JSON.stringify(activity));
+  };
+
+  // Handle drag over for time slot (Week/Day view)
+  const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTargetDate(date);
+    setDropTargetTime(time);
+    setIsDraggingOverTimeSlot(true);
+  };
+
+  // Handle drag leave for time slot
+  const handleTimeSlotDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOverTimeSlot(false);
+  };
+
+  // Handle drop on time slot (Week/Day view)
+  const handleTimeSlotDrop = (e: React.DragEvent, date: Date, time: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOverTimeSlot(false);
+    
+    if (draggedActivity) {
+      const currentDeadline = new Date(draggedActivity.deadlineDate);
+      const targetDateTime = new Date(date);
+      const [hours, minutes] = time.split(':').map(Number);
+      targetDateTime.setHours(hours, minutes, 0, 0);
+      
+      const hasDateChanged = !isSameDay(currentDeadline, date);
+      const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
+      
+      if (hasDateChanged || hasTimeChanged) {
+        setRescheduleTargetDate(date);
+        setRescheduleTargetTime(time);
+        setShowRescheduleConfirm(true);
+        return;
+      }
+    }
+    
+    setDraggedActivity(null);
+    setDropTargetDate(null);
+    setDropTargetTime(null);
+  };
+
+  // Touch-based drag handlers
+  const handleTouchDragStart = (activity: any, e: React.TouchEvent) => {
+    if (activity.status === 'completed' || activity.status === 'late' || activity.status === 'in-progress') {
+      return; // Don't allow dragging for these statuses
+    }
+    
+    const touch = e.touches[0];
+    touchDragRef.current = {
+      activity,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      currentY: touch.clientY
+    };
+    setDraggedActivity(activity);
+    setIsTouchDragging(true);
+  };
+
+  const handleTouchDragMove = (e: React.TouchEvent) => {
+    if (!touchDragRef.current || !isTouchDragging) return;
+    
+    const touch = e.touches[0];
+    touchDragRef.current.currentX = touch.clientX;
+    touchDragRef.current.currentY = touch.clientY;
+  };
+
+  const handleTouchDragEnd = async (e: React.TouchEvent) => {
+    if (!touchDragRef.current || !isTouchDragging) return;
+    
+    const { activity, currentX, currentY } = touchDragRef.current;
+    
+    // Get the element under the touch point
+    const element = document.elementFromPoint(currentX, currentY);
+    if (!element) {
+      setDraggedActivity(null);
+      setIsTouchDragging(false);
+      touchDragRef.current = null;
+      return;
+    }
+    
+    // Find the closest time slot cell
+    const timeSlotCell = element.closest('[data-time-slot]');
+    if (timeSlotCell) {
+      const targetDateStr = timeSlotCell.getAttribute('data-date');
+      const targetTimeStr = timeSlotCell.getAttribute('data-time-slot');
+      
+      if (targetDateStr && targetTimeStr) {
+        const targetDate = new Date(targetDateStr);
+        const currentDeadline = new Date(activity.deadlineDate);
+        const [hours, minutes] = targetTimeStr.split(':').map(Number);
+        
+        const hasDateChanged = !isSameDay(currentDeadline, targetDate);
+        const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
+        
+        if (hasDateChanged || hasTimeChanged) {
+          setRescheduleTargetDate(targetDate);
+          setRescheduleTargetTime(targetTimeStr);
+          setShowRescheduleConfirm(true);
+        }
+      }
+    }
+    
+    setDraggedActivity(null);
+    setIsTouchDragging(false);
+    touchDragRef.current = null;
   };
 
   // Handle drag over for date cell
@@ -226,7 +352,7 @@ function CalendarContent() {
     setDropTargetDate(date);
   };
 
-  // Handle drop on date cell (for month view)
+  // Handle drop on date cell
   const handleDateDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     e.stopPropagation();
@@ -239,77 +365,6 @@ function CalendarContent() {
         // Don't clear draggedActivity here - it's needed for the modal display
         return;
       }
-    }
-    
-    setDraggedActivity(null);
-    setDropTargetDate(null);
-  };
-
-  // Handle drag over on time slot (for day/week view)
-  const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropTargetDate(date);
-  };
-
-  // Handle drop on time slot (for day/week view)
-  const handleTimeSlotDrop = async (e: React.DragEvent, date: Date, time: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!draggedActivity) {
-      setDropTargetDate(null);
-      return;
-    }
-    
-    // Check if activity has a restricted status
-    const restrictedStatuses = ['completed', 'late', 'in-progress'];
-    if (restrictedStatuses.includes(draggedActivity.status)) {
-      toast({
-        title: "Cannot reschedule",
-        description: `Activities with status "${draggedActivity.status}" cannot be rescheduled.`,
-        variant: "destructive"
-      });
-      setDraggedActivity(null);
-      setDropTargetDate(null);
-      return;
-    }
-    
-    // Parse the time string to get hours and minutes
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    // Create new deadline date with the dropped time
-    const newDeadline = new Date(date);
-    newDeadline.setHours(hours, minutes, 0, 0);
-    
-    try {
-      // Update the activity with the new deadline
-      const deadlineDateStr = newDeadline.toISOString();
-      
-      await updateActivity.mutateAsync({
-        id: draggedActivity.id,
-        data: { deadlineDate: deadlineDateStr }
-      });
-      
-      // Force refresh to get the updated status
-      await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-      
-      // Fetch the latest activity data to get the recalculated status
-      const response = await fetch(api.activities.list.path);
-      const allActivities = await response.json();
-      const updatedActivity = allActivities.find((a: any) => a.id === draggedActivity.id);
-      
-      // Update selectedActivity if it's the same activity
-      if (updatedActivity && selectedActivity && selectedActivity.id === draggedActivity.id) {
-        setSelectedActivity(updatedActivity);
-      }
-      
-      toast({
-        title: "Activity rescheduled",
-        description: `Moved to ${format(newDeadline, 'MMMM d, yyyy')} at ${time}`
-      });
-    } catch (error) {
-      // Error handled by mutation
     }
     
     setDraggedActivity(null);
@@ -330,13 +385,24 @@ function CalendarContent() {
         setShowRescheduleConfirm(false);
         setDraggedActivity(null);
         setRescheduleTargetDate(null);
+        setRescheduleTargetTime(null);
         setDropTargetDate(null);
+        setDropTargetTime(null);
         return;
       }
       
       try {
         // Convert Date to ISO string for the API
-        const deadlineDateStr = rescheduleTargetDate.toISOString();
+        // If time is provided, use it; otherwise preserve original time
+        const deadlineDateStr = new Date(rescheduleTargetDate);
+        if (rescheduleTargetTime) {
+          const [hours, minutes] = rescheduleTargetTime.split(':').map(Number);
+          deadlineDateStr.setHours(hours, minutes, 0, 0);
+        } else {
+          // Preserve original time
+          const originalDate = new Date(draggedActivity.deadlineDate);
+          deadlineDateStr.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+        }
         
         // Update the activity
         await updateActivity.mutateAsync({
@@ -357,9 +423,10 @@ function CalendarContent() {
           setSelectedActivity(updatedActivity);
         }
         
+        const timeStr = rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : '';
         toast({
           title: "Activity rescheduled",
-          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}`
+          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}`
         });
       } catch (error) {
         // Error handled by mutation
@@ -368,7 +435,9 @@ function CalendarContent() {
     setShowRescheduleConfirm(false);
     setDraggedActivity(null);
     setRescheduleTargetDate(null);
+    setRescheduleTargetTime(null);
     setDropTargetDate(null);
+    setDropTargetTime(null);
   };
 
   // Handle clearing all selections (date and time slot)
@@ -997,7 +1066,7 @@ function CalendarContent() {
             <DialogHeader>
               <DialogTitle>Reschedule Activity</DialogTitle>
               <DialogDescription>
-                Are you sure you want to move "{draggedActivity?.title}" to {rescheduleTargetDate ? format(rescheduleTargetDate, 'MMMM d, yyyy') : ''}?
+                Are you sure you want to move "{draggedActivity?.title}" to {rescheduleTargetDate ? format(rescheduleTargetDate, 'MMMM d, yyyy') : ''}{rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : ''}?
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -1005,7 +1074,9 @@ function CalendarContent() {
                 setShowRescheduleConfirm(false);
                 setDraggedActivity(null);
                 setRescheduleTargetDate(null);
+                setRescheduleTargetTime(null);
                 setDropTargetDate(null);
+                setDropTargetTime(null);
               }}>
                 Cancel
               </Button>
@@ -1230,15 +1301,29 @@ function CalendarContent() {
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
-            onActivityDragStart={handleActivityDragStart}
-            onTimeSlotDragOver={handleTimeSlotDragOver}
-            onTimeSlotDrop={handleTimeSlotDrop}
-            onClearDrag={() => { setDraggedActivity(null); setDropTargetDate(null); }}
             onClearSelection={handleClearSelection}
             isToday={isToday}
             isSameDay={isSameDay}
             format={format}
             getStatusColor={getStatusColor}
+            // Drag and drop props
+            draggedActivity={draggedActivity}
+            dropTargetDate={dropTargetDate}
+            dropTargetTime={dropTargetTime}
+            onActivityDragStart={handleActivityDragStart}
+            onTimeSlotDragOver={handleTimeSlotDragOver}
+            onTimeSlotDragLeave={handleTimeSlotDragLeave}
+            onTimeSlotDrop={handleTimeSlotDrop}
+            onDragEnd={() => {
+              setDraggedActivity(null);
+              setDropTargetDate(null);
+              setDropTargetTime(null);
+              setIsDraggingOverTimeSlot(false);
+            }}
+            // Touch handlers
+            onTouchDragStart={handleTouchDragStart}
+            onTouchDragMove={handleTouchDragMove}
+            onTouchDragEnd={handleTouchDragEnd}
           />
         )}
 
@@ -1253,15 +1338,29 @@ function CalendarContent() {
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
-            onActivityDragStart={handleActivityDragStart}
-            onTimeSlotDragOver={handleTimeSlotDragOver}
-            onTimeSlotDrop={handleTimeSlotDrop}
-            onClearDrag={() => { setDraggedActivity(null); setDropTargetDate(null); }}
             onClearSelection={handleClearSelection}
             isToday={isToday}
             isSameDay={isSameDay}
             format={format}
             getStatusColor={getStatusColor}
+            // Drag and drop props
+            draggedActivity={draggedActivity}
+            dropTargetDate={dropTargetDate}
+            dropTargetTime={dropTargetTime}
+            onActivityDragStart={handleActivityDragStart}
+            onTimeSlotDragOver={handleTimeSlotDragOver}
+            onTimeSlotDragLeave={handleTimeSlotDragLeave}
+            onTimeSlotDrop={handleTimeSlotDrop}
+            onDragEnd={() => {
+              setDraggedActivity(null);
+              setDropTargetDate(null);
+              setDropTargetTime(null);
+              setIsDraggingOverTimeSlot(false);
+            }}
+            // Touch handlers
+            onTouchDragStart={handleTouchDragStart}
+            onTouchDragMove={handleTouchDragMove}
+            onTouchDragEnd={handleTouchDragEnd}
           />
         )}
       </div>
@@ -1356,15 +1455,24 @@ function WeekView({
   onActivityClick, 
   onSelectTimeSlot,
   selectedTimeSlot,
-  onActivityDragStart,
-  onTimeSlotDragOver,
-  onTimeSlotDrop,
-  onClearDrag,
   isToday, 
   isSameDay, 
   format, 
   getStatusColor,
-  onClearSelection
+  onClearSelection,
+  // Drag and drop props
+  draggedActivity,
+  dropTargetDate,
+  dropTargetTime,
+  onActivityDragStart,
+  onTimeSlotDragOver,
+  onTimeSlotDragLeave,
+  onTimeSlotDrop,
+  onDragEnd,
+  // Touch handlers
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd
 }: {
   currentDate: Date;
   activities: any[];
@@ -1373,15 +1481,24 @@ function WeekView({
   onActivityClick: (activity: any) => void;
   onSelectTimeSlot: (date: Date, time: string) => void;
   selectedTimeSlot: string | null;
-  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
-  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
-  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
-  onClearDrag?: () => void;
   isToday: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
   getStatusColor: (status: string | null) => string;
   onClearSelection?: () => void;
+  // Drag and drop props
+  draggedActivity?: any;
+  dropTargetDate?: Date | null;
+  dropTargetTime?: string | null;
+  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
+  onTimeSlotDragLeave?: (e: React.DragEvent) => void;
+  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
+  onDragEnd?: () => void;
+  // Touch handlers
+  onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
+  onTouchDragMove?: (e: React.TouchEvent) => void;
+  onTouchDragEnd?: (e: React.TouchEvent) => void;
 }) {
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -1426,13 +1543,6 @@ function WeekView({
             onClearSelection?.();
           }
         }}
-        onDragOver={(e) => {
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          onClearDrag?.();
-        }}
       >
         {hours.map((hour) => {
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
@@ -1450,42 +1560,44 @@ function WeekView({
                 return (
                   <div 
                     key={`${day.toISOString()}-${hour}`}
+                    data-date={day.toISOString()}
+                    data-time-slot={timeString}
                     className={cn(
                       "p-1 border-r last:border-r-0 min-h-[50px] hover:bg-muted/30 cursor-pointer transition-colors",
                       isToday(day) && "bg-primary/5",
                       selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
-                      selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500"
+                      selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
+                      // Drag over visual feedback
+                      dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
                     )}
                     onClick={() => {
                       onDateSelect(day);
                       // Select time slot (highlight) instead of opening modal
                       onSelectTimeSlot(day, timeString);
                     }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      onTimeSlotDragOver?.(e, day, timeString);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      onTimeSlotDrop?.(e, day, timeString);
-                    }}
+                    onDragOver={(e) => onTimeSlotDragOver?.(e, day, timeString)}
+                    onDragLeave={onTimeSlotDragLeave}
+                    onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
                   >
                     {/* Activities for this specific hour */}
                     {dayHourActivities.map(activity => (
                       <div
                         key={activity.id}
                         draggable
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          onActivityDragStart?.(e, activity);
-                        }}
+                        onDragStart={(e) => onActivityDragStart?.(e, activity)}
+                        onDragEnd={onDragEnd}
+                        onTouchStart={(e) => onTouchDragStart?.(activity, e)}
+                        onTouchMove={onTouchDragMove}
+                        onTouchEnd={(e) => onTouchDragEnd?.(e)}
                         onClick={(e) => {
                           e.stopPropagation();
                           onActivityClick(activity);
                         }}
                         className={cn(
-                          "text-xs p-1 rounded border truncate font-medium cursor-pointer hover:opacity-80",
-                          getStatusColor(activity.status)
+                          "text-xs p-1 rounded border truncate font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                          getStatusColor(activity.status),
+                          draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                          activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                         )}
                       >
                         {activity.title}
@@ -1509,30 +1621,48 @@ function DayView({
   onActivityClick, 
   onSelectTimeSlot,
   selectedTimeSlot,
-  onActivityDragStart,
-  onTimeSlotDragOver,
-  onTimeSlotDrop,
-  onClearDrag,
   isToday, 
   isSameDay, 
   format, 
   getStatusColor,
-  onClearSelection
+  onClearSelection,
+  // Drag and drop props
+  draggedActivity,
+  dropTargetDate,
+  dropTargetTime,
+  onActivityDragStart,
+  onTimeSlotDragOver,
+  onTimeSlotDragLeave,
+  onTimeSlotDrop,
+  onDragEnd,
+  // Touch handlers
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd
 }: {
   currentDate: Date;
   activities: any[];
   onActivityClick: (activity: any) => void;
   onSelectTimeSlot: (date: Date, time: string) => void;
   selectedTimeSlot: string | null;
-  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
-  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
-  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
-  onClearDrag?: () => void;
   isToday: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
   getStatusColor: (status: string | null) => string;
   onClearSelection?: () => void;
+  // Drag and drop props
+  draggedActivity?: any;
+  dropTargetDate?: Date | null;
+  dropTargetTime?: string | null;
+  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
+  onTimeSlotDragLeave?: (e: React.DragEvent) => void;
+  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
+  onDragEnd?: () => void;
+  // Touch handlers
+  onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
+  onTouchDragMove?: (e: React.TouchEvent) => void;
+  onTouchDragEnd?: (e: React.TouchEvent) => void;
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dayActivities = activities.filter(a => isSameDay(new Date(a.deadlineDate), currentDate));
@@ -1561,13 +1691,6 @@ function DayView({
             onClearSelection?.();
           }
         }}
-        onDragOver={(e) => {
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          onClearDrag?.();
-        }}
       >
         {hours.map((hour) => {
           const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
@@ -1581,34 +1704,36 @@ function DayView({
               <div 
                 className={cn(
                   "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
-                  selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500"
+                  selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
+                  // Drag over visual feedback
+                  dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
                 )}
+                data-date={currentDate.toISOString()}
+                data-time-slot={timeString}
                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  onTimeSlotDragOver?.(e, currentDate, timeString);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  onTimeSlotDrop?.(e, currentDate, timeString);
-                }}
+                onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
+                onDragLeave={onTimeSlotDragLeave}
+                onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
               >
                 {/* Activities for this specific hour */}
                 {hourActivities.map(activity => (
                   <div
                     key={activity.id}
                     draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      onActivityDragStart?.(e, activity);
-                    }}
+                    onDragStart={(e) => onActivityDragStart?.(e, activity)}
+                    onDragEnd={onDragEnd}
+                    onTouchStart={(e) => onTouchDragStart?.(activity, e)}
+                    onTouchMove={onTouchDragMove}
+                    onTouchEnd={(e) => onTouchDragEnd?.(e)}
                     onClick={(e) => {
                       e.stopPropagation();
                       onActivityClick(activity);
                     }}
                     className={cn(
-                      "text-sm p-2 rounded-md border mb-1 font-medium cursor-pointer hover:opacity-80",
-                      getStatusColor(activity.status)
+                      "text-sm p-2 rounded-md border mb-1 font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                      getStatusColor(activity.status),
+                      draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                      activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                     )}
                   >
                     <div className="font-semibold">{activity.title}</div>
