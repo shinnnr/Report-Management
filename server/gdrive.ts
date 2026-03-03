@@ -109,6 +109,15 @@ export async function uploadFileToDrive(
   mimeType: string,
   folderId?: string
 ): Promise<UploadResult> {
+  // Check if credentials are properly configured first
+  if (!isGDriveConfigured()) {
+    console.error('[GDrive] Cannot upload - not configured properly');
+    return {
+      success: false,
+      error: 'Google Drive is not configured. Please check environment variables and credentials.'
+    };
+  }
+
   try {
     const driveClient = getDriveClient();
     const targetFolderId = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;

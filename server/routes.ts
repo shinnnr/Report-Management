@@ -555,8 +555,12 @@ export async function registerRoutes(
           } else {
             console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
           }
-        } catch (gdriveError) {
+        } catch (gdriveError: any) {
           console.error('[GDrive] Error during upload:', gdriveError);
+          // Check for OpenSSL error
+          if (gdriveError?.code === 'ERR_OSSL_UNSUPPORTED') {
+            console.error('[GDrive] OpenSSL error: Please set NODE_OPTIONS="--openssl-legacy-provider" in Railway dashboard');
+          }
           // Continue without GDrive link if upload fails
         }
       } else {
@@ -816,8 +820,12 @@ export async function registerRoutes(
           } else {
             console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
           }
-        } catch (gdriveError) {
+        } catch (gdriveError: any) {
           console.error('[GDrive] Error during upload:', gdriveError);
+          // Check for OpenSSL error
+          if (gdriveError?.code === 'ERR_OSSL_UNSUPPORTED') {
+            console.error('[GDrive] OpenSSL error: Please set NODE_OPTIONS="--openssl-legacy-provider" in Railway dashboard');
+          }
           // Continue without GDrive link if upload fails
         }
       } else {
