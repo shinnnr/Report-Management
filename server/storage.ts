@@ -581,6 +581,23 @@ export class DatabaseStorage implements IStorage {
       }).where(eq(activities.id, id));
       
       await this.createLog(userId, "ACTIVITY_STARTED", `Activity "${activity.title}" started.`);
+      
+      // Get user info for notification
+      const user = await this.getUser(userId);
+      
+      // Notify all OTHER users about the activity started
+      const allUsers = await this.getUsers();
+      for (const recipient of allUsers) {
+        if (recipient.id !== userId) {
+          await this.createNotification({
+            userId: recipient.id,
+            activityId: id,
+            title: "Activity Started",
+            content: `${user?.fullName || 'A user'} started working on: ${activity.title}`,
+            isRead: false
+          });
+        }
+      }
     }
   }
 
