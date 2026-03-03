@@ -1,9 +1,8 @@
 import "dotenv/config";
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { verifyGDriveConnection } from "./gdrive";
 
 const app = express();
 const httpServer = createServer(app);
@@ -65,8 +64,9 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
   
-  // Verify Google Drive connection on startup
-  await verifyGDriveConnection();
+  // Skip startup verification - GDrive connection will be verified on first upload
+  // This avoids ERR_OSSL_UNSUPPORTED error during startup if NODE_OPTIONS not set
+  console.log('[Server] GDrive will be verified on first file upload');
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
