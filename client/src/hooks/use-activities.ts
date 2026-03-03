@@ -163,7 +163,7 @@ export function useUpdateActivity() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ title: string; description: string; deadlineDate: Date; status: string }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ title: string; description: string; deadlineDate: string | Date; status: string }> }) => {
       const url = buildUrl(api.activities.update.path, { id });
       const res = await fetch(url, {
         method: api.activities.update.method,

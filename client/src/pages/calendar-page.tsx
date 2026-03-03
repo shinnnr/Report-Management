@@ -226,7 +226,7 @@ function CalendarContent() {
     setDropTargetDate(date);
   };
 
-  // Handle drop on date cell
+  // Handle drop on date cell (for month view)
   const handleDateDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     e.stopPropagation();
@@ -239,6 +239,77 @@ function CalendarContent() {
         // Don't clear draggedActivity here - it's needed for the modal display
         return;
       }
+    }
+    
+    setDraggedActivity(null);
+    setDropTargetDate(null);
+  };
+
+  // Handle drag over on time slot (for day/week view)
+  const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTargetDate(date);
+  };
+
+  // Handle drop on time slot (for day/week view)
+  const handleTimeSlotDrop = async (e: React.DragEvent, date: Date, time: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedActivity) {
+      setDropTargetDate(null);
+      return;
+    }
+    
+    // Check if activity has a restricted status
+    const restrictedStatuses = ['completed', 'late', 'in-progress'];
+    if (restrictedStatuses.includes(draggedActivity.status)) {
+      toast({
+        title: "Cannot reschedule",
+        description: `Activities with status "${draggedActivity.status}" cannot be rescheduled.`,
+        variant: "destructive"
+      });
+      setDraggedActivity(null);
+      setDropTargetDate(null);
+      return;
+    }
+    
+    // Parse the time string to get hours and minutes
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    // Create new deadline date with the dropped time
+    const newDeadline = new Date(date);
+    newDeadline.setHours(hours, minutes, 0, 0);
+    
+    try {
+      // Update the activity with the new deadline
+      const deadlineDateStr = newDeadline.toISOString();
+      
+      await updateActivity.mutateAsync({
+        id: draggedActivity.id,
+        data: { deadlineDate: deadlineDateStr }
+      });
+      
+      // Force refresh to get the updated status
+      await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+      
+      // Fetch the latest activity data to get the recalculated status
+      const response = await fetch(api.activities.list.path);
+      const allActivities = await response.json();
+      const updatedActivity = allActivities.find((a: any) => a.id === draggedActivity.id);
+      
+      // Update selectedActivity if it's the same activity
+      if (updatedActivity && selectedActivity && selectedActivity.id === draggedActivity.id) {
+        setSelectedActivity(updatedActivity);
+      }
+      
+      toast({
+        title: "Activity rescheduled",
+        description: `Moved to ${format(newDeadline, 'MMMM d, yyyy')} at ${time}`
+      });
+    } catch (error) {
+      // Error handled by mutation
     }
     
     setDraggedActivity(null);
@@ -1159,6 +1230,10 @@ function CalendarContent() {
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
+            onActivityDragStart={handleActivityDragStart}
+            onTimeSlotDragOver={handleTimeSlotDragOver}
+            onTimeSlotDrop={handleTimeSlotDrop}
+            onClearDrag={() => { setDraggedActivity(null); setDropTargetDate(null); }}
             onClearSelection={handleClearSelection}
             isToday={isToday}
             isSameDay={isSameDay}
@@ -1178,6 +1253,10 @@ function CalendarContent() {
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
+            onActivityDragStart={handleActivityDragStart}
+            onTimeSlotDragOver={handleTimeSlotDragOver}
+            onTimeSlotDrop={handleTimeSlotDrop}
+            onClearDrag={() => { setDraggedActivity(null); setDropTargetDate(null); }}
             onClearSelection={handleClearSelection}
             isToday={isToday}
             isSameDay={isSameDay}
@@ -1277,6 +1356,10 @@ function WeekView({
   onActivityClick, 
   onSelectTimeSlot,
   selectedTimeSlot,
+  onActivityDragStart,
+  onTimeSlotDragOver,
+  onTimeSlotDrop,
+  onClearDrag,
   isToday, 
   isSameDay, 
   format, 
@@ -1290,6 +1373,10 @@ function WeekView({
   onActivityClick: (activity: any) => void;
   onSelectTimeSlot: (date: Date, time: string) => void;
   selectedTimeSlot: string | null;
+  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
+  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
+  onClearDrag?: () => void;
   isToday: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
@@ -1339,6 +1426,13 @@ function WeekView({
             onClearSelection?.();
           }
         }}
+        onDragOver={(e) => {
+          e.preventDefault();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          onClearDrag?.();
+        }}
       >
         {hours.map((hour) => {
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
@@ -1367,11 +1461,24 @@ function WeekView({
                       // Select time slot (highlight) instead of opening modal
                       onSelectTimeSlot(day, timeString);
                     }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      onTimeSlotDragOver?.(e, day, timeString);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      onTimeSlotDrop?.(e, day, timeString);
+                    }}
                   >
                     {/* Activities for this specific hour */}
                     {dayHourActivities.map(activity => (
                       <div
                         key={activity.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          onActivityDragStart?.(e, activity);
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onActivityClick(activity);
@@ -1402,6 +1509,10 @@ function DayView({
   onActivityClick, 
   onSelectTimeSlot,
   selectedTimeSlot,
+  onActivityDragStart,
+  onTimeSlotDragOver,
+  onTimeSlotDrop,
+  onClearDrag,
   isToday, 
   isSameDay, 
   format, 
@@ -1413,6 +1524,10 @@ function DayView({
   onActivityClick: (activity: any) => void;
   onSelectTimeSlot: (date: Date, time: string) => void;
   selectedTimeSlot: string | null;
+  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
+  onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
+  onClearDrag?: () => void;
   isToday: (date: Date) => boolean;
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
@@ -1446,6 +1561,13 @@ function DayView({
             onClearSelection?.();
           }
         }}
+        onDragOver={(e) => {
+          e.preventDefault();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          onClearDrag?.();
+        }}
       >
         {hours.map((hour) => {
           const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
@@ -1462,11 +1584,24 @@ function DayView({
                   selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500"
                 )}
                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  onTimeSlotDragOver?.(e, currentDate, timeString);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  onTimeSlotDrop?.(e, currentDate, timeString);
+                }}
               >
                 {/* Activities for this specific hour */}
                 {hourActivities.map(activity => (
                   <div
                     key={activity.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      onActivityDragStart?.(e, activity);
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onActivityClick(activity);
