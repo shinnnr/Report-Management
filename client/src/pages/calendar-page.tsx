@@ -236,6 +236,8 @@ function CalendarContent() {
       if (!isSameDay(currentDeadline, date)) {
         setRescheduleTargetDate(date);
         setShowRescheduleConfirm(true);
+        // Don't clear draggedActivity here - it's needed for the modal display
+        return;
       }
     }
     
@@ -246,11 +248,44 @@ function CalendarContent() {
   // Confirm reschedule
   const handleConfirmReschedule = async () => {
     if (draggedActivity && rescheduleTargetDate) {
+      // Check if activity has a restricted status
+      const restrictedStatuses = ['completed', 'late', 'in-progress'];
+      if (restrictedStatuses.includes(draggedActivity.status)) {
+        toast({
+          title: "Cannot reschedule",
+          description: `Activities with status "${draggedActivity.status}" cannot be rescheduled.`,
+          variant: "destructive"
+        });
+        setShowRescheduleConfirm(false);
+        setDraggedActivity(null);
+        setRescheduleTargetDate(null);
+        setDropTargetDate(null);
+        return;
+      }
+      
       try {
+        // Convert Date to ISO string for the API
+        const deadlineDateStr = rescheduleTargetDate.toISOString();
+        
+        // Update the activity
         await updateActivity.mutateAsync({
           id: draggedActivity.id,
-          data: { deadlineDate: rescheduleTargetDate }
+          data: { deadlineDate: deadlineDateStr }
         });
+        
+        // Force refresh to get the updated status
+        await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+        
+        // Fetch the latest activity data to get the recalculated status
+        const response = await fetch(api.activities.list.path);
+        const allActivities = await response.json();
+        const updatedActivity = allActivities.find((a: any) => a.id === draggedActivity.id);
+        
+        // Update selectedActivity if it's the same activity
+        if (updatedActivity && selectedActivity && selectedActivity.id === draggedActivity.id) {
+          setSelectedActivity(updatedActivity);
+        }
+        
         toast({
           title: "Activity rescheduled",
           description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}`
@@ -262,6 +297,7 @@ function CalendarContent() {
     setShowRescheduleConfirm(false);
     setDraggedActivity(null);
     setRescheduleTargetDate(null);
+    setDropTargetDate(null);
   };
 
   // Handle clearing all selections (date and time slot)
@@ -898,6 +934,7 @@ function CalendarContent() {
                 setShowRescheduleConfirm(false);
                 setDraggedActivity(null);
                 setRescheduleTargetDate(null);
+                setDropTargetDate(null);
               }}>
                 Cancel
               </Button>
