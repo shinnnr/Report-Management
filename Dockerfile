@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -13,5 +13,5 @@ RUN npm run build
 # Expose the port Railway assigns
 EXPOSE $PORT
 
-# Start with OpenSSL legacy provider enabled using shell
-CMD ["sh", "-c", "export NODE_OPTIONS='--openssl-legacy-provider' && node dist/index.cjs"]
+# Start the server
+CMD ["node", "dist/index.cjs"]
