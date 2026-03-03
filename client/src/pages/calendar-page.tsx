@@ -529,7 +529,7 @@ function CalendarContent() {
                 </Button>
               )}
 
-              {selectedActivity?.status !== 'completed' && selectedActivity?.status !== 'pending' && (
+              {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
                 <div className="space-y-4">
                   <div 
                     className={`text-center p-4 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
@@ -597,7 +597,7 @@ function CalendarContent() {
                 Delete Activity
               </Button>
 
-              {selectedActivity?.status !== 'completed' && (
+              {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
                 <Button
                   className="gap-2"
                   onClick={handleSubmit}
