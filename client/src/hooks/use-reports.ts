@@ -78,9 +78,7 @@ export function useCreateReport() {
       queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
       // Only show toast if _suppressToast is not true
       if (!variables._suppressToast) {
-        // Use server message if available, otherwise use default
-        const message = (data as any).message || "File uploaded successfully";
-        toast({ title: "Success", description: message });
+        toast({ title: "Success", description: "File uploaded successfully" });
       }
     },
     onError: () => {

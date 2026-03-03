@@ -12,7 +12,6 @@ import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { userSessions, type User } from "@shared/schema";
 import { format } from "date-fns";
-import { uploadFileToDrive, isGDriveConfigured } from "./gdrive";
 
 // Custom Drizzle Session Store
 class DrizzleSessionStore extends Store {
@@ -520,72 +519,16 @@ export async function registerRoutes(
         counter++;
       }
 
-      // Upload file to Google Drive if fileData is provided
-      let gdriveId: string | undefined;
-      let gdriveWebLink: string | undefined;
-
-      console.log('[DEBUG] fileData present:', !!input.fileData);
-      console.log('[DEBUG] GDrive configured:', isGDriveConfigured());
-      console.log('[DEBUG] fileData prefix:', input.fileData?.substring(0, 50));
-
-      if (input.fileData && isGDriveConfigured()) {
-        try {
-          console.log('[GDrive] Starting upload for:', finalFileName);
-          
-          // Strip data URL prefix if present (e.g., "data:image/png;base64,")
-          let base64Data = input.fileData;
-          if (base64Data.includes(',')) {
-            base64Data = base64Data.split(',')[1];
-          }
-          
-          const buffer = Buffer.from(base64Data, 'base64');
-          const mimeType = input.fileType || 'application/octet-stream';
-          console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
-          
-          const gdriveResult = await uploadFileToDrive(
-            buffer,
-            finalFileName,
-            mimeType
-          );
-
-          if (gdriveResult.success) {
-            gdriveId = gdriveResult.fileId;
-            gdriveWebLink = gdriveResult.webViewLink;
-            console.log(`[GDrive] File uploaded successfully: ${finalFileName}, ID: ${gdriveId}`);
-          } else {
-            console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
-          }
-        } catch (gdriveError: any) {
-          console.error('[GDrive] Error during upload:', gdriveError);
-          // Check for OpenSSL error
-          if (gdriveError?.code === 'ERR_OSSL_UNSUPPORTED') {
-            console.error('[GDrive] OpenSSL error: Please set NODE_OPTIONS="--openssl-legacy-provider" in Railway dashboard');
-          }
-          // Continue without GDrive link if upload fails
-        }
-      } else {
-        console.log('[GDrive] Skipping upload - no fileData or not configured');
-      }
-
-      // Update the input with the unique filename and GDrive info
+      // Update the input with the unique filename
       const reportInput = {
         ...input,
         fileName: finalFileName,
-        title: finalFileName, // Also update title to match
-        gdriveId,
-        gdriveWebLink
+        title: finalFileName // Also update title to match
       };
 
       const report = await storage.createReport(reportInput);
       await storage.createLog((req.user as any).id, "UPLOAD_REPORT", `Uploaded report: ${report.title}`);
-      
-      // Build success message
-      let message = "Report uploaded successfully";
-      if (gdriveWebLink) {
-        message = "Report uploaded successfully to both local storage and Google Drive";
-      }
-      
-      res.status(201).json({ ...report, message });
+      res.status(201).json(report);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
@@ -785,53 +728,6 @@ export async function registerRoutes(
         counter++;
       }
 
-      // Upload file to Google Drive if fileData is provided
-      let gdriveId: string | undefined;
-      let gdriveWebLink: string | undefined;
-
-      console.log('[DEBUG] Activity submit - fileData present:', !!fileData);
-      console.log('[DEBUG] Activity submit - GDrive configured:', isGDriveConfigured());
-
-      if (fileData && isGDriveConfigured()) {
-        try {
-          console.log('[GDrive] Starting upload for activity submission:', finalFileName);
-          console.log('[DEBUG] fileData prefix:', fileData?.substring(0, 50));
-          
-          // Strip data URL prefix if present (e.g., "data:image/png;base64,")
-          let base64Data = fileData;
-          if (base64Data.includes(',')) {
-            base64Data = base64Data.split(',')[1];
-          }
-          
-          const buffer = Buffer.from(base64Data, 'base64');
-          const mimeType = fileType || 'application/octet-stream';
-          console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
-          
-          const gdriveResult = await uploadFileToDrive(
-            buffer,
-            finalFileName,
-            mimeType
-          );
-
-          if (gdriveResult.success) {
-            gdriveId = gdriveResult.fileId;
-            gdriveWebLink = gdriveResult.webViewLink;
-            console.log(`[GDrive] File uploaded successfully: ${finalFileName}, ID: ${gdriveId}`);
-          } else {
-            console.error(`[GDrive] Upload failed: ${gdriveResult.error}`);
-          }
-        } catch (gdriveError: any) {
-          console.error('[GDrive] Error during upload:', gdriveError);
-          // Check for OpenSSL error
-          if (gdriveError?.code === 'ERR_OSSL_UNSUPPORTED') {
-            console.error('[GDrive] OpenSSL error: Please set NODE_OPTIONS="--openssl-legacy-provider" in Railway dashboard');
-          }
-          // Continue without GDrive link if upload fails
-        }
-      } else {
-        console.log('[GDrive] Skipping upload - no fileData or not configured');
-      }
-
       // Create the report
       const report = await storage.createReport({
         title,
@@ -845,9 +741,7 @@ export async function registerRoutes(
         activityId,
         year: activityYear,
         month: deadline.getMonth() + 1,
-        status: 'active',
-        gdriveId,
-        gdriveWebLink
+        status: 'active'
       });
 
       // Create submission record
@@ -953,7 +847,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only admins can delete logs" });
       }
       
-      const logId = parseInt(req.params.id as string);
+      const logId = parseInt(req.params.id);
       if (isNaN(logId)) {
         return res.status(400).json({ message: "Invalid log ID" });
       }
