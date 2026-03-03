@@ -1,6 +1,6 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useActivities, useCreateActivity, useDeleteActivity } from "@/hooks/use-activities";
+import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity } from "@/hooks/use-activities";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -47,6 +47,7 @@ function CalendarContent() {
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
+  const startActivity = useStartActivity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -120,6 +121,8 @@ function CalendarContent() {
     switch(status) {
       case 'completed': return 'bg-green-100 text-green-700 border-green-200';
       case 'overdue': return 'bg-red-100 text-red-700 border-red-200';
+      case 'late': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'in-progress': return 'bg-blue-100 text-blue-700 border-blue-200';
       default: return 'bg-orange-100 text-orange-700 border-orange-200';
     }
   };
@@ -313,6 +316,15 @@ function CalendarContent() {
         title: "Submission successful",
         description: `Successfully submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`,
       });
+      
+      // Fetch the updated activity to get the new status
+      const activityRes = await fetch(api.activities.list.path);
+      const allActivities = await activityRes.json();
+      const updatedActivity = allActivities.find((a: any) => a.id === selectedActivity.id);
+      if (updatedActivity) {
+        setSelectedActivity(updatedActivity);
+      }
+      
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
       // Refresh activities and notifications without page reload
@@ -464,14 +476,20 @@ function CalendarContent() {
                   "px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2",
                   selectedActivity?.status === 'completed' && "bg-green-100 text-green-700",
                   selectedActivity?.status === 'overdue' && "bg-red-100 text-red-700",
+                  selectedActivity?.status === 'in-progress' && "bg-blue-100 text-blue-700",
+                  selectedActivity?.status === 'late' && "bg-yellow-100 text-yellow-700",
                   selectedActivity?.status === 'pending' && "bg-orange-100 text-orange-700"
                 )}>
                   {selectedActivity?.status === 'completed' && <CheckCircle className="w-3 h-3" />}
                   {selectedActivity?.status === 'overdue' && <AlertCircle className="w-3 h-3" />}
+                  {selectedActivity?.status === 'in-progress' && <Clock className="w-3 h-3" />}
+                  {selectedActivity?.status === 'late' && <AlertCircle className="w-3 h-3" />}
                   {selectedActivity?.status === 'pending' && <Clock className="w-3 h-3" />}
-                  {selectedActivity?.status === 'pending' ? 'Pending' :
-                   selectedActivity?.status === 'completed' ? 'Completed' :
-                   selectedActivity?.status === 'overdue' ? 'Overdue' : 'Unknown'}
+                  {selectedActivity?.status === 'completed' ? 'Completed' :
+                   selectedActivity?.status === 'overdue' ? 'Overdue' :
+                   selectedActivity?.status === 'late' ? 'Late Submitted' :
+                   selectedActivity?.status === 'in-progress' ? 'In Progress' :
+                   selectedActivity?.status === 'pending' ? 'Pending' : 'Unknown'}
                 </div>
               </div>
 
@@ -479,18 +497,39 @@ function CalendarContent() {
               {selectedActivity && (
                 <div className="text-center p-4 border rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    {selectedActivity.status === 'completed'
-                      ? "You have already submitted this activity."
+                    {(selectedActivity.status === 'completed' || selectedActivity.status === 'late')
+                      ? selectedActivity.status === 'late' 
+                        ? "This activity was submitted late."
+                        : "You have already submitted this activity."
                       : selectedActivity.status === 'overdue'
                       ? "This activity is overdue. You can still submit but it will be marked as late."
-                      : "Ready to submit your report for this activity."
+                      : selectedActivity.status === 'in-progress'
+                      ? "This activity is in progress. You can submit your report now."
+                      : "This activity is pending. Click 'Start Activity' to begin working on it."
                     }
                   </p>
                 </div>
               )}
 
               {/* File Upload Section */}
-              {selectedActivity?.status !== 'completed' && (
+              {selectedActivity?.status === 'pending' && (
+                <Button 
+                  onClick={() => startActivity.mutate(selectedActivity.id, {
+                    onSuccess: (updatedActivity) => {
+                      if (updatedActivity) {
+                        setSelectedActivity(updatedActivity);
+                      }
+                    }
+                  })}
+                  disabled={startActivity.isPending}
+                  className="w-full"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  {startActivity.isPending ? 'Starting...' : 'Start Activity'}
+                </Button>
+              )}
+
+              {selectedActivity?.status !== 'completed' && selectedActivity?.status !== 'pending' && (
                 <div className="space-y-4">
                   <div 
                     className={`text-center p-4 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}

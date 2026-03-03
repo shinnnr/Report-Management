@@ -30,9 +30,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCheckDeadlines } from "@/hooks/use-activities";
 
 function SettingsContent() {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ function SettingsContent() {
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
+  const checkDeadlines = useCheckDeadlines();
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
@@ -283,7 +285,7 @@ function SettingsContent() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-        <TabsList className={`grid w-full ${isAdmin ? "grid-cols-3" : "grid-cols-2"} max-w-[400px]`}>
+        <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : "grid-cols-2"} max-w-[500px]`}>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Profile
@@ -292,6 +294,12 @@ function SettingsContent() {
             <Lock className="h-4 w-4" />
             Security
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              System
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -470,6 +478,37 @@ function SettingsContent() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* System Tab (Admin Only) - Deadline Management */}
+        {isAdmin && (
+          <TabsContent value="system" className="space-y-4">
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Deadline Management
+                </CardTitle>
+                <CardDescription>Manage activity deadlines and overdue checks.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <h4 className="font-medium mb-2">Manual Deadline Check</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Trigger a manual check for overdue activities. This will update all activities that have passed their deadline and send notifications to users.
+                  </p>
+                  <Button 
+                    onClick={() => checkDeadlines.mutate()}
+                    disabled={checkDeadlines.isPending}
+                    className=""
+                  >
+                    {checkDeadlines.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Check Deadlines Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* User Management Tab (Admin Only) */}
         {isAdmin && (

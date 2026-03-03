@@ -121,3 +121,68 @@ export function useDeleteLog() {
     },
   });
 }
+
+export function useStartActivity() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/activities/${id}/start`, {
+        method: "POST",
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const error = JSON.parse(text);
+          throw new Error(error.message || "Failed to start activity");
+        } catch {
+          throw new Error(text || "Failed to start activity");
+        }
+      }
+      // Fetch the updated activity and return it
+      const activityRes = await fetch(api.activities.list.path);
+      const activities = await activityRes.json();
+      const updatedActivity = activities.find((a: any) => a.id === id);
+      return updatedActivity;
+    },
+    onSuccess: (updatedActivity) => {
+      queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+      toast({ title: "Success", description: "Activity started" });
+      return updatedActivity;
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useCheckDeadlines() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/check-deadlines", {
+        method: "POST",
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        try {
+          const error = JSON.parse(text);
+          throw new Error(error.message || "Failed to check deadlines");
+        } catch {
+          throw new Error(text || "Failed to check deadlines");
+        }
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Deadline check completed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}

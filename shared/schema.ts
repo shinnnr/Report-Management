@@ -50,7 +50,7 @@ export const activities = pgTable("activities", {
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
   deadlineDate: timestamp("deadline_date").notNull(),
-  status: text("status").default("pending"), // 'pending', 'completed', 'overdue', 'in-progress'
+  status: text("status").default("pending"), // 'pending', 'completed', 'overdue', 'in-progress', 'late'
   regulatoryAgency: text("regulatory_agency"),
   concernDepartment: text("concern_department"),
   reportDetails: text("report_details"),

@@ -156,13 +156,33 @@ export async function registerRoutes(
   };
 
   // --- Background Jobs (Simple Cron Emulator) ---
-  setInterval(async () => {
-    try {
-      await storage.checkDeadlines();
-    } catch (err) {
-      console.error("Error in checkDeadlines job:", err);
-    }
-  }, 1000 * 60 * 60 * 24); // Run daily
+  // Run deadline check at 00:00 (midnight) UTC daily for consistent timing
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  
+  const scheduleDeadlineCheck = () => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setUTCHours(24, 0, 0, 0); // Next midnight UTC
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    setTimeout(async () => {
+      try {
+        await storage.checkDeadlines();
+      } catch (err) {
+        console.error("Error in checkDeadlines job:", err);
+      }
+      // After running, schedule next run for 24 hours later
+      setInterval(async () => {
+        try {
+          await storage.checkDeadlines();
+        } catch (err) {
+          console.error("Error in checkDeadlines job:", err);
+        }
+      }, MS_PER_DAY);
+    }, msUntilMidnight);
+  };
+  
+  scheduleDeadlineCheck();
 
 
   // --- Auth Routes ---
@@ -583,8 +603,19 @@ export async function registerRoutes(
   app.post(api.activities.create.path, isAuthenticated, async (req, res) => {
     try {
       const input = api.activities.create.input.parse(req.body);
+      
+      // Check if deadline is in the past - if so, mark as overdue immediately
+      const now = new Date();
+      const deadlineDate = new Date(input.deadlineDate);
+      const isOverdue = deadlineDate < now;
+      
       // Override userId with authenticated user for security
-      const activityData = { ...input, userId: (req.user as any).id };
+      // Also set status to overdue if deadline is in the past
+      const activityData = { 
+        ...input, 
+        userId: (req.user as any).id,
+        ...(isOverdue && { status: 'overdue' })
+      };
       const activity = await storage.createActivity(activityData);
       
       // Get creator's user info for notification
@@ -630,6 +661,40 @@ export async function registerRoutes(
     await storage.deleteActivity(id);
     await storage.createLog((req.user as any).id, "DELETE_ACTIVITY", `Deleted activity ID: ${id}`);
     res.json({ message: "Activity deleted" });
+  });
+
+  // --- Start Activity Route ---
+  app.post("/api/activities/:id/start", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const userId = (req.user as any).id;
+      
+      const activity = await storage.getActivity(id);
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+      
+      if (activity.status !== 'pending') {
+        return res.status(400).json({ message: "Only pending activities can be started" });
+      }
+      
+      await storage.startActivity(id, userId);
+      res.json({ message: "Activity started" });
+    } catch (err) {
+      console.error("Error starting activity:", err);
+      res.status(500).json({ message: "Failed to start activity" });
+    }
+  });
+
+  // --- Manual Deadline Check Route ---
+  app.post("/api/check-deadlines", isAuthenticated, async (req, res) => {
+    try {
+      await storage.checkDeadlines();
+      res.json({ message: "Deadline check completed" });
+    } catch (err) {
+      console.error("Error in manual deadline check:", err);
+      res.status(500).json({ message: "Failed to check deadlines" });
+    }
   });
 
   // --- Activity Submission Routes ---
@@ -752,9 +817,9 @@ export async function registerRoutes(
         status: isLate ? 'late' : 'submitted'
       });
 
-      // Update activity status - allow completion even for overdue activities
+      // Update activity status - mark as 'late' if overdue, 'completed' otherwise
       await storage.updateActivity(activityId, {
-        status: 'completed',
+        status: isLate ? 'late' : 'completed',
         completionDate: now,
         completedBy: userId
       });

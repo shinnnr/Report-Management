@@ -40,6 +40,7 @@ export interface IStorage {
   createActivity(activity: InsertActivity): Promise<Activity>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
+  startActivity(id: number, userId: number): Promise<void>;
   completeActivity(id: number, userId: number): Promise<void>;
   checkDeadlines(): Promise<void>;
 
@@ -571,6 +572,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async startActivity(id: number, userId: number): Promise<void> {
+    const activity = await this.getActivity(id);
+    if (activity && activity.status === 'pending') {
+      await db.update(activities).set({
+        status: 'in-progress',
+        userId: userId
+      }).where(eq(activities.id, id));
+      
+      await this.createLog(userId, "ACTIVITY_STARTED", `Activity "${activity.title}" started.`);
+    }
+  }
+
   async checkDeadlines(): Promise<void> {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
@@ -578,7 +591,7 @@ export class DatabaseStorage implements IStorage {
     // 1. Mark overdue activities and notify all users
     const overdueActivities = await db.select().from(activities).where(and(
       lt(activities.deadlineDate, now),
-      sql`${activities.status} NOT IN ('completed', 'overdue')`
+      sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
     ));
 
     // Update status to overdue
@@ -586,7 +599,7 @@ export class DatabaseStorage implements IStorage {
       .set({ status: 'overdue' })
       .where(and(
         lt(activities.deadlineDate, now),
-        sql`${activities.status} NOT IN ('completed', 'overdue')`
+        sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
       ));
 
     // Notify all users about overdue activities
