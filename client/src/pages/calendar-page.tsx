@@ -1,6 +1,6 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity } from "@/hooks/use-activities";
+import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity, useUpdateActivity } from "@/hooks/use-activities";
 import { 
   startOfMonth, 
   endOfMonth, 
@@ -8,12 +8,19 @@ import {
   format, 
   isSameMonth, 
   isToday,
-  isSameDay
+  isSameDay,
+  addDays,
+  startOfWeek,
+  endOfWeek,
+  addWeeks,
+  differenceInDays,
+  isBefore,
+  isAfter
 } from "date-fns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +38,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CalendarPage() {
   return (
@@ -48,17 +62,40 @@ function CalendarContent() {
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
   const startActivity = useStartActivity();
+  const updateActivity = useUpdateActivity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
 
+  // Calendar view state
+  type CalendarView = 'day' | 'week' | 'month';
+  const [view, setView] = useState<CalendarView>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
   
+  // Activity filter state
+  const [activityFilter, setActivityFilter] = useState<string>('all');
+  
+  // Drag state for rescheduling
+  const [draggedActivity, setDraggedActivity] = useState<any>(null);
+  const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null);
+  const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
+  const [rescheduleTargetDate, setRescheduleTargetDate] = useState<Date | null>(null);
+  
+  // Filter activities based on current filter
+  const filteredActivities = activities?.filter(a => {
+    if (activityFilter === 'all') return true;
+    if (activityFilter === 'pending') return a.status === 'pending';
+    if (activityFilter === 'in-progress') return a.status === 'in-progress';
+    if (activityFilter === 'completed') return a.status === 'completed' || a.status === 'late';
+    if (activityFilter === 'overdue') return a.status === 'overdue';
+    return true;
+  }) || [];
+
   // Calculate activities in current month
-  const activitiesInCurrentMonth = activities?.filter(a => 
+  const activitiesInCurrentMonth = filteredActivities.filter(a => 
     isSameMonth(new Date(a.deadlineDate), currentDate)
-  ) || [];
+  );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -73,6 +110,8 @@ function CalendarContent() {
   // Form State
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [activityTime, setActivityTime] = useState<string>("23:59"); // Default to end of day
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
 
   // Handle activityId from URL query parameter (when clicking from notification)
   useEffect(() => {
@@ -87,11 +126,168 @@ function CalendarContent() {
         // Navigate to the month of the activity's deadline
         const activityDate = new Date(activity.deadlineDate);
         setCurrentDate(activityDate);
+        // Auto-switch to month view when navigating from notification
+        setView('month');
         // Clear the URL parameter after handling
         setLocation('/calendar', { replace: true });
       }
     }
   }, [activities, setLocation]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        if (selectedDate) {
+          setIsNewActivityOpen(true);
+        } else {
+          toast({
+            title: "Select a date",
+            description: "Please select a date on the calendar first.",
+            variant: "destructive"
+          });
+        }
+      } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        handleGoToToday();
+      } else if (e.key === 'Escape') {
+        setIsActivityModalOpen(false);
+        setIsNewActivityOpen(false);
+        // Clear selection when pressing Escape in Day or Week view
+        if (view === 'day' || view === 'week') {
+          setSelectedDate(null);
+          setSelectedTimeSlot(null);
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDate, view]);
+
+  // Helper function to check if activity is due soon (within 3 days)
+  const isDueSoon = (deadlineDate: string | Date) => {
+    const deadline = new Date(deadlineDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = differenceInDays(deadline, today);
+    return diff >= 0 && diff <= 3;
+  };
+
+  // Helper to get date indicators
+  const getDateIndicators = (date: Date) => {
+    const dayActivities = filteredActivities.filter(a => 
+      isSameDay(new Date(a.deadlineDate), date)
+    );
+    return {
+      hasOverdue: dayActivities.some(a => a.status === 'overdue'),
+      hasDueSoon: dayActivities.some(a => isDueSoon(a.deadlineDate)),
+      hasActivities: dayActivities.length > 0,
+      activityCount: dayActivities.length
+    };
+  };
+
+  // Handle go to today
+  const handleGoToToday = () => {
+    const today = new Date();
+    setCurrentDate(today);
+    // Preserve the current view (day, week, or month) - only change the displayed date
+  };
+
+  // Handle view change
+  const handleViewChange = (newView: CalendarView) => {
+    if (newView === 'day' || newView === 'week') {
+      // If there's a selected date, navigate to that date
+      // Otherwise, use the current date
+      const targetDate = selectedDate || currentDate;
+      setCurrentDate(targetDate);
+    }
+    setView(newView);
+  };
+
+  // Handle drag start for rescheduling
+  const handleActivityDragStart = (e: React.DragEvent, activity: any) => {
+    e.stopPropagation();
+    setDraggedActivity(activity);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(activity.id));
+  };
+
+  // Handle drag over for date cell
+  const handleDateDragOver = (e: React.DragEvent, date: Date) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropTargetDate(date);
+  };
+
+  // Handle drop on date cell
+  const handleDateDrop = (e: React.DragEvent, date: Date) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (draggedActivity) {
+      const currentDeadline = new Date(draggedActivity.deadlineDate);
+      if (!isSameDay(currentDeadline, date)) {
+        setRescheduleTargetDate(date);
+        setShowRescheduleConfirm(true);
+      }
+    }
+    
+    setDraggedActivity(null);
+    setDropTargetDate(null);
+  };
+
+  // Confirm reschedule
+  const handleConfirmReschedule = async () => {
+    if (draggedActivity && rescheduleTargetDate) {
+      try {
+        await updateActivity.mutateAsync({
+          id: draggedActivity.id,
+          data: { deadlineDate: rescheduleTargetDate }
+        });
+        toast({
+          title: "Activity rescheduled",
+          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}`
+        });
+      } catch (error) {
+        // Error handled by mutation
+      }
+    }
+    setShowRescheduleConfirm(false);
+    setDraggedActivity(null);
+    setRescheduleTargetDate(null);
+  };
+
+  // Handle clearing all selections (date and time slot)
+  const handleClearSelection = () => {
+    setSelectedDate(null);
+    setSelectedTimeSlot(null);
+  };
+
+  // Handle selecting a time slot in Day/Week view (highlights the time but doesn't open modal)
+  const handleSelectTimeSlot = (date: Date, time: string) => {
+    // If clicking on the same time slot, deselect it
+    if (selectedDate && isSameDay(date, selectedDate) && selectedTimeSlot === time) {
+      setSelectedTimeSlot(null);
+    } else {
+      setSelectedDate(date);
+      setActivityTime(time);
+      setSelectedTimeSlot(time);
+    }
+  };
+
+  // Handle creating activity from Day/Week view with pre-selected date and time
+  const handleCreateActivityFromTimeSlot = () => {
+    if (selectedDate) {
+      setIsNewActivityOpen(true);
+    }
+  };
 
   const daysInMonth = eachDayOfInterval({
     start: startOfMonth(currentDate),
@@ -104,17 +300,24 @@ function CalendarContent() {
 
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
+    
+    // Combine selected date with activity time
+    const [hours, minutes] = activityTime.split(':').map(Number);
+    const deadlineWithTime = new Date(selectedDate);
+    deadlineWithTime.setHours(hours, minutes, 0, 0);
+    
     await createActivity.mutateAsync({
       title,
       description,
       startDate: new Date(),
-      deadlineDate: selectedDate,
+      deadlineDate: deadlineWithTime,
       status: 'pending',
     });
     setIsNewActivityOpen(false);
     setSelectedDate(null);
     setTitle("");
     setDescription("");
+    setActivityTime("23:59");
   };
 
   const getStatusColor = (status: string | null) => {
@@ -388,7 +591,7 @@ function CalendarContent() {
           <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
           <DialogTrigger asChild>
             <Button
-              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm"
+              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 duration-200"
               disabled={!selectedDate}
               onClick={() => {
                 if (!selectedDate) {
@@ -400,6 +603,12 @@ function CalendarContent() {
                   });
                   return;
                 }
+                // Only reset time to default (23:59) when adding from Month View
+                // In Day/Week view, use the selected time slot if available
+                if (view === 'month') {
+                  setActivityTime("23:59");
+                  setSelectedTimeSlot(null);
+                }
                 setIsNewActivityOpen(true);
               }}
             >
@@ -407,7 +616,7 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300">
             <DialogHeader>
               <DialogTitle>New Activity</DialogTitle>
               <DialogDescription>
@@ -422,6 +631,16 @@ function CalendarContent() {
               <div className="space-y-2">
                 <Label htmlFor="desc">Description</Label>
                 <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input 
+                  id="time" 
+                  type="time" 
+                  value={activityTime} 
+                  onChange={(e) => setActivityTime(e.target.value)} 
+                />
+                <p className="text-xs text-muted-foreground">Set the time for this activity (optional)</p>
               </div>
             </div>
             <DialogFooter>
@@ -441,7 +660,7 @@ function CalendarContent() {
             setSelectedActivity(null);
           }
         }}>
-          <DialogContent>
+          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -664,6 +883,33 @@ function CalendarContent() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Reschedule Confirmation Modal */}
+        <Dialog open={showRescheduleConfirm} onOpenChange={setShowRescheduleConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reschedule Activity</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to move "{draggedActivity?.title}" to {rescheduleTargetDate ? format(rescheduleTargetDate, 'MMMM d, yyyy') : ''}?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowRescheduleConfirm(false);
+                setDraggedActivity(null);
+                setRescheduleTargetDate(null);
+              }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmReschedule}
+                disabled={updateActivity.isPending}
+              >
+                {updateActivity.isPending ? "Moving..." : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
@@ -671,91 +917,539 @@ function CalendarContent() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex items-center gap-4">
             <div className="flex gap-1">
-              <Button variant="outline" size="icon" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}>
+              <Button variant="outline" size="icon" onClick={() => {
+                const newDate = new Date(currentDate);
+                if (view === 'day') newDate.setDate(newDate.getDate() - 1);
+                else if (view === 'week') newDate.setDate(newDate.getDate() - 7);
+                else newDate.setMonth(newDate.getMonth() - 1);
+                setCurrentDate(newDate);
+              }}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}>
+              <Button variant="outline" size="icon" onClick={() => {
+                const newDate = new Date(currentDate);
+                if (view === 'day') newDate.setDate(newDate.getDate() + 1);
+                else if (view === 'week') newDate.setDate(newDate.getDate() + 7);
+                else newDate.setMonth(newDate.getMonth() + 1);
+                setCurrentDate(newDate);
+              }}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
             <h2 className="text-xl font-bold font-display text-primary min-w-[160px]">
-              {format(currentDate, 'MMMM yyyy')}
+              {view === 'day' ? format(currentDate, 'MMMM d, yyyy') :
+               view === 'week' ? format(currentDate, 'MMMM yyyy') :
+               format(currentDate, 'MMMM yyyy')}
             </h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGoToToday}
+              className="hidden sm:flex gap-1"
+            >
+              Today
+            </Button>
           </div>
-          <div className="flex flex-col gap-1 mt-4 sm:mt-0">
-            <div className="text-sm text-muted-foreground font-medium">
-              {activitiesInCurrentMonth?.length || 0} Scheduled Activities
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {activities?.length || 0} Total Activities
-            </div>
-          </div>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 min-h-[600px] auto-rows-fr" onClick={() => setSelectedDate(null)}>
-          {paddingDays.map((_, i) => (
-            <div key={`padding-${i}`} className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800" />
-          ))}
-
-          {daysInMonth.map((date) => {
-            const dayActivities = activities?.filter(a => isSameDay(new Date(a.deadlineDate), date));
-
-            return (
-              <div
-                key={date.toISOString()}
-                className={cn(
-                  "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800",
-                  isToday(date) && "bg-accent/5 dark:bg-accent/10",
-                  selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (selectedDate && isSameDay(date, selectedDate)) {
-                    setSelectedDate(null);
-                  } else {
-                    setSelectedDate(date);
-                  }
-                }}
+          
+          {/* View Toggle Buttons */}
+          <div className="flex items-center gap-2 mt-4 sm:mt-0">
+            <div className="flex bg-muted rounded-lg p-1">
+              <Button
+                variant={view === 'day' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewChange('day')}
+                className={cn("gap-1", view !== 'day' && "text-muted-foreground")}
               >
-                <div className={cn(
-                  "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
-                  isToday(date) ? "bg-accent text-white shadow-sm" : "text-muted-foreground"
-                )}>
-                  {format(date, 'd')}
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden md:inline">Day</span>
+              </Button>
+              <Button
+                variant={view === 'week' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewChange('week')}
+                className={cn("gap-1", view !== 'week' && "text-muted-foreground")}
+              >
+                <LayoutList className="w-4 h-4" />
+                <span className="hidden md:inline">Week</span>
+              </Button>
+              <Button
+                variant={view === 'month' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleViewChange('month')}
+                className={cn("gap-1", view !== 'month' && "text-muted-foreground")}
+              >
+                <Grid3X3 className="w-4 h-4" />
+                <span className="hidden md:inline">Month</span>
+              </Button>
+            </div>
+            
+            {/* Activity Filter */}
+            <Select value={activityFilter} onValueChange={setActivityFilter}>
+              <SelectTrigger className="w-[130px] h-9">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Activities</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Activity counts */}
+          <div className="text-sm text-muted-foreground mt-2 sm:mt-0">
+            {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
+          </div>
+        </div>
+
+        {/* Calendar Grid - Month View */}
+        {view === 'month' && (
+          <>
+            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20">
+                  {day}
                 </div>
-                
-                <div className="space-y-1">
-                  {dayActivities?.map(activity => (
+              ))}
+            </div>
+
+            <div 
+              className="grid grid-cols-7 min-h-[600px] auto-rows-fr" 
+              onClick={() => setSelectedDate(null)}
+            >
+              {paddingDays.map((_, i) => (
+                <div key={`padding-${i}`} className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800" />
+              ))}
+
+              {daysInMonth.map((date) => {
+                const dayActivities = filteredActivities.filter(a => isSameDay(new Date(a.deadlineDate), date));
+                const indicators = getDateIndicators(date);
+
+                return (
+                  <div
+                    key={date.toISOString()}
+                    className={cn(
+                      "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                      selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5",
+                      dropTargetDate && isSameDay(date, dropTargetDate) && "bg-primary/20 ring-2 ring-primary",
+                      indicators.hasOverdue && !isToday(date) && "border-l-4 border-l-red-500",
+                      indicators.hasDueSoon && !indicators.hasOverdue && !isToday(date) && "border-l-4 border-l-yellow-500"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedDate && isSameDay(date, selectedDate)) {
+                        setSelectedDate(null);
+                      } else {
+                        setSelectedDate(date);
+                      }
+                    }}
+                    onDragOver={(e) => handleDateDragOver(e, date)}
+                    onDragLeave={() => setDropTargetDate(null)}
+                    onDrop={(e) => handleDateDrop(e, date)}
+                  >
+                    <div className={cn(
+                      "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
+                      isToday(date) ? "bg-primary text-white shadow-sm" : "text-muted-foreground"
+                    )}>
+                      {format(date, 'd')}
+                    </div>
+                    
+                    {/* Activity Dots */}
+                    {indicators.hasActivities && (
+                      <div className="flex gap-1 mb-1 flex-wrap">
+                        {dayActivities.slice(0, 3).map((activity, idx) => (
+                          <span 
+                            key={activity.id}
+                            className={cn(
+                              "w-2 h-2 rounded-full",
+                              activity.status === 'completed' || activity.status === 'late' ? "bg-green-500" :
+                              activity.status === 'overdue' ? "bg-red-500" :
+                              activity.status === 'in-progress' ? "bg-blue-500" :
+                              "bg-orange-500"
+                            )}
+                          />
+                        ))}
+                        {indicators.activityCount > 3 && (
+                          <span className="text-xs text-muted-foreground">+{indicators.activityCount - 3}</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="space-y-1">
+                      {dayActivities.slice(0, 3).map(activity => (
+                        <div
+                          key={activity.id}
+                          draggable
+                          onDragStart={(e) => handleActivityDragStart(e, activity)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedActivity(activity);
+                            setIsActivityModalOpen(true);
+                          }}
+                          className={cn(
+                            "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
+                            getStatusColor(activity.status),
+                            selectedActivity?.id === activity.id && "ring-2 ring-primary ring-offset-1",
+                            draggedActivity?.id === activity.id && "opacity-50"
+                          )}
+                        >
+                          {activity.title}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Calendar Grid - Week View */}
+        {view === 'week' && (
+          <WeekView 
+            currentDate={currentDate} 
+            activities={filteredActivities}
+            onDateSelect={(date) => {
+              setSelectedDate(date);
+              setCurrentDate(date);
+            }}
+            selectedDate={selectedDate}
+            onActivityClick={(activity) => {
+              setSelectedActivity(activity);
+              setIsActivityModalOpen(true);
+            }}
+            onSelectTimeSlot={handleSelectTimeSlot}
+            selectedTimeSlot={selectedTimeSlot}
+            onClearSelection={handleClearSelection}
+            isToday={isToday}
+            isSameDay={isSameDay}
+            format={format}
+            getStatusColor={getStatusColor}
+          />
+        )}
+
+        {/* Calendar Grid - Day View */}
+        {view === 'day' && (
+          <DayView 
+            currentDate={currentDate} 
+            activities={filteredActivities}
+            onActivityClick={(activity) => {
+              setSelectedActivity(activity);
+              setIsActivityModalOpen(true);
+            }}
+            onSelectTimeSlot={handleSelectTimeSlot}
+            selectedTimeSlot={selectedTimeSlot}
+            onClearSelection={handleClearSelection}
+            isToday={isToday}
+            isSameDay={isSameDay}
+            format={format}
+            getStatusColor={getStatusColor}
+          />
+        )}
+      </div>
+
+      {/* Upcoming Activities Sidebar */}
+      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+          <h3 className="font-semibold text-lg">Upcoming Activities</h3>
+          <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
+        </div>
+        <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
+          {/* Overdue Section */}
+          {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Overdue ({activities.filter(a => a.status === 'overdue').length})
+              </h4>
+              <div className="space-y-2">
+                {activities
+                  .filter(a => a.status === 'overdue')
+                  .slice(0, 3)
+                  .map(activity => (
                     <button
                       key={activity.id}
                       onClick={() => {
+                        const activityDate = new Date(activity.deadlineDate);
+                        setCurrentDate(activityDate);
+                        setSelectedActivity(activity);
+                        setIsActivityModalOpen(true);
+                      }}
+                      className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    >
+                      <div className="font-medium text-sm">{activity.title}</div>
+                      <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Section */}
+          <div>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+              Coming Up
+            </h4>
+            {activities && activities.filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date()).length > 0 ? (
+              <div className="space-y-2">
+                {activities
+                  .filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date())
+                  .sort((a, b) => new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime())
+                  .slice(0, 5)
+                  .map(activity => (
+                    <button
+                      key={activity.id}
+                      onClick={() => {
+                        const activityDate = new Date(activity.deadlineDate);
+                        setCurrentDate(activityDate);
                         setSelectedActivity(activity);
                         setIsActivityModalOpen(true);
                       }}
                       className={cn(
-                        "text-xs p-1.5 rounded-md border truncate font-medium text-left w-full",
-                        getStatusColor(activity.status),
-                        selectedActivity?.id === activity.id && "ring-2 ring-primary ring-offset-1"
+                        "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
+                        getStatusColor(activity.status)
                       )}
                     >
-                      {activity.title}
+                      <div className="font-medium text-sm">{activity.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(activity.deadlineDate), 'EEE, MMM d')}
+                      </div>
                     </button>
                   ))}
-                </div>
               </div>
-            );
-          })}
+            ) : (
+              <p className="text-sm text-muted-foreground">No upcoming activities</p>
+            )}
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+// Week View Component
+function WeekView({ 
+  currentDate, 
+  activities, 
+  onDateSelect, 
+  selectedDate,
+  onActivityClick, 
+  onSelectTimeSlot,
+  selectedTimeSlot,
+  isToday, 
+  isSameDay, 
+  format, 
+  getStatusColor,
+  onClearSelection
+}: {
+  currentDate: Date;
+  activities: any[];
+  onDateSelect: (date: Date) => void;
+  selectedDate: Date | null;
+  onActivityClick: (activity: any) => void;
+  onSelectTimeSlot: (date: Date, time: string) => void;
+  selectedTimeSlot: string | null;
+  isToday: (date: Date) => boolean;
+  isSameDay: (date1: Date, date2: Date) => boolean;
+  format: (date: Date, formatStr: string) => string;
+  getStatusColor: (status: string | null) => string;
+  onClearSelection?: () => void;
+}) {
+  const weekStart = startOfWeek(currentDate);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  // Helper to get activity's scheduled hour (default to 23 if no specific time)
+  const getActivityHour = (activity: any): number => {
+    const deadlineDate = new Date(activity.deadlineDate);
+    return deadlineDate.getHours();
+  };
+
+  return (
+    <div className="overflow-auto max-h-[700px]">
+      {/* Week header */}
+      <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
+        <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
+        {weekDays.map((day) => (
+          <div 
+            key={day.toISOString()} 
+            className={cn(
+              "p-2 text-center border-r last:border-r-0",
+              isToday(day) && "bg-primary/10"
+            )}
+          >
+            <div className="text-xs text-muted-foreground">{format(day, 'EEE')}</div>
+            <div className={cn(
+              "text-lg font-semibold",
+              isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto"
+            )}>
+              {format(day, 'd')}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Time slots */}
+      <div 
+        className="relative cursor-default"
+        onClick={(e) => {
+          // Check if clicking directly on the container (not on a child element)
+          if (e.target === e.currentTarget) {
+            onClearSelection?.();
+          }
+        }}
+      >
+        {hours.map((hour) => {
+          const timeString = `${hour.toString().padStart(2, '0')}:00`;
+          
+          return (
+            <div key={hour} className="grid grid-cols-8 border-b border-gray-100 dark:border-gray-800">
+              <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
+                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+              </div>
+              {weekDays.map((day) => {
+                // Filter activities for this specific day AND hour
+                const dayHourActivities = activities
+                  .filter(a => isSameDay(new Date(a.deadlineDate), day) && getActivityHour(a) === hour);
+                
+                return (
+                  <div 
+                    key={`${day.toISOString()}-${hour}`}
+                    className={cn(
+                      "p-1 border-r last:border-r-0 min-h-[50px] hover:bg-muted/30 cursor-pointer transition-colors",
+                      isToday(day) && "bg-primary/5",
+                      selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
+                      selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500"
+                    )}
+                    onClick={() => {
+                      onDateSelect(day);
+                      // Select time slot (highlight) instead of opening modal
+                      onSelectTimeSlot(day, timeString);
+                    }}
+                  >
+                    {/* Activities for this specific hour */}
+                    {dayHourActivities.map(activity => (
+                      <div
+                        key={activity.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onActivityClick(activity);
+                        }}
+                        className={cn(
+                          "text-xs p-1 rounded border truncate font-medium cursor-pointer hover:opacity-80",
+                          getStatusColor(activity.status)
+                        )}
+                      >
+                        {activity.title}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Day View Component
+function DayView({ 
+  currentDate, 
+  activities, 
+  onActivityClick, 
+  onSelectTimeSlot,
+  selectedTimeSlot,
+  isToday, 
+  isSameDay, 
+  format, 
+  getStatusColor,
+  onClearSelection
+}: {
+  currentDate: Date;
+  activities: any[];
+  onActivityClick: (activity: any) => void;
+  onSelectTimeSlot: (date: Date, time: string) => void;
+  selectedTimeSlot: string | null;
+  isToday: (date: Date) => boolean;
+  isSameDay: (date1: Date, date2: Date) => boolean;
+  format: (date: Date, formatStr: string) => string;
+  getStatusColor: (status: string | null) => string;
+  onClearSelection?: () => void;
+}) {
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const dayActivities = activities.filter(a => isSameDay(new Date(a.deadlineDate), currentDate));
+
+  // Helper to get activity's scheduled hour (default to 23 if no time)
+  const getActivityHour = (activity: any): number => {
+    const deadlineDate = new Date(activity.deadlineDate);
+    // Check if time is set (hour will be 0-23, if uninitialized it defaults to midnight)
+    return deadlineDate.getHours();
+  };
+
+  return (
+    <div className="overflow-auto max-h-[700px]">
+      {/* Day header */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+        <div className="text-2xl font-bold">{format(currentDate, 'EEEE, MMMM d, yyyy')}</div>
+        <div className="text-muted-foreground">{dayActivities.length} activities</div>
+      </div>
+      
+      {/* Time slots */}
+      <div 
+        className="relative cursor-default"
+        onClick={(e) => {
+          // Check if clicking directly on the container (not on a child element)
+          if (e.target === e.currentTarget) {
+            onClearSelection?.();
+          }
+        }}
+      >
+        {hours.map((hour) => {
+          const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
+          const timeString = `${hour.toString().padStart(2, '0')}:00`;
+          
+          return (
+            <div key={hour} className="grid grid-cols-[80px_1fr] border-b border-gray-100 dark:border-gray-800">
+              <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
+                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+              </div>
+              <div 
+                className={cn(
+                  "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
+                  selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500"
+                )}
+                onClick={() => onSelectTimeSlot(currentDate, timeString)}
+              >
+                {/* Activities for this specific hour */}
+                {hourActivities.map(activity => (
+                  <div
+                    key={activity.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onActivityClick(activity);
+                    }}
+                    className={cn(
+                      "text-sm p-2 rounded-md border mb-1 font-medium cursor-pointer hover:opacity-80",
+                      getStatusColor(activity.status)
+                    )}
+                  >
+                    <div className="font-semibold">{activity.title}</div>
+                    {activity.description && (
+                      <div className="text-xs mt-1 opacity-80">{activity.description}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
