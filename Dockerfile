@@ -1,17 +1,17 @@
-FROM node:20-alpine
+FROM node:18-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-
-# Clear npm cache and force fresh install
-RUN npm cache clean --force
 
 RUN npm ci
 
 COPY . .
 
 RUN npm run build
+
+# Set OpenSSL legacy provider environment variable
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 
 # Expose the port Railway assigns
 EXPOSE $PORT
