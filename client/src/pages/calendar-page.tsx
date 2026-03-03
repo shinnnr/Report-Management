@@ -333,9 +333,14 @@ function CalendarContent() {
         const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
         
         if (hasDateChanged || hasTimeChanged) {
+          // Set the dragged activity first so the modal can display it
+          setDraggedActivity(activity);
           setRescheduleTargetDate(targetDate);
           setRescheduleTargetTime(targetTimeStr);
           setShowRescheduleConfirm(true);
+          setIsTouchDragging(false);
+          touchDragRef.current = null;
+          return;
         }
       }
     }
@@ -1315,10 +1320,13 @@ function CalendarContent() {
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
             onDragEnd={() => {
-              setDraggedActivity(null);
-              setDropTargetDate(null);
-              setDropTargetTime(null);
-              setIsDraggingOverTimeSlot(false);
+              // Only clear if not showing reschedule confirmation (check rescheduleTargetDate)
+              if (!rescheduleTargetDate) {
+                setDraggedActivity(null);
+                setDropTargetDate(null);
+                setDropTargetTime(null);
+                setIsDraggingOverTimeSlot(false);
+              }
             }}
             // Touch handlers
             onTouchDragStart={handleTouchDragStart}
@@ -1352,10 +1360,13 @@ function CalendarContent() {
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
             onDragEnd={() => {
-              setDraggedActivity(null);
-              setDropTargetDate(null);
-              setDropTargetTime(null);
-              setIsDraggingOverTimeSlot(false);
+              // Only clear if not showing reschedule confirmation
+              if (!showRescheduleConfirm) {
+                setDraggedActivity(null);
+                setDropTargetDate(null);
+                setDropTargetTime(null);
+                setIsDraggingOverTimeSlot(false);
+              }
             }}
             // Touch handlers
             onTouchDragStart={handleTouchDragStart}
