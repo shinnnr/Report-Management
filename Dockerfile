@@ -10,10 +10,8 @@ COPY . .
 
 RUN npm run build
 
-# Set Node.js options for OpenSSL legacy provider (needed for google-auth-library)
-ENV NODE_OPTIONS="--openssl-legacy-provider"
-
 # Expose the port Railway assigns
 EXPOSE $PORT
 
-CMD ["npm", "start"]
+# Start with OpenSSL legacy provider enabled
+CMD ["sh", "-c", "NODE_OPTIONS='--openssl-legacy-provider' node dist/index.cjs"]
