@@ -526,11 +526,19 @@ export async function registerRoutes(
 
       console.log('[DEBUG] fileData present:', !!input.fileData);
       console.log('[DEBUG] GDrive configured:', isGDriveConfigured());
+      console.log('[DEBUG] fileData prefix:', input.fileData?.substring(0, 50));
 
       if (input.fileData && isGDriveConfigured()) {
         try {
           console.log('[GDrive] Starting upload for:', finalFileName);
-          const buffer = Buffer.from(input.fileData, 'base64');
+          
+          // Strip data URL prefix if present (e.g., "data:image/png;base64,")
+          let base64Data = input.fileData;
+          if (base64Data.includes(',')) {
+            base64Data = base64Data.split(',')[1];
+          }
+          
+          const buffer = Buffer.from(base64Data, 'base64');
           const mimeType = input.fileType || 'application/octet-stream';
           console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
           
@@ -783,7 +791,15 @@ export async function registerRoutes(
       if (fileData && isGDriveConfigured()) {
         try {
           console.log('[GDrive] Starting upload for activity submission:', finalFileName);
-          const buffer = Buffer.from(fileData, 'base64');
+          console.log('[DEBUG] fileData prefix:', fileData?.substring(0, 50));
+          
+          // Strip data URL prefix if present (e.g., "data:image/png;base64,")
+          let base64Data = fileData;
+          if (base64Data.includes(',')) {
+            base64Data = base64Data.split(',')[1];
+          }
+          
+          const buffer = Buffer.from(base64Data, 'base64');
           const mimeType = fileType || 'application/octet-stream';
           console.log('[GDrive] Buffer length:', buffer.length, 'MimeType:', mimeType);
           
