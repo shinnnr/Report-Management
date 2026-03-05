@@ -1160,6 +1160,14 @@ function CalendarContent() {
         {/* Calendar Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGoToToday}
+              className="hidden sm:flex gap-1"
+            >
+              Today
+            </Button>
             <div className="flex gap-1">
               <Button variant="outline" size="icon" onClick={() => {
                 const newDate = new Date(currentDate);
@@ -1185,14 +1193,6 @@ function CalendarContent() {
                view === 'week' ? format(currentDate, 'MMMM yyyy') :
                format(currentDate, 'MMMM yyyy')}
             </h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGoToToday}
-              className="hidden sm:flex gap-1"
-            >
-              Today
-            </Button>
           </div>
           
           {/* View Toggle Buttons */}
@@ -1774,8 +1774,8 @@ function DayView({
     <div className="overflow-auto max-h-[700px]">
       {/* Day header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-        <div className="flex items-center justify-between pl-20">
-          <div>
+        <div className="flex items-center justify-between pl-4">
+          <div className="flex flex-col items-center">
             <div className="text-xs font-bold text-primary uppercase tracking-wider">{format(currentDate, 'EEE')}</div>
             <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
           </div>
