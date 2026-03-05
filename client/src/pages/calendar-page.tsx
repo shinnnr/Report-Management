@@ -224,6 +224,13 @@ function CalendarContent() {
     setView(newView);
   };
 
+  // Handle clicking on a day in WeekView to navigate to DayView
+  const handleDayClickInWeekView = (date: Date) => {
+    setCurrentDate(date);
+    setSelectedDate(date);
+    setView('day');
+  };
+
   // Handle drag start for rescheduling
   const handleActivityDragStart = (e: React.DragEvent, activity: any) => {
     e.stopPropagation();
@@ -503,12 +510,65 @@ function CalendarContent() {
 
   const getStatusColor = (status: string | null) => {
     switch(status) {
-      case 'completed': return 'bg-green-100 text-green-700 border-green-200';
-      case 'overdue': return 'bg-red-100 text-red-700 border-red-200';
-      case 'late': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'in-progress': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+      case 'late': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      default: return 'bg-amber-100 text-amber-800 border-amber-200';
     }
+  };
+
+  // Get the border color for a status (used for left border)
+  const getStatusBorderColor = (status: string | null) => {
+    switch(status) {
+      case 'completed': return 'border-l-4 border-emerald-500';
+      case 'overdue': return 'border-l-4 border-red-500';
+      case 'late': return 'border-l-4 border-orange-500';
+      case 'in-progress': return 'border-l-4 border-blue-500';
+      default: return 'border-l-4 border-amber-500';
+    }
+  };
+
+  // Get multi-colored border for a day cell with multiple activities
+  const getMultiStatusBorderColor = (activities: any[]): { borderClass: string; style?: React.CSSProperties } => {
+    if (!activities || activities.length === 0) return { borderClass: '', style: undefined };
+    
+    // Get unique statuses from activities
+    const statuses = Array.from(new Set(activities.map(a => a.status)));
+    
+    if (statuses.length === 0) return { borderClass: '', style: undefined };
+    if (statuses.length === 1) {
+      // Single status - use the regular border color
+      return { borderClass: getStatusBorderColor(statuses[0]), style: undefined };
+    }
+    
+    // Multiple statuses - create a striped gradient border effect
+    // Map statuses to hex colors
+    const colorMap: Record<string, string> = {
+      'completed': '#10b981', // emerald-500
+      'overdue': '#ef4444', // red-500
+      'late': '#f97316', // orange-500
+      'in-progress': '#3b82f6', // blue-500
+      'pending': '#f59e0b', // amber-500
+    };
+    
+    // Build gradient colors for the border
+    const colors = statuses.map(status => colorMap[status] || colorMap['pending']);
+    
+    // Create a repeating linear gradient for striped effect
+    const stripeWidth = 100 / colors.length;
+    const gradientStops = colors.map((color, i) => 
+      `${color} ${i * stripeWidth}% ${(i + 1) * stripeWidth}%`
+    ).join(', ');
+    
+    return { 
+      borderClass: 'border-l-4', 
+      style: { 
+        borderImage: `linear-gradient(to bottom, ${gradientStops}) 1`,
+        borderLeftWidth: '4px',
+        borderLeftStyle: 'solid'
+      } 
+    };
   };
 
   // Get activities for selected date
@@ -1210,6 +1270,7 @@ function CalendarContent() {
               {daysInMonth.map((date) => {
                 const dayActivities = filteredActivities.filter(a => isSameDay(new Date(a.deadlineDate), date));
                 const indicators = getDateIndicators(date);
+                const multiBorder = dayActivities.length > 0 ? getMultiStatusBorderColor(dayActivities) : { borderClass: '', style: undefined };
 
                 return (
                   <div
@@ -1218,9 +1279,9 @@ function CalendarContent() {
                       "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
                       selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5",
                       dropTargetDate && isSameDay(date, dropTargetDate) && "bg-primary/20 ring-2 ring-primary",
-                      indicators.hasOverdue && !isToday(date) && "border-l-4 border-l-red-500",
-                      indicators.hasDueSoon && !indicators.hasOverdue && !isToday(date) && "border-l-4 border-l-yellow-500"
+                      dayActivities.length > 0 && multiBorder.borderClass
                     )}
+                    style={multiBorder.style}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (selectedDate && isSameDay(date, selectedDate)) {
@@ -1275,6 +1336,7 @@ function CalendarContent() {
                           className={cn(
                             "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
                             getStatusColor(activity.status),
+                            getStatusBorderColor?.(activity.status),
                             selectedActivity?.id === activity.id && "ring-2 ring-primary ring-offset-1",
                             draggedActivity?.id === activity.id && "opacity-50"
                           )}
@@ -1311,6 +1373,8 @@ function CalendarContent() {
             isSameDay={isSameDay}
             format={format}
             getStatusColor={getStatusColor}
+            getStatusBorderColor={getStatusBorderColor}
+            getMultiStatusBorderColor={getMultiStatusBorderColor}
             // Drag and drop props
             draggedActivity={draggedActivity}
             dropTargetDate={dropTargetDate}
@@ -1332,6 +1396,7 @@ function CalendarContent() {
             onTouchDragStart={handleTouchDragStart}
             onTouchDragMove={handleTouchDragMove}
             onTouchDragEnd={handleTouchDragEnd}
+            onDayClick={handleDayClickInWeekView}
           />
         )}
 
@@ -1351,6 +1416,8 @@ function CalendarContent() {
             isSameDay={isSameDay}
             format={format}
             getStatusColor={getStatusColor}
+            getStatusBorderColor={getStatusBorderColor}
+            getMultiStatusBorderColor={getMultiStatusBorderColor}
             // Drag and drop props
             draggedActivity={draggedActivity}
             dropTargetDate={dropTargetDate}
@@ -1437,7 +1504,8 @@ function CalendarContent() {
                       }}
                       className={cn(
                         "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
-                        getStatusColor(activity.status)
+                        getStatusColor(activity.status),
+                        getStatusBorderColor(activity.status)
                       )}
                     >
                       <div className="font-medium text-sm">{activity.title}</div>
@@ -1483,7 +1551,10 @@ function WeekView({
   // Touch handlers
   onTouchDragStart,
   onTouchDragMove,
-  onTouchDragEnd
+  onTouchDragEnd,
+  onDayClick,
+  getStatusBorderColor,
+  getMultiStatusBorderColor
 }: {
   currentDate: Date;
   activities: any[];
@@ -1496,6 +1567,8 @@ function WeekView({
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
   getStatusColor: (status: string | null) => string;
+  getStatusBorderColor?: (status: string | null) => string;
+  getMultiStatusBorderColor?: (activities: any[]) => { borderClass: string; style?: React.CSSProperties };
   onClearSelection?: () => void;
   // Drag and drop props
   draggedActivity?: any;
@@ -1510,6 +1583,7 @@ function WeekView({
   onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
+  onDayClick?: (date: Date) => void;
 }) {
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -1530,11 +1604,15 @@ function WeekView({
           <div 
             key={day.toISOString()} 
             className={cn(
-              "p-2 text-center border-r last:border-r-0",
+              "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors",
               isToday(day) && "bg-primary/10"
             )}
+            onClick={() => onDayClick?.(day)}
           >
-            <div className="text-xs text-muted-foreground">{format(day, 'EEE')}</div>
+            <div className={cn(
+              "text-xs font-semibold",
+              isToday(day) ? "text-primary" : "text-muted-foreground"
+            )}>{format(day, 'EEE')}</div>
             <div className={cn(
               "text-lg font-semibold",
               isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto"
@@ -1579,8 +1657,10 @@ function WeekView({
                       selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
                       selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
                       // Drag over visual feedback
-                      dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                      dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
+                      dayHourActivities.length > 0 && getMultiStatusBorderColor?.(dayHourActivities)?.borderClass
                     )}
+                    style={getMultiStatusBorderColor?.(dayHourActivities)?.style}
                     onClick={() => {
                       onDateSelect(day);
                       // Select time slot (highlight) instead of opening modal
@@ -1607,6 +1687,7 @@ function WeekView({
                         className={cn(
                           "text-xs p-1 rounded border truncate font-medium cursor-move hover:opacity-80 transition-opacity select-none",
                           getStatusColor(activity.status),
+                          getStatusBorderColor?.(activity.status),
                           draggedActivity?.id === activity.id && "opacity-50 scale-95",
                           activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                         )}
@@ -1636,6 +1717,8 @@ function DayView({
   isSameDay, 
   format, 
   getStatusColor,
+  getStatusBorderColor,
+  getMultiStatusBorderColor,
   onClearSelection,
   // Drag and drop props
   draggedActivity,
@@ -1660,6 +1743,8 @@ function DayView({
   isSameDay: (date1: Date, date2: Date) => boolean;
   format: (date: Date, formatStr: string) => string;
   getStatusColor: (status: string | null) => string;
+  getStatusBorderColor?: (status: string | null) => string;
+  getMultiStatusBorderColor?: (activities: any[]) => { borderClass: string; style?: React.CSSProperties };
   onClearSelection?: () => void;
   // Drag and drop props
   draggedActivity?: any;
@@ -1689,8 +1774,13 @@ function DayView({
     <div className="overflow-auto max-h-[700px]">
       {/* Day header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-        <div className="text-2xl font-bold">{format(currentDate, 'EEEE, MMMM d, yyyy')}</div>
-        <div className="text-muted-foreground">{dayActivities.length} activities</div>
+        <div className="flex items-center justify-between pl-20">
+          <div>
+            <div className="text-xs font-bold text-primary uppercase tracking-wider">{format(currentDate, 'EEE')}</div>
+            <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
+          </div>
+          <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
+        </div>
       </div>
       
       {/* Time slots */}
@@ -1717,8 +1807,10 @@ function DayView({
                   "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
                   selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
                   // Drag over visual feedback
-                  dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                  dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
+                  hourActivities.length > 0 && getMultiStatusBorderColor?.(hourActivities)?.borderClass
                 )}
+                style={getMultiStatusBorderColor?.(hourActivities)?.style}
                 data-date={currentDate.toISOString()}
                 data-time-slot={timeString}
                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
@@ -1743,6 +1835,7 @@ function DayView({
                     className={cn(
                       "text-sm p-2 rounded-md border mb-1 font-medium cursor-move hover:opacity-80 transition-opacity select-none",
                       getStatusColor(activity.status),
+                      getStatusBorderColor?.(activity.status),
                       draggedActivity?.id === activity.id && "opacity-50 scale-95",
                       activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                     )}
