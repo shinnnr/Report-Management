@@ -549,20 +549,15 @@ export class DatabaseStorage implements IStorage {
       const now = new Date();
       const newDeadline = new Date(updates.deadlineDate);
       
-      // Set both to midnight for date-only comparison
-      now.setHours(0, 0, 0, 0);
-      newDeadline.setHours(0, 0, 0, 0);
-      
-      // Only recalculate status if the activity is not completed, late, or in-progress
       // Get current activity to check its status
       const [currentActivity] = await db.select().from(activities).where(eq(activities.id, id));
       
       if (currentActivity && !['completed', 'late', 'in-progress'].includes(currentActivity.status || '')) {
-        // If new deadline is in the future or today, set to pending
-        if (newDeadline >= now) {
+        // If new deadline is in the future (including future time today), keep as pending
+        if (newDeadline > now) {
           updates.status = 'pending';
         } else {
-          // If new deadline is in the past, set to overdue
+          // If new deadline is in the past (including past time today), set to overdue
           updates.status = 'overdue';
         }
       }

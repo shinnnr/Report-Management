@@ -15,7 +15,8 @@ import {
   addWeeks,
   differenceInDays,
   isBefore,
-  isAfter
+  isAfter,
+  isPast
 } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
@@ -84,6 +85,13 @@ function CalendarContent() {
   const [rescheduleTargetDate, setRescheduleTargetDate] = useState<Date | null>(null);
   const [rescheduleTargetTime, setRescheduleTargetTime] = useState<string | null>(null);
   const [isDraggingOverTimeSlot, setIsDraggingOverTimeSlot] = useState(false);
+  
+  // Auto-scroll state for drag-and-drop
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
+  const autoScrollRef = useRef<{
+    direction: 'left' | 'right' | 'up' | 'down' | null;
+    intervalId: NodeJS.Timeout | null;
+  }>({ direction: null, intervalId: null });
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -206,6 +214,32 @@ function CalendarContent() {
     };
   };
 
+  // Helper function to check if target date/time is in the past
+  const isTargetDateTimePast = (targetDate: Date, targetTime?: string | null): boolean => {
+    const now = new Date();
+    const target = new Date(targetDate);
+    
+    if (targetTime) {
+      const [hours, minutes] = targetTime.split(':').map(Number);
+      target.setHours(hours, minutes, 0, 0);
+    } else {
+      // If no time specified, check if the entire day is past
+      target.setHours(23, 59, 59, 999);
+    }
+    
+    return isPast(target);
+  };
+
+  // Stop auto-scroll on drag end
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollRef.current.intervalId) {
+      clearInterval(autoScrollRef.current.intervalId);
+      autoScrollRef.current.intervalId = null;
+    }
+    autoScrollRef.current.direction = null;
+    setAutoScrollEnabled(false);
+  }, []);
+
   // Handle go to today
   const handleGoToToday = () => {
     const today = new Date();
@@ -248,6 +282,72 @@ function CalendarContent() {
     setDropTargetDate(date);
     setDropTargetTime(time);
     setIsDraggingOverTimeSlot(true);
+    
+    // Auto-scroll logic - scroll based on viewport edges (like Google Calendar)
+    if (!draggedActivity) return;
+    
+    const scrollThreshold = 60;
+    const scrollSpeed = 20;
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    
+    let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+    
+    // Check horizontal edges of viewport
+    if (clientX < scrollThreshold) {
+      scrollDirection = 'left';
+    } else if (clientX > viewportWidth - scrollThreshold) {
+      scrollDirection = 'right';
+    }
+    
+    // Check vertical edges of viewport
+    if (clientY < scrollThreshold) {
+      scrollDirection = 'up';
+    } else if (clientY > viewportHeight - scrollThreshold) {
+      scrollDirection = 'down';
+    }
+    
+    // Stop existing auto-scroll if direction changed or no longer needed
+    if (autoScrollRef.current.intervalId) {
+      clearInterval(autoScrollRef.current.intervalId);
+      autoScrollRef.current.intervalId = null;
+    }
+    
+    if (scrollDirection) {
+      setAutoScrollEnabled(true);
+      autoScrollRef.current.direction = scrollDirection;
+      
+      const intervalId = setInterval(() => {
+        if (!draggedActivity) {
+          clearInterval(intervalId);
+          autoScrollRef.current.intervalId = null;
+          return;
+        }
+        
+        switch (scrollDirection) {
+          case 'left':
+            window.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'right':
+            window.scrollBy({ left: scrollSpeed, behavior: 'auto' });
+            break;
+          case 'up':
+            window.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'down':
+            window.scrollBy({ top: scrollSpeed, behavior: 'auto' });
+            break;
+        }
+      }, 16);
+      
+      autoScrollRef.current.intervalId = intervalId;
+    } else {
+      setAutoScrollEnabled(false);
+    }
   };
 
   // Handle drag leave for time slot
@@ -262,6 +362,9 @@ function CalendarContent() {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverTimeSlot(false);
+    
+    // Stop auto-scroll
+    stopAutoScroll();
     
     if (draggedActivity) {
       const currentDeadline = new Date(draggedActivity.deadlineDate);
@@ -362,12 +465,78 @@ function CalendarContent() {
     e.preventDefault();
     e.stopPropagation();
     setDropTargetDate(date);
+    
+    // Auto-scroll logic for MonthView - scroll based on viewport edges (like Google Calendar)
+    if (!draggedActivity) return;
+    
+    const scrollThreshold = 60;
+    const scrollSpeed = 20;
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    
+    let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+    
+    // Check horizontal edges of viewport
+    if (clientX < scrollThreshold) {
+      scrollDirection = 'left';
+    } else if (clientX > viewportWidth - scrollThreshold) {
+      scrollDirection = 'right';
+    }
+    
+    // Check vertical edges of viewport
+    if (clientY < scrollThreshold) {
+      scrollDirection = 'up';
+    } else if (clientY > viewportHeight - scrollThreshold) {
+      scrollDirection = 'down';
+    }
+    
+    // Stop existing auto-scroll if direction changed or no longer needed
+    if (autoScrollRef.current.intervalId) {
+      clearInterval(autoScrollRef.current.intervalId);
+      autoScrollRef.current.intervalId = null;
+    }
+    
+    if (scrollDirection) {
+      autoScrollRef.current.direction = scrollDirection;
+      
+      const intervalId = setInterval(() => {
+        if (!draggedActivity) {
+          clearInterval(intervalId);
+          autoScrollRef.current.intervalId = null;
+          return;
+        }
+        
+        switch (scrollDirection) {
+          case 'left':
+            window.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'right':
+            window.scrollBy({ left: scrollSpeed, behavior: 'auto' });
+            break;
+          case 'up':
+            window.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'down':
+            window.scrollBy({ top: scrollSpeed, behavior: 'auto' });
+            break;
+        }
+      }, 16);
+      
+      autoScrollRef.current.intervalId = intervalId;
+    }
   };
 
   // Handle drop on date cell
   const handleDateDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Stop auto-scroll
+    stopAutoScroll();
     
     if (draggedActivity) {
       const currentDeadline = new Date(draggedActivity.deadlineDate);
@@ -416,11 +585,15 @@ function CalendarContent() {
           deadlineDateStr.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
         }
         
-        // Update the activity
+        // Update the activity - server will automatically calculate the correct status
+        // based on the new deadline date/time
         await updateActivity.mutateAsync({
           id: draggedActivity.id,
           data: { deadlineDate: deadlineDateStr }
         });
+        
+        // Stop auto-scroll if active
+        stopAutoScroll();
         
         // Force refresh to get the updated status
         await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
@@ -436,9 +609,12 @@ function CalendarContent() {
         }
         
         const timeStr = rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : '';
+        // Check if status changed to overdue
+        const statusChangedToOverdue = updatedActivity && updatedActivity.status === 'overdue';
+        const statusChangeMsg = statusChangedToOverdue ? ' Status changed to Overdue.' : '';
         toast({
           title: "Activity rescheduled",
-          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}`
+          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
         });
       } catch (error) {
         // Error handled by mutation
@@ -1132,6 +1308,11 @@ function CalendarContent() {
               <DialogTitle>Reschedule Activity</DialogTitle>
               <DialogDescription>
                 Are you sure you want to move "{draggedActivity?.title}" to {rescheduleTargetDate ? format(rescheduleTargetDate, 'MMMM d, yyyy') : ''}{rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : ''}?
+                {draggedActivity?.status === 'pending' && rescheduleTargetDate && isTargetDateTimePast(rescheduleTargetDate, rescheduleTargetTime) && (
+                  <span className="block mt-2 text-red-600 font-medium">
+                    ⚠️ This will automatically change the status to Overdue because the target date/time has already passed.
+                  </span>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -1142,6 +1323,7 @@ function CalendarContent() {
                 setRescheduleTargetTime(null);
                 setDropTargetDate(null);
                 setDropTargetTime(null);
+                stopAutoScroll();
               }}>
                 Cancel
               </Button>
@@ -1291,7 +1473,10 @@ function CalendarContent() {
                       }
                     }}
                     onDragOver={(e) => handleDateDragOver(e, date)}
-                    onDragLeave={() => setDropTargetDate(null)}
+                    onDragLeave={() => {
+                      setDropTargetDate(null);
+                      stopAutoScroll();
+                    }}
                     onDrop={(e) => handleDateDrop(e, date)}
                   >
                     <div className={cn(
@@ -1384,6 +1569,7 @@ function CalendarContent() {
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
             onDragEnd={() => {
+              stopAutoScroll();
               // Only clear if not showing reschedule confirmation (check rescheduleTargetDate)
               if (!rescheduleTargetDate) {
                 setDraggedActivity(null);
@@ -1427,6 +1613,7 @@ function CalendarContent() {
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
             onDragEnd={() => {
+              stopAutoScroll();
               // Only clear if not showing reschedule confirmation
               if (!showRescheduleConfirm) {
                 setDraggedActivity(null);
