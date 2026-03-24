@@ -95,8 +95,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
       }
       onClose();
     }}>
-      <DialogContent className="max-w-lg max-h-[80vh]">
-        <DialogHeader className="pb-4">
+      <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+        <DialogHeader className="pb-4 shrink-0">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>
           </DialogTitle>
@@ -105,7 +105,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-4 pr-4 pb-4">
             {notifications && notifications.length > 0 ? (
               notifications
@@ -161,7 +161,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex items-center justify-between py-2 -mt-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0 border-t">
             <div className="flex items-center gap-2">
               {notifications && notifications.length >= notificationsPerPage && (
                 <>

@@ -622,15 +622,15 @@ function DashboardContent() {
           setCurrentPage(1);
         }
       }}>
-        <DialogContent className="max-w-lg max-h-[80vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+          <DialogHeader className="shrink-0">
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>
               View all your recent activity logs here. You can select multiple logs to archive or delete them.
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-2 pr-4 pb-4">
               {logs && logs.length > 0 ? (
               logs
@@ -686,7 +686,7 @@ function DashboardContent() {
           </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex items-center justify-between py-2 mt-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0 border-t">
             <div className="flex items-center gap-2">
               {logs && logs.length >= logsPerPage && (
                 <>
