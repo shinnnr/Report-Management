@@ -105,7 +105,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4 pr-4 pb-4">
             {notifications && notifications.length > 0 ? (
               notifications
