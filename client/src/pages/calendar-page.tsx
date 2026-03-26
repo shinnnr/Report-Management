@@ -1087,104 +1087,106 @@ function CalendarContent() {
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-1 py-4 px-1 pr-4">
-              {/* Basic Info Section */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1 h-4 bg-primary rounded-full"></span>
-                  Basic Information
-                </h3>
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
-                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
-                    <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none" rows={2} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Agency & Department Section */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
-                  Agency & Department
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
-                    <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select agency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DOE">DOE</SelectItem>
-                        <SelectItem value="ERC">ERC</SelectItem>
-                        <SelectItem value="NEA">NEA</SelectItem>
-                        <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
-                    <Select value={concernDepartment} onValueChange={setConcernDepartment}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <div className="space-y-6">
+                {/* Basic Info Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-primary rounded-full"></span>
+                    Basic Information
+                  </h3>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
+                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
+                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none" rows={2} />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Reports Detail Section */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                  Report Details
-                </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
-                  <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none" rows={3} />
+                {/* Agency & Department Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                    Agency & Department
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
+                      <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select agency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DOE">DOE</SelectItem>
+                          <SelectItem value="ERC">ERC</SelectItem>
+                          <SelectItem value="NEA">NEA</SelectItem>
+                          <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
+                      <Select value={concernDepartment} onValueChange={setConcernDepartment}>
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                          <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                          <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reports Detail Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                    Report Details
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
+                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none" rows={3} />
+                  </div>
+                </div>
+
+                {/* Deadline Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                    Deadline
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-sm font-medium">Time</Label>
+                    <Input 
+                      id="time" 
+                      type="time" 
+                      value={activityTime} 
+                      onChange={(e) => setActivityTime(e.target.value)} 
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
+                  </div>
+                </div>
+
+                {/* Remarks Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
+                    Additional Notes
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
+                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none" rows={2} />
+                  </div>
                 </div>
               </div>
-
-              {/* Deadline Section */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-                  Deadline
-                </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-sm font-medium">Time</Label>
-                  <Input 
-                    id="time" 
-                    type="time" 
-                    value={activityTime} 
-                    onChange={(e) => setActivityTime(e.target.value)} 
-                    className="h-10"
-                  />
-                  <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
-                </div>
-              </div>
-
-              {/* Remarks Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
-                  Additional Notes
-                </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
-                  <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none" rows={2} />
-                </div>
-              </div>
-            </div>
+            </ScrollArea>
             <DialogFooter className="shrink-0 pt-4 border-t mt-4">
               <div className="flex gap-3 w-full justify-end">
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
@@ -1259,7 +1261,7 @@ function CalendarContent() {
                         key={activity.id}
                         className={cn(
                           "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
-                          getStatusBorderColor?.(activity.status)
+                          getStatusBorderColor(activity.status)
                         )}
                         onClick={() => {
                           setSelectedActivity(activity);
@@ -1709,117 +1711,157 @@ function CalendarContent() {
         </div>
 
         {/* Calendar Grid - Month View */}
-        {view === 'month' && (
-          <>
-            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20">
-                  {day}
-                </div>
-              ))}
-            </div>
+{view === 'month' && (
+  <>
+    <ScrollArea className="h-[600px] pr-4">
+      
+      {/* Header */}
+      <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <div
+            key={day}
+            className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
 
-            <div 
-              className="grid grid-cols-7 min-h-[600px] auto-rows-fr" 
-              onClick={() => setSelectedDate(null)}
+      {/* Grid */}
+      <div
+        className="grid grid-cols-7 min-h-[600px] auto-rows-fr"
+        onClick={() => setSelectedDate(null)}
+      >
+        {/* Padding */}
+        {paddingDays.map((_, i) => (
+          <div
+            key={`padding-${i}`}
+            className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800"
+          />
+        ))}
+
+        {/* Days */}
+        {daysInMonth.map((date) => {
+          const dayActivities = filteredActivities.filter(a =>
+            isSameDay(new Date(a.deadlineDate), date)
+          );
+
+          const indicators = getDateIndicators(date);
+
+          const multiBorder =
+            dayActivities.length > 0
+              ? getMultiStatusBorderColor(dayActivities)
+              : { borderClass: '', style: undefined };
+
+          return (
+            <div
+              key={date.toISOString()}
+              className={cn(
+                "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                selectedDate &&
+                  isSameDay(date, selectedDate) &&
+                  "ring-2 ring-primary ring-inset bg-primary/5",
+                dropTargetDate &&
+                  isSameDay(date, dropTargetDate) &&
+                  "bg-primary/20 ring-2 ring-primary",
+                dayActivities.length > 0 && multiBorder.borderClass
+              )}
+              style={multiBorder.style}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (selectedDate && isSameDay(date, selectedDate)) {
+                  setSelectedDate(null);
+                } else {
+                  setSelectedDate(date);
+                }
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setDayActivitiesModalDate(date);
+                setDayActivitiesPage(1);
+                setShowDayActivitiesModal(true);
+              }}
+              onDragOver={(e) => handleDateDragOver(e, date)}
+              onDragLeave={() => {
+                setDropTargetDate(null);
+                stopAutoScroll();
+              }}
+              onDrop={(e) => handleDateDrop(e, date)}
             >
-              {paddingDays.map((_, i) => (
-                <div key={`padding-${i}`} className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800" />
-              ))}
+              {/* Date */}
+              <div
+                className={cn(
+                  "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
+                  isToday(date)
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted-foreground"
+                )}
+              >
+                {format(date, 'd')}
+              </div>
 
-              {daysInMonth.map((date) => {
-                const dayActivities = filteredActivities.filter(a => isSameDay(new Date(a.deadlineDate), date));
-                const indicators = getDateIndicators(date);
-                const multiBorder = dayActivities.length > 0 ? getMultiStatusBorderColor(dayActivities) : { borderClass: '', style: undefined };
+              {/* Dots */}
+              {indicators.hasActivities && (
+                <div className="flex gap-1 mb-1 flex-wrap">
+                  {dayActivities.slice(0, 3).map((activity) => (
+                    <span
+                      key={activity.id}
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        activity.status === 'completed' ||
+                        activity.status === 'late'
+                          ? "bg-green-500"
+                          : activity.status === 'overdue'
+                          ? "bg-red-500"
+                          : activity.status === 'in-progress'
+                          ? "bg-blue-500"
+                          : "bg-orange-500"
+                      )}
+                    />
+                  ))}
+                  {indicators.activityCount > 3 && (
+                    <span className="text-xs text-muted-foreground">
+                      +{indicators.activityCount - 3}
+                    </span>
+                  )}
+                </div>
+              )}
 
-                return (
+              {/* Activities */}
+              <div className="space-y-1">
+                {dayActivities.slice(0, 3).map((activity) => (
                   <div
-                    key={date.toISOString()}
-                    className={cn(
-                      "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
-                      selectedDate && isSameDay(date, selectedDate) && "ring-2 ring-primary ring-inset bg-primary/5",
-                      dropTargetDate && isSameDay(date, dropTargetDate) && "bg-primary/20 ring-2 ring-primary",
-                      dayActivities.length > 0 && multiBorder.borderClass
-                    )}
-                    style={multiBorder.style}
+                    key={activity.id}
+                    draggable
+                    onDragStart={(e) =>
+                      handleActivityDragStart(e, activity)
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (selectedDate && isSameDay(date, selectedDate)) {
-                        setSelectedDate(null);
-                      } else {
-                        setSelectedDate(date);
-                      }
+                      setSelectedActivity(activity);
+                      setIsActivityModalOpen(true);
                     }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      setDayActivitiesModalDate(date);
-                      setDayActivitiesPage(1);
-                      setShowDayActivitiesModal(true);
-                    }}
-                    onDragOver={(e) => handleDateDragOver(e, date)}
-                    onDragLeave={() => {
-                      setDropTargetDate(null);
-                      stopAutoScroll();
-                    }}
-                    onDrop={(e) => handleDateDrop(e, date)}
-                  >
-                    <div className={cn(
-                      "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
-                      isToday(date) ? "bg-primary text-white shadow-sm" : "text-muted-foreground"
-                    )}>
-                      {format(date, 'd')}
-                    </div>
-                    
-                    {/* Activity Dots */}
-                    {indicators.hasActivities && (
-                      <div className="flex gap-1 mb-1 flex-wrap">
-                        {dayActivities.slice(0, 3).map((activity, idx) => (
-                          <span 
-                            key={activity.id}
-                            className={cn(
-                              "w-2 h-2 rounded-full",
-                              activity.status === 'completed' || activity.status === 'late' ? "bg-green-500" :
-                              activity.status === 'overdue' ? "bg-red-500" :
-                              activity.status === 'in-progress' ? "bg-blue-500" :
-                              "bg-orange-500"
-                            )}
-                          />
-                        ))}
-                        {indicators.activityCount > 3 && (
-                          <span className="text-xs text-muted-foreground">+{indicators.activityCount - 3}</span>
-                        )}
-                      </div>
+                    className={cn(
+                      "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
+                      getStatusColor(activity.status),
+                      getStatusBorderColor?.(activity.status),
+                      selectedActivity?.id === activity.id &&
+                        "ring-2 ring-primary ring-offset-1",
+                      draggedActivity?.id === activity.id &&
+                        "opacity-50"
                     )}
-                    
-                    <div className="space-y-1">
-                      {dayActivities.slice(0, 3).map(activity => (
-                        <div
-                          key={activity.id}
-                          draggable
-                          onDragStart={(e) => handleActivityDragStart(e, activity)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedActivity(activity);
-                            setIsActivityModalOpen(true);
-                          }}
-                          className={cn(
-                            "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
-                            getStatusColor(activity.status),
-                            getStatusBorderColor?.(activity.status),
-                            selectedActivity?.id === activity.id && "ring-2 ring-primary ring-offset-1",
-                            draggedActivity?.id === activity.id && "opacity-50"
-                          )}
-                        >
-                          {activity.title}
-                        </div>
-                      ))}
-                    </div>
+                  >
+                    {activity.title}
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </>
-        )}
+          );
+        })}
+      </div>
+    </ScrollArea>
+  </>
+)}
 
         {/* Calendar Grid - Week View */}
         {view === 'week' && (
@@ -1920,77 +1962,79 @@ function CalendarContent() {
           <h3 className="font-semibold text-lg">Upcoming Activities</h3>
           <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
         </div>
-        <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
-          {/* Overdue Section */}
-          {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
-            <div>
-              <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Overdue ({activities.filter(a => a.status === 'overdue').length})
-              </h4>
-              <div className="space-y-2">
-                {activities
-                  .filter(a => a.status === 'overdue')
-                  .slice(0, 3)
-                  .map(activity => (
-                    <button
-                      key={activity.id}
-                      onClick={() => {
-                        const activityDate = new Date(activity.deadlineDate);
-                        setCurrentDate(activityDate);
-                        setSelectedActivity(activity);
-                        setIsActivityModalOpen(true);
-                      }}
-                      className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    >
-                      <div className="font-medium text-sm">{activity.title}</div>
-                      <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
-                      </div>
-                    </button>
-                  ))}
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-4 px-4 pb-4">
+            {/* Overdue Section */}
+            {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Overdue ({activities.filter(a => a.status === 'overdue').length})
+                </h4>
+                <div className="space-y-2">
+                  {activities
+                    .filter(a => a.status === 'overdue')
+                    .slice(0, 3)
+                    .map(activity => (
+                      <button
+                        key={activity.id}
+                        onClick={() => {
+                          const activityDate = new Date(activity.deadlineDate);
+                          setCurrentDate(activityDate);
+                          setSelectedActivity(activity);
+                          setIsActivityModalOpen(true);
+                        }}
+                        className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      >
+                        <div className="font-medium text-sm">{activity.title}</div>
+                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                          Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                        </div>
+                      </button>
+                    ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Upcoming Section */}
-          <div>
-            <h4 className="text-sm font-semibold text-muted-foreground mb-2">
-              Coming Up
-            </h4>
-            {activities && activities.filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date()).length > 0 ? (
-              <div className="space-y-2">
-                {activities
-                  .filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date())
-                  .sort((a, b) => new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime())
-                  .slice(0, 5)
-                  .map(activity => (
-                    <button
-                      key={activity.id}
-                      onClick={() => {
-                        const activityDate = new Date(activity.deadlineDate);
-                        setCurrentDate(activityDate);
-                        setSelectedActivity(activity);
-                        setIsActivityModalOpen(true);
-                      }}
-                      className={cn(
-                        "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
-                        getStatusColor(activity.status),
-                        getStatusBorderColor(activity.status)
-                      )}
-                    >
-                      <div className="font-medium text-sm">{activity.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {format(new Date(activity.deadlineDate), 'EEE, MMM d')}
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No upcoming activities</p>
             )}
+
+            {/* Upcoming Section */}
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">
+                Coming Up
+              </h4>
+              {activities && activities.filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date()).length > 0 ? (
+                <div className="space-y-2">
+                  {activities
+                    .filter(a => a.status !== 'overdue' && a.status !== 'completed' && a.status !== 'late' && new Date(a.deadlineDate) >= new Date())
+                    .sort((a, b) => new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime())
+                    .slice(0, 5)
+                    .map(activity => (
+                      <button
+                        key={activity.id}
+                        onClick={() => {
+                          const activityDate = new Date(activity.deadlineDate);
+                          setCurrentDate(activityDate);
+                          setSelectedActivity(activity);
+                          setIsActivityModalOpen(true);
+                        }}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
+                          getStatusColor(activity.status),
+                          getStatusBorderColor(activity.status)
+                        )}
+                      >
+                        <div className="font-medium text-sm">{activity.title}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(activity.deadlineDate), 'EEE, MMM d')}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No upcoming activities</p>
+              )}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Agency & Department Filter Panel */}
@@ -2085,7 +2129,8 @@ function CalendarContent() {
               
               return (
                 <>
-                  <div className="max-h-[300px] overflow-y-auto space-y-2">
+                <ScrollArea className="h-[300px] p-4 space-y-2">
+                  <div className="space-y-2">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}
@@ -2147,6 +2192,7 @@ function CalendarContent() {
                       </div>
                     </div>
                   )}
+                  </ScrollArea>
                 </>
               );
             })()}
@@ -2228,11 +2274,12 @@ function WeekView({
   };
 
   return (
-    <div className="overflow-auto max-h-[700px]">
-      {/* Week header */}
-      <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
-        <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
-        {weekDays.map((day) => (
+    <ScrollArea className="h-[700px] pr-4">
+      <div className="h-full">
+        {/* Week header */}
+        <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
+          <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
+          {weekDays.map((day) => (
           <div 
             key={day.toISOString()} 
             className={cn(
@@ -2334,7 +2381,8 @@ function WeekView({
           );
         })}
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
 
@@ -2403,17 +2451,18 @@ function DayView({
   };
 
   return (
-    <div className="overflow-auto max-h-[700px]">
-      {/* Day header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-        <div className="flex items-center justify-between pl-4">
-          <div className="flex flex-col items-center">
-            <div className="text-xs font-bold text-primary uppercase tracking-wider">{format(currentDate, 'EEE')}</div>
-            <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
+    <ScrollArea className="h-[700px] pr-4">
+      <div className="h-full">
+        {/* Day header */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+          <div className="flex items-center justify-between pl-4">
+            <div className="flex flex-col items-center">
+              <div className="text-xs font-bold text-primary uppercase tracking-wider">{format(currentDate, 'EEE')}</div>
+              <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
+            </div>
+            <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
           </div>
-          <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
         </div>
-      </div>
       
       {/* Time slots */}
       <div 
@@ -2484,5 +2533,6 @@ function DayView({
         })}
       </div>
     </div>
+    </ScrollArea>
   );
 }
