@@ -46,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function CalendarPage() {
   return (
@@ -76,6 +77,16 @@ function CalendarContent() {
   
   // Activity filter state
   const [activityFilter, setActivityFilter] = useState<string>('all');
+  
+  // Agency & Department filter state for sidebar
+  const [filterAgency, setFilterAgency] = useState<string>('');
+  const [filterDepartment, setFilterDepartment] = useState<string>('');
+  const [agencyFilterPage, setAgencyFilterPage] = useState(1);
+  
+  // Reset pagination when filters change
+  useEffect(() => {
+    setAgencyFilterPage(1);
+  }, [filterAgency, filterDepartment]);
   
   // Drag state for rescheduling
   const [draggedActivity, setDraggedActivity] = useState<any>(null);
@@ -127,6 +138,14 @@ function CalendarContent() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Day Activities Modal State
+  const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
+  const [dayActivitiesModalDate, setDayActivitiesModalDate] = useState<Date | null>(null);
+  const [dayActivitiesPage, setDayActivitiesPage] = useState(1);
+  const [activityFromDayModal, setActivityFromDayModal] = useState(false);
+  const [newActivityFromDayModal, setNewActivityFromDayModal] = useState(false);
+  const dayActivitiesPerPage = 10;
 
   // Form State
   const [title, setTitle] = useState("");
@@ -1017,7 +1036,19 @@ function CalendarContent() {
             </Button>
           )}
 
-          <Dialog open={isNewActivityOpen} onOpenChange={setIsNewActivityOpen}>
+          <Dialog open={isNewActivityOpen} onOpenChange={(open) => {
+            setIsNewActivityOpen(open);
+            if (!open) {
+              // Reset form state
+              setTitle("");
+              setDescription("");
+              setActivityTime("23:59");
+              setRegulatoryAgency("");
+              setConcernDepartment("");
+              setReportDetails("");
+              setRemarks("");
+            }
+          }}>
           <DialogTrigger asChild>
             <Button
               className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 duration-200"
@@ -1055,7 +1086,7 @@ function CalendarContent() {
                 Create a new activity for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'the selected date'}.
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto py-4 px-1">
+            <ScrollArea className="flex-1 py-4 px-1 pr-4">
               {/* Basic Info Section */}
               <div className="space-y-4 mb-6">
                 <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -1129,32 +1160,16 @@ function CalendarContent() {
                   <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
                   Deadline
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="deadline" className="text-sm font-medium">Date <span className="text-red-500">*</span></Label>
-                    <Input 
-                      id="deadline" 
-                      type="date" 
-                      value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''} 
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setSelectedDate(new Date(e.target.value));
-                        }
-                      }} 
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time" className="text-sm font-medium">Time</Label>
-                    <Input 
-                      id="time" 
-                      type="time" 
-                      value={activityTime} 
-                      onChange={(e) => setActivityTime(e.target.value)} 
-                      className="h-10"
-                    />
-                    <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time" className="text-sm font-medium">Time</Label>
+                  <Input 
+                    id="time" 
+                    type="time" 
+                    value={activityTime} 
+                    onChange={(e) => setActivityTime(e.target.value)} 
+                    className="h-10"
+                  />
+                  <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
                 </div>
               </div>
 
@@ -1194,12 +1209,126 @@ function CalendarContent() {
         </Dialog>
         </div>
 
+        {/* Day Activities Modal */}
+        {dayActivitiesModalDate && (() => {
+          const dayActs = (activities || []).filter(a => 
+            isSameDay(new Date(a.deadlineDate), dayActivitiesModalDate)
+          );
+          const totalPages = Math.ceil(dayActs.length / dayActivitiesPerPage);
+          const paginatedActivities = dayActs.slice(
+            (dayActivitiesPage - 1) * dayActivitiesPerPage,
+            dayActivitiesPage * dayActivitiesPerPage
+          );
+          
+          return (
+            <Dialog open={showDayActivitiesModal} onOpenChange={(open) => {
+              setShowDayActivitiesModal(open);
+              if (!open) {
+                setDayActivitiesModalDate(null);
+                setDayActivitiesPage(1);
+              }
+            }}>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader className="shrink-0 pb-2">
+                  <div className="flex items-center justify-between pr-8">
+                    <DialogTitle>
+                      Activities for {format(dayActivitiesModalDate, 'MMMM d, yyyy')}
+                    </DialogTitle>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedDate(dayActivitiesModalDate);
+                        setNewActivityFromDayModal(true);
+                        setIsNewActivityOpen(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Activity
+                    </Button>
+                  </div>
+                  <DialogDescription>
+                    Total: {dayActs.length} {dayActs.length === 1 ? "activity" : "activities"}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto space-y-2 py-4">
+                  {paginatedActivities.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No activities for this day</p>
+                  ) : (
+                    paginatedActivities.map(activity => (
+                      <div
+                        key={activity.id}
+                        className={cn(
+                          "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                          getStatusBorderColor?.(activity.status)
+                        )}
+                        onClick={() => {
+                          setSelectedActivity(activity);
+                          setActivityFromDayModal(true);
+                          setIsActivityModalOpen(true);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{activity.title}</span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-xs",
+                            activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                            activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                            activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                            "bg-orange-100 text-orange-700"
+                          )}>
+                            {activity.status}
+                          </span>
+                        </div>
+                        {activity.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {activity.description}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+                {dayActs.length > dayActivitiesPerPage && (
+                  <div className="shrink-0 flex items-center justify-between pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                      disabled={dayActivitiesPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {dayActivitiesPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                      disabled={dayActivitiesPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
+
         {/* Activity Submission Modal */}
         <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
           setIsActivityModalOpen(open);
           if (!open) {
             setSelectedFiles([]);
             setSelectedActivity(null);
+            // Reopen day activities modal if it was opened from there
+            if (activityFromDayModal && dayActivitiesModalDate) {
+              setShowDayActivitiesModal(true);
+              setActivityFromDayModal(false);
+            }
           }
         }}>
           <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300">
@@ -1621,6 +1750,12 @@ function CalendarContent() {
                         setSelectedDate(date);
                       }
                     }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setDayActivitiesModalDate(date);
+                      setDayActivitiesPage(1);
+                      setShowDayActivitiesModal(true);
+                    }}
                     onDragOver={(e) => handleDateDragOver(e, date)}
                     onDragLeave={() => {
                       setDropTargetDate(null);
@@ -1854,6 +1989,167 @@ function CalendarContent() {
             ) : (
               <p className="text-sm text-muted-foreground">No upcoming activities</p>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Agency & Department Filter Panel */}
+      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+          <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
+          <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
+        </div>
+        <div className="p-4">
+          {/* Filter Dropdowns */}
+          <div className="flex gap-3 mb-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-1 block">Regulatory Agency</label>
+              <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Agencies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Agencies</SelectItem>
+                  <SelectItem value="DOE">DOE</SelectItem>
+                  <SelectItem value="ERC">ERC</SelectItem>
+                  <SelectItem value="NEA">NEA</SelectItem>
+                  <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-1 block">Concern Department</label>
+              <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={!filterAgency}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={filterAgency ? "All Departments" : "Select Agency First"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {filterAgency === 'DOE' && (
+                    <>
+                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                    </>
+                  )}
+                  {filterAgency === 'ERC' && (
+                    <>
+                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                    </>
+                  )}
+                  {filterAgency === 'NEA' && (
+                    <>
+                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                    </>
+                  )}
+                  {filterAgency === 'NEA-WEB PORTAL' && (
+                    <>
+                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Filtered Activities List */}
+          <div className="space-y-2">
+            {activities && (() => {
+              const filtered = activities.filter(a => {
+                const matchesAgency = !filterAgency || a.regulatoryAgency === filterAgency;
+                const matchesDept = !filterDepartment || a.concernDepartment === filterDepartment;
+                return matchesAgency && matchesDept;
+              });
+              
+              const itemsPerPage = 10;
+              const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+              const validPage = Math.min(agencyFilterPage, totalPages);
+              const paginatedActivities = filtered.slice(
+                (validPage - 1) * itemsPerPage,
+                validPage * itemsPerPage
+              );
+              
+              if (filtered.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {filterAgency ? "No activities found" : "Select an agency to filter activities"}
+                  </p>
+                );
+              }
+              
+              return (
+                <>
+                  <div className="max-h-[300px] overflow-y-auto space-y-2">
+                    {paginatedActivities.map(activity => (
+                      <button
+                        key={activity.id}
+                        onClick={() => {
+                          const activityDate = new Date(activity.deadlineDate);
+                          setCurrentDate(activityDate);
+                          setSelectedActivity(activity);
+                          setIsActivityModalOpen(true);
+                        }}
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
+                          getStatusColor(activity.status),
+                          getStatusBorderColor(activity.status)
+                        )}
+                      >
+                        <div className="font-medium text-sm">{activity.title}</div>
+                        <div className="flex gap-2 mt-1">
+                          {activity.regulatoryAgency && (
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                              {activity.regulatoryAgency}
+                            </span>
+                          )}
+                          {activity.concernDepartment && (
+                            <span className="text-xs bg-secondary/10 text-secondary-foreground px-2 py-0.5 rounded">
+                              {activity.concernDepartment}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Page {validPage} of {totalPages}
+                      </p>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAgencyFilterPage(p => Math.max(1, p - 1))}
+                          disabled={agencyFilterPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setAgencyFilterPage(p => Math.min(totalPages, p + 1))}
+                          disabled={agencyFilterPage === totalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
