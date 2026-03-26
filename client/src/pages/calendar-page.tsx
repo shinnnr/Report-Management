@@ -1621,13 +1621,13 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {/* Calendar Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
+          <div className="flex items-center gap-2 md:gap-4">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleGoToToday}
-              className="hidden sm:flex gap-1"
+              className="hidden lg:flex gap-1"
             >
               Today
             </Button>
@@ -1651,7 +1651,7 @@ function CalendarContent() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            <h2 className="text-xl font-bold font-display text-primary min-w-[160px]">
+            <h2 className="text-lg md:text-xl font-bold font-display text-primary min-w-[160px]">
               {view === 'day' ? format(currentDate, 'MMMM d, yyyy') :
                view === 'week' ? format(currentDate, 'MMMM yyyy') :
                format(currentDate, 'MMMM yyyy')}
@@ -1659,7 +1659,7 @@ function CalendarContent() {
           </div>
           
           {/* View Toggle Buttons */}
-          <div className="flex items-center gap-2 mt-4 sm:mt-0">
+          <div className="flex items-center gap-2">
             <div className="flex bg-muted rounded-lg p-1">
               <Button
                 variant={view === 'day' ? 'default' : 'ghost'}
@@ -1706,7 +1706,7 @@ function CalendarContent() {
           </div>
           
           {/* Activity counts */}
-          <div className="text-sm text-muted-foreground mt-2 sm:mt-0">
+          <div className="text-sm text-muted-foreground w-full md:w-auto md:flex-none order-last md:order-none">
             {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
           </div>
         </div>
