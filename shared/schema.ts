@@ -54,6 +54,7 @@ export const activities = pgTable("activities", {
   regulatoryAgency: text("regulatory_agency"),
   concernDepartment: text("concern_department"),
   reportDetails: text("report_details"),
+  remarks: text("remarks"),
   completionDate: timestamp("completion_date"),
   completedBy: integer("completed_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),

@@ -21,7 +21,7 @@ import {
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +133,10 @@ function CalendarContent() {
   const [description, setDescription] = useState("");
   const [activityTime, setActivityTime] = useState<string>("23:59"); // Default to end of day
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [regulatoryAgency, setRegulatoryAgency] = useState("");
+  const [concernDepartment, setConcernDepartment] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [remarks, setRemarks] = useState("");
 
   // Handle activityId from URL query parameter (when clicking from notification)
   useEffect(() => {
@@ -676,12 +680,20 @@ function CalendarContent() {
       startDate: new Date(),
       deadlineDate: deadlineWithTime,
       status: 'pending',
+      regulatoryAgency: regulatoryAgency || null,
+      concernDepartment: concernDepartment || null,
+      reportDetails: reportDetails || null,
+      remarks: remarks || null,
     });
     setIsNewActivityOpen(false);
     setSelectedDate(null);
     setTitle("");
     setDescription("");
     setActivityTime("23:59");
+    setRegulatoryAgency("");
+    setConcernDepartment("");
+    setReportDetails("");
+    setRemarks("");
   };
 
   const getStatusColor = (status: string | null) => {
@@ -1033,37 +1045,131 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300">
-            <DialogHeader>
-              <DialogTitle>New Activity</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="shrink-0 pb-4 border-b">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                New Activity
+              </DialogTitle>
+              <DialogDescription className="text-sm">
                 Create a new activity for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'the selected date'}.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" />
+            <div className="flex-1 overflow-y-auto py-4 px-1">
+              {/* Basic Info Section */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1 h-4 bg-primary rounded-full"></span>
+                  Basic Information
+                </h3>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
+                    <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
+                    <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none" rows={2} />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="desc">Description</Label>
-                <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+
+              {/* Agency & Department Section */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                  Agency & Department
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
+                    <Input id="regulatoryAgency" value={regulatoryAgency} onChange={(e) => setRegulatoryAgency(e.target.value)} placeholder="e.g., SEC, BIR, LGU" className="h-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
+                    <Input id="concernDepartment" value={concernDepartment} onChange={(e) => setConcernDepartment(e.target.value)} placeholder="e.g., Finance, Operations" className="h-10" />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input 
-                  id="time" 
-                  type="time" 
-                  value={activityTime} 
-                  onChange={(e) => setActivityTime(e.target.value)} 
-                />
-                <p className="text-xs text-muted-foreground">Set the time for this activity (optional)</p>
+
+              {/* Reports Detail Section */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                  Report Details
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
+                  <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none" rows={3} />
+                </div>
+              </div>
+
+              {/* Deadline Section */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                  Deadline
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="deadline" className="text-sm font-medium">Date <span className="text-red-500">*</span></Label>
+                    <Input 
+                      id="deadline" 
+                      type="date" 
+                      value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''} 
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setSelectedDate(new Date(e.target.value));
+                        }
+                      }} 
+                      className="h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time" className="text-sm font-medium">Time</Label>
+                    <Input 
+                      id="time" 
+                      type="time" 
+                      value={activityTime} 
+                      onChange={(e) => setActivityTime(e.target.value)} 
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Remarks Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
+                  Additional Notes
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
+                  <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none" rows={2} />
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button onClick={handleCreate} disabled={createActivity.isPending}>
-                {createActivity.isPending ? "Creating..." : "Create Activity"}
-              </Button>
+            <DialogFooter className="shrink-0 pt-4 border-t mt-4">
+              <div className="flex gap-3 w-full justify-end">
+                <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !selectedDate}>
+                  {createActivity.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Activity
+                    </>
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
