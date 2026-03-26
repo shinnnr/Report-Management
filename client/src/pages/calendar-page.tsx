@@ -1083,11 +1083,30 @@ function CalendarContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
-                    <Input id="regulatoryAgency" value={regulatoryAgency} onChange={(e) => setRegulatoryAgency(e.target.value)} placeholder="e.g., SEC, BIR, LGU" className="h-10" />
+                    <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select agency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DOE">DOE</SelectItem>
+                        <SelectItem value="ERC">ERC</SelectItem>
+                        <SelectItem value="NEA">NEA</SelectItem>
+                        <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
-                    <Input id="concernDepartment" value={concernDepartment} onChange={(e) => setConcernDepartment(e.target.value)} placeholder="e.g., Finance, Operations" className="h-10" />
+                    <Select value={concernDepartment} onValueChange={setConcernDepartment}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
