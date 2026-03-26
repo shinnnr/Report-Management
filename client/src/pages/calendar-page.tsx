@@ -1210,6 +1210,30 @@ function CalendarContent() {
                     </span>
                   </div>
                 </div>
+                {selectedActivity?.regulatoryAgency && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Regulatory Agency</h4>
+                    <p className="text-sm">{selectedActivity.regulatoryAgency}</p>
+                  </div>
+                )}
+                {selectedActivity?.concernDepartment && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Concern Department</h4>
+                    <p className="text-sm">{selectedActivity.concernDepartment}</p>
+                  </div>
+                )}
+                {selectedActivity?.reportDetails && (
+                  <div className="md:col-span-2">
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Reports Detail</h4>
+                    <p className="text-sm">{selectedActivity.reportDetails}</p>
+                  </div>
+                )}
+                {selectedActivity?.remarks && (
+                  <div className="md:col-span-2">
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Remarks</h4>
+                    <p className="text-sm">{selectedActivity.remarks}</p>
+                  </div>
+                )}
               </div>
 
               {/* Status Badge */}
