@@ -1076,17 +1076,16 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col">
             <DialogHeader className="shrink-0 pb-4 border-b">
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-                <Plus className="w-5 h-5" />
                 New Activity
               </DialogTitle>
               <DialogDescription className="text-sm">
                 Create a new activity for {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'the selected date'}.
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="flex-1 py-4 px-1 pr-4">
+            <div className="h-[400px] overflow-y-auto py-4 px-6 pb-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               <div className="space-y-6">
                 {/* Basic Info Section */}
                 <div className="space-y-4">
@@ -1097,11 +1096,11 @@ function CalendarContent() {
                   <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
-                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10" />
+                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border-0" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
-                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none" rows={2} />
+                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border-0" rows={2} />
                     </div>
                   </div>
                 </div>
@@ -1151,7 +1150,7 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
-                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none" rows={3} />
+                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border-0" rows={3} />
                   </div>
                 </div>
 
@@ -1168,7 +1167,7 @@ function CalendarContent() {
                       type="time" 
                       value={activityTime} 
                       onChange={(e) => setActivityTime(e.target.value)} 
-                      className="h-10"
+                      className="h-10 border-0"
                     />
                     <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
                   </div>
@@ -1182,11 +1181,11 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
-                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none" rows={2} />
+                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border-0" rows={2} />
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
             <DialogFooter className="shrink-0 pt-4 border-t mt-4">
               <div className="flex gap-3 w-full justify-end">
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
@@ -1230,7 +1229,7 @@ function CalendarContent() {
                 setDayActivitiesPage(1);
               }
             }}>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
                 <DialogHeader className="shrink-0 pb-2">
                   <div className="flex items-center justify-between pr-8">
                     <DialogTitle>
@@ -1252,7 +1251,8 @@ function CalendarContent() {
                     Total: {dayActs.length} {dayActs.length === 1 ? "activity" : "activities"}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto space-y-2 py-4">
+                <ScrollArea className="h-[300px] pr-4">
+                  <div className="space-y-2 py-4 px-4">
                   {paginatedActivities.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">No activities for this day</p>
                   ) : (
@@ -1290,6 +1290,7 @@ function CalendarContent() {
                     ))
                   )}
                 </div>
+                </ScrollArea>
                 {dayActs.length > dayActivitiesPerPage && (
                   <div className="shrink-0 flex items-center justify-between pt-4 border-t">
                     <Button
@@ -1333,7 +1334,7 @@ function CalendarContent() {
             }
           }
         }}>
-          <DialogContent>
+          <DialogContent className="overflow-visible">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -1713,8 +1714,6 @@ function CalendarContent() {
         {/* Calendar Grid - Month View */}
 {view === 'month' && (
   <>
-    <ScrollArea className="h-[600px] pr-4">
-      
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -1753,11 +1752,14 @@ function CalendarContent() {
               ? getMultiStatusBorderColor(dayActivities)
               : { borderClass: '', style: undefined };
 
+          const isLastDayOfMonth = isSameDay(date, endOfMonth(date));
+
           return (
             <div
               key={date.toISOString()}
               className={cn(
-                "p-2 border-b border-r last:border-r-0 min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                "p-2 border-b border-r min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                !isLastDayOfMonth && "last:border-r-0",
                 selectedDate &&
                   isSameDay(date, selectedDate) &&
                   "ring-2 ring-primary ring-inset bg-primary/5",
@@ -1859,7 +1861,6 @@ function CalendarContent() {
           );
         })}
       </div>
-    </ScrollArea>
   </>
 )}
 
