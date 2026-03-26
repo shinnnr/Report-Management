@@ -1051,7 +1051,7 @@ function CalendarContent() {
           }}>
           <DialogTrigger asChild>
             <Button
-              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 duration-200"
+              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm"
               disabled={!selectedDate}
               onClick={() => {
                 if (!selectedDate) {
@@ -1076,7 +1076,7 @@ function CalendarContent() {
               {selectedDate ? `Add Activity for ${format(selectedDate, 'MMMM d')}` : 'Select Date'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader className="shrink-0 pb-4 border-b">
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                 <Plus className="w-5 h-5" />
@@ -1333,7 +1333,7 @@ function CalendarContent() {
             }
           }
         }}>
-          <DialogContent className="animate-in data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-top-4 data-[state=closed]:slide-out-to-top-4 duration-300">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
