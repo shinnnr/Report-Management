@@ -945,7 +945,7 @@ export async function registerRoutes(
     // Get the activity IDs from notifications that the user should see
     const activityIds = notifications.map(n => n.activityId).filter(Boolean);
     const activities = await Promise.all(
-      activityIds.map(id => storage.getActivity(id)).catch(() => null)
+      activityIds.map(id => storage.getActivity(id).catch(() => null))
     );
     
     // Filter notifications based on user role
