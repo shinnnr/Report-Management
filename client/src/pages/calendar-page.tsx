@@ -1372,8 +1372,8 @@ function CalendarContent() {
             }
           }
         }}>
-          <DialogContent className="overflow-visible">
-            <DialogHeader>
+          <DialogContent className="max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 {selectedActivity?.title}
@@ -1383,7 +1383,7 @@ function CalendarContent() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pr-2">
               {/* Activity Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                 <div>
@@ -1538,7 +1538,7 @@ function CalendarContent() {
               )}
             </div>
 
-            <DialogFooter className="flex justify-between">
+            <DialogFooter className="flex justify-between flex-shrink-0 mt-4">
               <Button
                 variant="destructive"
                 size="sm"
