@@ -2150,12 +2150,12 @@ function CalendarContent() {
                         <div className="font-medium text-sm">{activity.title}</div>
                         <div className="flex gap-2 mt-1">
                           {activity.regulatoryAgency && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                            <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
                               {activity.regulatoryAgency}
                             </span>
                           )}
                           {activity.concernDepartment && (
-                            <span className="text-xs bg-secondary/10 text-secondary-foreground px-2 py-0.5 rounded">
+                            <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
                               {activity.concernDepartment}
                             </span>
                           )}
@@ -2166,10 +2166,11 @@ function CalendarContent() {
                       </button>
                     ))}
                   </div>
+                  </ScrollArea>
                   
-                  {/* Pagination */}
+                  {/* Pagination - moved to footer outside ScrollArea */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
                       <p className="text-sm text-muted-foreground">
                         Page {validPage} of {totalPages}
                       </p>
@@ -2193,7 +2194,6 @@ function CalendarContent() {
                       </div>
                     </div>
                   )}
-                  </ScrollArea>
                 </>
               );
             })()}
