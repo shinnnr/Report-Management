@@ -265,7 +265,7 @@ function SettingsContent() {
         password: "",
         confirmPassword: "",
         fullName: "",
-        role: "assistant",
+        role: "cps",
       });
     } catch (error) {
       // Error handled in mutation
@@ -273,7 +273,7 @@ function SettingsContent() {
   };
 
   // Update user role
-  const handleUpdateRole = async (userId: number, role: "admin" | "assistant") => {
+  const handleUpdateRole = async (userId: number, role: "admin" | "cps" | "ets") => {
     try {
       await updateUserMutation.mutateAsync({ userId, updates: { role } });
     } catch (error) {
@@ -370,8 +370,8 @@ function SettingsContent() {
                 <div>
                   <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
                   <p className="text-muted-foreground">@{currentUser?.username}</p>
-                  <Badge variant={currentUser?.role === "admin" ? "default" : "secondary"} className="mt-1">
-                    {currentUser?.role === "admin" ? "Administrator" : "Assistant"}
+                  <Badge variant={currentUser?.role === "admin" ? "default" : currentUser?.role === "cps" ? "outline" : "secondary"} className="mt-1">
+                    {currentUser?.role === "admin" ? "Administrator" : currentUser?.role === "cps" ? "CPS" : "ETS"}
                   </Badge>
                 </div>
               </div>
@@ -769,11 +769,13 @@ function SettingsContent() {
                             </div>
                           </div>
                           <div className="hidden md:flex items-center gap-3">
-                            <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                            <Badge variant={user.role === "admin" ? "default" : user.role === "cps" ? "outline" : "secondary"}>
                               {user.role === "admin" ? (
                                 <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
+                              ) : user.role === "cps" ? (
+                                <><Shield className="mr-1 h-3 w-3" /> CPS</>
                               ) : (
-                                <><Shield className="mr-1 h-3 w-3" /> Assistant</>
+                                <><Shield className="mr-1 h-3 w-3" /> ETS</>
                               )}
                             </Badge>
                             <Badge variant="outline">
@@ -781,14 +783,35 @@ function SettingsContent() {
                             </Badge>
                             {user.id !== currentUser?.id && (
                               <div className="flex items-center gap-2">
+                                {user.role === "admin" ? (
+                              <>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleUpdateRole(user.id, user.role === "admin" ? "assistant" : "admin")}
+                                  onClick={() => handleUpdateRole(user.id, "cps")}
                                   disabled={updateUserMutation.isPending}
                                 >
-                                  {user.role === "admin" ? "Remove Admin" : "Make Admin"}
+                                  Make CPS
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, "ets")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  Make ETS
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUpdateRole(user.id, "admin")}
+                                disabled={updateUserMutation.isPending}
+                              >
+                                Make Admin
+                              </Button>
+                            )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button variant="destructive" size="sm" disabled={deleteUserMutation.isPending}>
@@ -874,11 +897,13 @@ function SettingsContent() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Role</span>
-              <Badge variant={selectedUserForDialog?.role === "admin" ? "default" : "secondary"}>
+              <Badge variant={selectedUserForDialog?.role === "admin" ? "default" : selectedUserForDialog?.role === "cps" ? "outline" : "secondary"}>
                 {selectedUserForDialog?.role === "admin" ? (
                   <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
+                ) : selectedUserForDialog?.role === "cps" ? (
+                  <><Shield className="mr-1 h-3 w-3" /> CPS</>
                 ) : (
-                  <><Shield className="mr-1 h-3 w-3" /> Assistant</>
+                  <><Shield className="mr-1 h-3 w-3" /> ETS</>
                 )}
               </Badge>
             </div>
@@ -891,28 +916,41 @@ function SettingsContent() {
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
             <DialogFooter className="flex-row justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  handleUpdateRole(selectedUserForDialog.id, selectedUserForDialog.role === "admin" ? "assistant" : "admin");
-                  setIsUserDialogOpen(false);
-                }}
-                disabled={updateUserMutation.isPending}
-              >
-                {selectedUserForDialog?.role === "admin" ? "Remove Admin" : "Make Admin"}
-              </Button>
-              {(selectedUserForDialog?.role === "cps" || selectedUserForDialog?.role === "ets") && (
+              {selectedUserForDialog?.role === "admin" ? (
+              <>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    handleUpdateRole(selectedUserForDialog.id, selectedUserForDialog.role === "cps" ? "ets" : "cps");
+                    handleUpdateRole(selectedUserForDialog.id, "cps");
                     setIsUserDialogOpen(false);
                   }}
                   disabled={updateUserMutation.isPending}
                 >
-                  {selectedUserForDialog?.role === "cps" ? "Make ETS" : "Make CPS"}
+                  Make CPS
                 </Button>
-              )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, "ets");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  Make ETS
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  handleUpdateRole(selectedUserForDialog.id, "admin");
+                  setIsUserDialogOpen(false);
+                }}
+                disabled={updateUserMutation.isPending}
+              >
+                Make Admin
+              </Button>
+            )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={deleteUserMutation.isPending}>

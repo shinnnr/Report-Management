@@ -68,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="note">
             Admin credentials - Username: admin | Password: admin123
-            Assistant credentials - Username: assistant | Password: assist123
+            CPS credentials - Username: cps | Password: cps123
+            ETS credentials - Username: ets | Password: ets123
             <br>
             For testing purposes only.
 

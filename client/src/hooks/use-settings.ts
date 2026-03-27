@@ -94,7 +94,7 @@ export function useUserManagement() {
 
   // Create user mutation
   const createUserMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string; fullName: string; role: "admin" | "assistant" }) => {
+    mutationFn: async (data: { username: string; password: string; fullName: string; role: "admin" | "cps" | "ets" }) => {
       const res = await fetch(api.users.create.path, {
         method: api.users.create.method,
         headers: { "Content-Type": "application/json" },
@@ -118,7 +118,7 @@ export function useUserManagement() {
 
   // Update user mutation
   const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, updates }: { userId: number; updates: { username?: string; fullName?: string; role?: "admin" | "assistant"; status?: "active" | "inactive" } }) => {
+    mutationFn: async ({ userId, updates }: { userId: number; updates: { username?: string; fullName?: string; role?: "admin" | "cps" | "ets"; status?: "active" | "inactive" } }) => {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },

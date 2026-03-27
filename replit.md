@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a **Report Management and File Uploading** application built for NEECO (likely a cooperative/utility organization). It provides a dashboard-based interface for managing documents, folders, activities/tasks with deadlines, and archived files. The system supports role-based access (admin/assistant), file uploads stored as Base64 in the database, a calendar view for activity tracking, and activity logging.
+This is a **Report Management and File Uploading** application built for NEECO (likely a cooperative/utility organization). It provides a dashboard-based interface for managing documents, folders, activities/tasks with deadlines, and archived files. The system supports role-based access (admin/cps/ets), file uploads stored as Base64 in the database, a calendar view for activity tracking, and activity logging.
 
 Key features:
 - **Dashboard** with statistics (folders, files, pending/overdue tasks)
@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 - **Connection**: node-postgres (`pg`) Pool
 - **Schema Management**: `drizzle-kit push` for schema synchronization (no migration files committed)
 - **Key Tables**:
-  - `users` — id, username, password (hashed), role (admin/assistant), fullName, status
+  - `users` — id, username, password (hashed), role (admin/cps/ets), fullName, status
   - `folders` — id, name, parentId (self-referencing for nesting), createdBy
   - `reports` — id, title, fileName, fileType, fileSize, fileData (Base64), folderId, uploadedBy, activityId, status, year, month
   - `activities` — id, userId, title, description, startDate, deadline, status (pending/completed/overdue)

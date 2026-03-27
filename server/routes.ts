@@ -258,7 +258,7 @@ export async function registerRoutes(
       const user = await storage.createUser({
         username: input.username,
         password: hashedPassword,
-        role: input.role || 'assistant',
+        role: input.role || 'cps',
         fullName: input.fullName,
         status: 'active'
       });
@@ -1068,17 +1068,31 @@ export async function registerRoutes(
       console.log("Seeded admin user");
     }
 
-    const assistant = await storage.getUserByUsername("assistant");
-    if (!assistant) {
-      const assistantPassword = await hashPassword("assist123");
+    // Seed CPS and ETS users if they don't exist
+    const cps = await storage.getUserByUsername("cps");
+    if (!cps) {
+      const cpsPassword = await hashPassword("cps123");
       await storage.createUser({
-        username: "assistant",
-        password: assistantPassword,
-        fullName: "Assistant User",
-        role: "assistant",
+        username: "cps",
+        password: cpsPassword,
+        fullName: "CPS User",
+        role: "cps",
         status: "active"
       });
-      console.log("Seeded assistant user");
+      console.log("Seeded CPS user");
+    }
+
+    const ets = await storage.getUserByUsername("ets");
+    if (!ets) {
+      const etsPassword = await hashPassword("ets123");
+      await storage.createUser({
+        username: "ets",
+        password: etsPassword,
+        fullName: "ETS User",
+        role: "ets",
+        status: "active"
+      });
+      console.log("Seeded ETS user");
     }
     
     // Trigger initial deadline check
