@@ -673,18 +673,35 @@ export async function registerRoutes(
       
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
 
-      // Create notification for all OTHER users about new activity
+      // Create notification for users based on Concern Department
       const users = await storage.getUsers();
       for (const user of users) {
         // Exclude the creator from receiving notification
         if (user.id !== (req.user as any).id) {
-          await storage.createNotification({
-            userId: user.id,
-            activityId: activity.id,
-            title: "New Activity Added",
-            content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'} | ${creatorUser?.role === 'admin' ? 'Admin' : 'Assistant'}`,
-            isRead: false
-          });
+          // Determine if we should notify this user based on Concern Department
+          let shouldNotify = false;
+          
+          const concernDept = input.concernDepartment || '';
+          const userRole = user.role || '';
+          
+          // If Concern Department contains CPS, notify CPS users
+          if (concernDept.includes('CITET-CPS') && userRole === 'cps') {
+            shouldNotify = true;
+          }
+          // If Concern Department contains ETS, notify ETS users
+          if (concernDept.includes('CITET-ETS') && userRole === 'ets') {
+            shouldNotify = true;
+          }
+          
+          if (shouldNotify) {
+            await storage.createNotification({
+              userId: user.id,
+              activityId: activity.id,
+              title: "New Activity Added",
+              content: `${activity.title}\nConcern Department: ${concernDept}\nAdded by: ${creatorUser?.fullName || 'Unknown'}`,
+              isRead: false
+            });
+          }
         }
       }
 
