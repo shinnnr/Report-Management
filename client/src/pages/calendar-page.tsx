@@ -75,6 +75,18 @@ function CalendarContent() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
   
+  // Time slot activities modal state
+  const [showTimeSlotActivitiesModal, setShowTimeSlotActivitiesModal] = useState(false);
+  const [timeSlotActivitiesModalData, setTimeSlotActivitiesModalData] = useState<{
+    date: Date;
+    time: string;
+    activities: any[];
+  } | null>(null);
+
+  // Time slot activities pagination state
+  const [timeSlotActivitiesPage, setTimeSlotActivitiesPage] = useState(1);
+  const timeSlotActivitiesPerPage = 10;
+
   // Activity filter state
   const [activityFilter, setActivityFilter] = useState<string>('all');
   
@@ -1022,8 +1034,8 @@ function CalendarContent() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="w-full sm:w-auto">
+      <div className="flex flex-col gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="w-full">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             {isMobile ? (
               <button 
@@ -1046,13 +1058,13 @@ function CalendarContent() {
         </div>
         
         {/* Action buttons - kept together in a flex container */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-row items-center gap-2">
           {/* Delete All Activities Button - shows when date is selected with activities */}
           {selectedDate && selectedDateActivities.length > 0 && (
             <Button
               variant="destructive"
               onClick={() => setShowDeleteAllConfirm(true)}
-              className="gap-2"
+              className="gap-2 whitespace-nowrap"
               disabled={isDeletingAll}
             >
               <Trash2 className="w-4 h-4" />
@@ -1075,7 +1087,7 @@ function CalendarContent() {
           }}>
           <DialogTrigger asChild>
             <Button
-              className="gap-2 shadow-lg shadow-primary/20 bg-primary text-xs sm:text-sm"
+              className="gap-2 shadow-lg shadow-primary/20 bg-primary whitespace-nowrap"
               disabled={!selectedDate}
               onClick={() => {
                 if (!selectedDate) {
@@ -1550,6 +1562,123 @@ function CalendarContent() {
           </DialogContent>
         </Dialog>
 
+        {/* Time Slot Activities Modal - for showing all activities in a time slot */}
+        <Dialog open={showTimeSlotActivitiesModal} onOpenChange={(open) => {
+          setShowTimeSlotActivitiesModal(open);
+          if (!open) {
+            setTimeSlotActivitiesModalData(null);
+            setTimeSlotActivitiesPage(1);
+          }
+        }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
+            <DialogHeader className="shrink-0 pb-2">
+              <div className="flex items-center justify-between pr-8">
+                <DialogTitle>
+                  Activities at {timeSlotActivitiesModalData?.time}
+                </DialogTitle>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (timeSlotActivitiesModalData) {
+                      setSelectedDate(timeSlotActivitiesModalData.date);
+                      setActivityTime(timeSlotActivitiesModalData.time);
+                      setNewActivityFromDayModal(true);
+                      setShowTimeSlotActivitiesModal(false);
+                      setIsNewActivityOpen(true);
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Activity
+                </Button>
+              </div>
+              <DialogDescription>
+                {timeSlotActivitiesModalData ? format(timeSlotActivitiesModalData.date, 'MMMM d, yyyy') : ''} - {timeSlotActivitiesModalData?.activities.length} {timeSlotActivitiesModalData?.activities.length === 1 ? 'activity' : 'activities'}
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="space-y-2 py-4 px-4">
+                {timeSlotActivitiesModalData?.activities.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No activities at this time</p>
+                ) : (
+                  (() => {
+                    const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
+                    const paginatedActivities = timeSlotActivitiesModalData?.activities.slice(
+                      (timeSlotActivitiesPage - 1) * timeSlotActivitiesPerPage,
+                      timeSlotActivitiesPage * timeSlotActivitiesPerPage
+                    ) || [];
+                    return (
+                      <>
+                        {paginatedActivities.map(activity => (
+                          <div
+                            key={activity.id}
+                            className={cn(
+                              "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                              getStatusBorderColor(activity.status)
+                            )}
+                            onClick={() => {
+                              setShowTimeSlotActivitiesModal(false);
+                              setSelectedActivity(activity);
+                              setActivityFromDayModal(true);
+                              setIsActivityModalOpen(true);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{activity.title}</span>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-xs",
+                                activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                                activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                                activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                                "bg-orange-100 text-orange-700"
+                              )}>
+                                {activity.status}
+                              </span>
+                            </div>
+                            {activity.description && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {activity.description}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()
+                )}
+              </div>
+            </ScrollArea>
+            {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && (() => {
+              const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
+              return (
+                <div className="shrink-0 flex items-center justify-between p-4 border-t bg-muted/10">
+                  <p className="text-sm text-muted-foreground">
+                    Page {timeSlotActivitiesPage} of {totalPages}
+                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                      disabled={timeSlotActivitiesPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                      disabled={timeSlotActivitiesPage === totalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
+
         {/* Delete Confirmation Modal */}
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <DialogContent>
@@ -1643,13 +1772,13 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
         {/* Calendar Header */}
-        <div className="flex flex-wrap items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
+        <div className="flex flex-wrap items-center p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
           <div className="flex items-center gap-2 md:gap-4">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={handleGoToToday}
-              className="hidden lg:flex gap-1"
+              className="gap-1"
             >
               Today
             </Button>
@@ -1728,7 +1857,7 @@ function CalendarContent() {
           </div>
           
           {/* Activity counts */}
-          <div className="text-sm text-muted-foreground w-full md:w-auto md:flex-none order-last md:order-none">
+          <div className="text-sm text-muted-foreground md:w-auto md:flex-none">
             {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
           </div>
         </div>
@@ -1932,6 +2061,12 @@ function CalendarContent() {
             onTouchDragMove={handleTouchDragMove}
             onTouchDragEnd={handleTouchDragEnd}
             onDayClick={handleDayClickInWeekView}
+            // New activity modal handlers
+            setIsNewActivityOpen={setIsNewActivityOpen}
+            setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
+            setTimeSlotActivitiesModalData={setTimeSlotActivitiesModalData}
+            setSelectedDate={setSelectedDate}
+            setActivityTime={setActivityTime}
           />
         )}
 
@@ -1975,6 +2110,12 @@ function CalendarContent() {
             onTouchDragStart={handleTouchDragStart}
             onTouchDragMove={handleTouchDragMove}
             onTouchDragEnd={handleTouchDragEnd}
+            // New activity modal handlers
+            setIsNewActivityOpen={setIsNewActivityOpen}
+            setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
+            setTimeSlotActivitiesModalData={setTimeSlotActivitiesModalData}
+            setSelectedDate={setSelectedDate}
+            setActivityTime={setActivityTime}
           />
         )}
       </div>
@@ -1989,7 +2130,7 @@ function CalendarContent() {
           <div className="space-y-4 px-4 pb-4">
             {/* Overdue Section */}
             {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
-              <div>
+              <div className="mt-4">
                 <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4" />
                   Overdue ({activities.filter(a => a.status === 'overdue').length})
@@ -2295,7 +2436,13 @@ function WeekView({
   onTouchDragEnd,
   onDayClick,
   getStatusBorderColor,
-  getMultiStatusBorderColor
+  getMultiStatusBorderColor,
+  // New activity modal handlers
+  setIsNewActivityOpen,
+  setShowTimeSlotActivitiesModal,
+  setTimeSlotActivitiesModalData,
+  setSelectedDate,
+  setActivityTime
 }: {
   currentDate: Date;
   activities: any[];
@@ -2325,6 +2472,12 @@ function WeekView({
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   onDayClick?: (date: Date) => void;
+  // New activity modal handlers
+  setIsNewActivityOpen?: (open: boolean) => void;
+  setShowTimeSlotActivitiesModal?: (open: boolean) => void;
+  setTimeSlotActivitiesModalData?: (data: { date: Date; time: string; activities: any[] } | null) => void;
+  setSelectedDate?: (date: Date | null) => void;
+  setActivityTime?: (time: string) => void;
 }) {
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -2408,12 +2561,21 @@ function WeekView({
                       // Select time slot (highlight) instead of opening modal
                       onSelectTimeSlot(day, timeString);
                     }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      onSelectTimeSlot(day, timeString);
+                      // Set selected date and time for the modal
+                      setSelectedDate?.(day);
+                      setActivityTime?.(timeString);
+                      setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
+                      setShowTimeSlotActivitiesModal?.(true);
+                    }}
                     onDragOver={(e) => onTimeSlotDragOver?.(e, day, timeString)}
                     onDragLeave={onTimeSlotDragLeave}
                     onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
                   >
-                    {/* Activities for this specific hour */}
-                    {dayHourActivities.map(activity => (
+                    {/* Activities for this specific hour - show max 3 */}
+                    {dayHourActivities.slice(0, 3).map(activity => (
                       <div
                         key={activity.id}
                         draggable
@@ -2437,6 +2599,20 @@ function WeekView({
                         {activity.title}
                       </div>
                     ))}
+                    {/* Show +X more if there are more than 3 activities */}
+                    {dayHourActivities.length > 3 && (
+                      <div 
+                        className="text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Open a modal showing all activities for this time slot
+                          setShowTimeSlotActivitiesModal?.(true);
+                          setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
+                        }}
+                      >
+                        +{dayHourActivities.length - 3} more
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -2475,7 +2651,13 @@ function DayView({
   // Touch handlers
   onTouchDragStart,
   onTouchDragMove,
-  onTouchDragEnd
+  onTouchDragEnd,
+  // New activity modal handlers
+  setIsNewActivityOpen,
+  setShowTimeSlotActivitiesModal,
+  setTimeSlotActivitiesModalData,
+  setSelectedDate,
+  setActivityTime
 }: {
   currentDate: Date;
   activities: any[];
@@ -2502,6 +2684,12 @@ function DayView({
   onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
+  // New activity modal handlers
+  setIsNewActivityOpen?: (open: boolean) => void;
+  setShowTimeSlotActivitiesModal?: (open: boolean) => void;
+  setTimeSlotActivitiesModalData?: (data: { date: Date; time: string; activities: any[] } | null) => void;
+  setSelectedDate?: (date: Date | null) => void;
+  setActivityTime?: (time: string) => void;
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dayActivities = activities.filter(a => isSameDay(new Date(a.deadlineDate), currentDate));
@@ -2558,12 +2746,20 @@ function DayView({
                 data-date={currentDate.toISOString()}
                 data-time-slot={timeString}
                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  onSelectTimeSlot(currentDate, timeString);
+                  setSelectedDate?.(currentDate);
+                  setActivityTime?.(timeString);
+                  setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
+                  setShowTimeSlotActivitiesModal?.(true);
+                }}
                 onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
                 onDragLeave={onTimeSlotDragLeave}
                 onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
               >
-                {/* Activities for this specific hour */}
-                {hourActivities.map(activity => (
+                {/* Activities for this specific hour - show max 3 */}
+                {hourActivities.slice(0, 3).map(activity => (
                   <div
                     key={activity.id}
                     draggable
@@ -2590,6 +2786,19 @@ function DayView({
                     )}
                   </div>
                 ))}
+                {/* Show +X more if there are more than 3 activities */}
+                {hourActivities.length > 3 && (
+                  <div 
+                    className="text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowTimeSlotActivitiesModal?.(true);
+                      setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
+                    }}
+                  >
+                    +{hourActivities.length - 3} more
+                  </div>
+                )}
               </div>
             </div>
           );

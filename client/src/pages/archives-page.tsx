@@ -453,7 +453,7 @@ function ArchivesContent() {
             )}
             Archives
           </h1>
-          <p className="text-muted-foreground mb-4">View and manage archived documents.</p>
+          <p className="text-muted-foreground text-sm lg:text-base mb-4">View and manage archived documents.</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <button onClick={() => setLocation("/archives")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
               <Home className="w-4 h-4" /> Home
@@ -480,19 +480,17 @@ function ArchivesContent() {
             />
           </div>
         </div>
-        {/* Bulk actions in header - shown when items are selected */}
-        {(isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0)) && (
-          <div className="flex items-center gap-3">
-            {(selectedFolders.length > 0 || selectedFiles.length > 0) && (
-              <>
-                <Button variant="outline" className="gap-2" onClick={() => setIsBulkRestoreOpen(true)}>
-                  <RotateCcw className="w-4 h-4" /> Restore ({selectedFolders.length + selectedFiles.length})
-                </Button>
-                <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
-                  <Trash2 className="w-4 h-4" /> Delete ({selectedFolders.length + selectedFiles.length})
-                </Button>
-              </>
-            )}
+        {/* Bulk actions - shown when select mode is active */}
+        {isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0) && (
+          <div className="flex flex-row items-center gap-2 mt-4">
+            <Button variant="outline" className="gap-2 whitespace-nowrap" onClick={() => setIsBulkRestoreOpen(true)}>
+              <RotateCcw className="w-4 h-4" />
+              Restore ({selectedFolders.length + selectedFiles.length})
+            </Button>
+            <Button variant="destructive" className="gap-2 whitespace-nowrap" onClick={() => setIsBulkDeleteOpen(true)}>
+              <Trash2 className="w-4 h-4" />
+              Delete ({selectedFolders.length + selectedFiles.length})
+            </Button>
           </div>
         )}
 
@@ -766,12 +764,12 @@ function ArchivesContent() {
               </div>
             </div>
             {archivedReports && archivedReports.length > 0 ? (
-              <div className="bg-card rounded-xl border-x-0 md:border overflow-hidden">
+              <div className="bg-card rounded-xl border-x-0 md:border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
-                      <th className="px-6 py-3 text-left w-[40%]">
+                      {isSelectMode && <th className="px-4 py-3 w-10 align-middle"><Checkbox checked={selectedFiles.length === filteredArchivedReports.length} onCheckedChange={(c) => setSelectedFiles(c === true ? filteredArchivedReports.map(r => r.id) : [])} /></th>}
+                      <th className="px-4 py-3 text-left w-auto min-w-[150px] align-middle">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
@@ -794,7 +792,7 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
+                      <th className="px-4 py-3 text-left w-auto min-w-[20%] align-middle hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -817,7 +815,7 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
+                      <th className="px-4 py-3 text-left w-auto min-w-[20%] align-middle hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -844,7 +842,7 @@ function ArchivesContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right w-[20%] hidden lg:table-cell border-none">
+                      <th className="px-4 py-3 text-right w-auto min-w-[20%] align-middle hidden lg:table-cell border-none">
                         <div className="flex items-center justify-end gap-1">
                           <span className="font-semibold">Size</span>
                           <DropdownMenu>
@@ -888,22 +886,22 @@ function ArchivesContent() {
                         }}
                       >
                         {isSelectMode && (
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 w-10 align-middle">
                             <Checkbox 
                               checked={selectedFiles.includes(r.id)} 
                               onCheckedChange={() => toggleFileSelection(r.id)} 
                             />
                           </td>
                         )}
-                        <td className="px-6 py-4 w-[40%] min-w-0">
+                        <td className="px-4 py-4 w-auto min-w-[150px] align-middle">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{r.fileName}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
-                        <td className="px-6 py-4 w-[20%] text-right hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-right align-middle hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-3 text-right align-middle">
                           <div className="flex items-end justify-end h-full">
                           <DropdownMenu>

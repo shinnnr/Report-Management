@@ -766,7 +766,7 @@ function DriveContent() {
             )}
             My Drive
           </h1>
-          <p className="text-muted-foreground mb-4">All your files and folders are stored here</p>
+          <p className="text-muted-foreground text-sm lg:text-base mb-4">All your files and folders are stored here</p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <button onClick={() => setLocation("/drive")} className={`hover:text-primary flex items-center gap-1 transition-colors ${!currentFolderId ? "font-medium text-foreground" : ""}`}>
               <Home className="w-4 h-4" /> Home
@@ -1355,12 +1355,12 @@ function DriveContent() {
               </DropdownMenu>
             </div>
             {reports && reports.length > 0 ? (
-              <div className="bg-card rounded-xl border-x-0 md:border overflow-hidden">
+              <div className="bg-card rounded-xl border-x-0 md:border overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-muted">
                     <tr>
-                      {isSelectMode && <th className="px-6 py-3 w-[40px]"><Checkbox checked={selectedFiles.length === paginatedReports.length} onCheckedChange={(c) => setSelectedFiles(c ? paginatedReports.map(r => r.id) : [])} /></th>}
-                      <th className="px-6 py-3 text-left w-[40%]">
+                      {isSelectMode && <th className="px-4 py-3 w-10 align-middle"><Checkbox checked={selectedFiles.length === paginatedReports.length} onCheckedChange={(c) => setSelectedFiles(c ? paginatedReports.map(r => r.id) : [])} /></th>}
+                      <th className="px-4 py-3 text-left w-auto min-w-[150px] align-middle">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Name</span>
                           <DropdownMenu>
@@ -1438,7 +1438,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
+                      <th className="px-4 py-3 text-left w-auto min-w-[20%] align-middle hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Date</span>
                           <DropdownMenu>
@@ -1516,7 +1516,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left w-[20%] hidden lg:table-cell">
+                      <th className="px-4 py-3 text-left w-auto min-w-[20%] align-middle hidden lg:table-cell">
                         <div className="flex items-center gap-1">
                           <span className="font-semibold">Type</span>
                           <DropdownMenu>
@@ -1647,8 +1647,8 @@ function DriveContent() {
                             }
                           }}
                         >
-                        {isSelectMode && <td className="px-6 py-4"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
-                        <td className="px-6 py-4 w-[40%] min-w-0">
+                        {isSelectMode && <td className="px-4 py-4 w-10 align-middle"><Checkbox checked={selectedFiles.includes(r.id)} onCheckedChange={() => toggleFileSelection(r.id)} /></td>}
+                        <td className="px-4 py-4 w-auto min-w-[150px] align-middle">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             {isSelectMode ? (
@@ -1658,13 +1658,13 @@ function DriveContent() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">
                           {r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-muted-foreground hidden lg:table-cell">
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">
                           {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
-                        <td className="px-6 py-4 w-[20%] text-right text-muted-foreground hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
+                        <td className="px-4 py-4 w-auto min-w-[20%] text-right text-muted-foreground align-middle hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
                         <td className="px-6 py-3 text-right align-middle">
                           <div className="flex items-end justify-end h-full">
                           <DropdownMenu>
