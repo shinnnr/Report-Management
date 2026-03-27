@@ -2167,7 +2167,7 @@ function CalendarContent() {
                   </ScrollArea>
                   
                   {/* Pagination - moved to footer outside ScrollArea */}
-                  {totalPages > 1 && (
+                  {filtered.length > 0 && (
                     <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
                       <p className="text-sm text-muted-foreground">
                         Page {validPage} of {totalPages}

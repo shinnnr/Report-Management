@@ -1,5 +1,5 @@
-import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions } from "@shared/schema";
-import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission } from "@shared/schema";
+import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions, systemSettings } from "@shared/schema";
+import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
 import { format } from "date-fns";
@@ -60,6 +60,10 @@ export interface IStorage {
   getLogs(): Promise<ActivityLog[]>;
   createLog(userId: number, action: string, description: string): Promise<void>;
   deleteAllLogs(): Promise<void>;
+
+  // System Settings
+  getSetting(key: string): Promise<string | null>;
+  setSetting(key: string, value: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -796,6 +800,21 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLog(id: number): Promise<void> {
     await db.delete(activityLogs).where(eq(activityLogs.id, id));
+  }
+
+  // System Settings
+  async getSetting(key: string): Promise<string | null> {
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting?.value ?? null;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await db.insert(systemSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value, updatedAt: new Date() },
+      });
   }
 }
 

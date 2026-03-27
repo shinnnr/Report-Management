@@ -234,6 +234,26 @@ export const api = {
       },
     },
   },
+  settings: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/settings/:key',
+      responses: {
+        200: z.object({ value: z.string().nullable() }),
+      },
+    },
+    set: {
+      method: 'POST' as const,
+      path: '/api/settings',
+      input: z.object({
+        key: z.string(),
+        value: z.string(),
+      }),
+      responses: {
+        200: z.object({ message: z.string() }),
+      },
+    },
+  },
   activities: {
     list: {
       method: 'GET' as const,

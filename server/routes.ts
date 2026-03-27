@@ -211,6 +211,30 @@ export async function registerRoutes(
     res.json(req.user);
   });
 
+  // --- Settings Routes ---
+  app.get(api.settings.get.path, isAuthenticated, async (req, res) => {
+    const key = req.params.key as string;
+    const value = await storage.getSetting(key);
+    res.json({ value });
+  });
+
+  app.post(api.settings.set.path, isAuthenticated, async (req, res) => {
+    try {
+      // Check if user is admin
+      const currentUser = req.user as any;
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can update settings" });
+      }
+
+      const input = api.settings.set.input.parse(req.body);
+      await storage.setSetting(input.key, input.value);
+      res.json({ message: "Setting updated successfully" });
+    } catch (error) {
+      console.error("Error updating setting:", error);
+      res.status(500).json({ message: "Failed to update setting" });
+    }
+  });
+
   // --- User Routes ---
   app.get(api.users.list.path, isAuthenticated, async (req, res) => {
     const users = await storage.getUsers();
@@ -602,17 +626,23 @@ export async function registerRoutes(
     
     let activities = await storage.getActivities();
     
-    // Filter activities based on user role
-    if (userRole === 'cps') {
-      activities = activities.filter(a => 
-        a.concernDepartment === 'CITET-CPS' || 
-        a.concernDepartment === 'CITET-ETS/ CITET-CPS'
-      );
-    } else if (userRole === 'ets') {
-      activities = activities.filter(a => 
-        a.concernDepartment === 'CITET-ETS' || 
-        a.concernDepartment === 'CITET-ETS/ CITET-CPS'
-      );
+    // Get the role-based filtering setting
+    const enableRoleFiltering = await storage.getSetting('enable_role_filtering');
+    const isRoleFilteringEnabled = enableRoleFiltering !== 'false'; // Default to true if not set
+    
+    // Filter activities based on user role (only if enabled)
+    if (isRoleFilteringEnabled && (userRole === 'cps' || userRole === 'ets')) {
+      if (userRole === 'cps') {
+        activities = activities.filter(a => 
+          a.concernDepartment === 'CITET-CPS' || 
+          a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+        );
+      } else if (userRole === 'ets') {
+        activities = activities.filter(a => 
+          a.concernDepartment === 'CITET-ETS' || 
+          a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+        );
+      }
     }
     // Admin sees all activities
     
