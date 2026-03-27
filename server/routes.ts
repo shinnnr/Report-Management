@@ -228,6 +228,12 @@ export async function registerRoutes(
 
       const input = api.settings.set.input.parse(req.body);
       await storage.setSetting(input.key, input.value);
+      
+      // Log the setting change if it's the role filtering setting
+      if (input.key === 'enable_role_filtering') {
+        await storage.createLog(currentUser.id, "UPDATE_SETTING", `Role-Based Activity Filtering ${input.value === 'true' ? 'enabled' : 'disabled'}`);
+      }
+      
       res.json({ message: "Setting updated successfully" });
     } catch (error) {
       console.error("Error updating setting:", error);
