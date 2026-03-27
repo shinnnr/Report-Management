@@ -802,15 +802,44 @@ function SettingsContent() {
                                   Make ETS
                                 </Button>
                               </>
+                            ) : user.role === "cps" ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, "ets")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  Make ETS
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, "admin")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  Make Admin
+                                </Button>
+                              </>
                             ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleUpdateRole(user.id, "admin")}
-                                disabled={updateUserMutation.isPending}
-                              >
-                                Make Admin
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, "cps")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  Make CPS
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateRole(user.id, "admin")}
+                                  disabled={updateUserMutation.isPending}
+                                >
+                                  Make Admin
+                                </Button>
+                              </>
                             )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
@@ -937,6 +966,29 @@ function SettingsContent() {
                   disabled={updateUserMutation.isPending}
                 >
                   Make ETS
+                </Button>
+              </>
+            ) : selectedUserForDialog?.role === "cps" ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, "ets");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  Make ETS
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, "admin");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  Make Admin
                 </Button>
               </>
             ) : (
