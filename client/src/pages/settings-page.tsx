@@ -370,7 +370,7 @@ function SettingsContent() {
                 <div>
                   <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
                   <p className="text-muted-foreground">@{currentUser?.username}</p>
-                  <Badge variant={currentUser?.role === "admin" ? "default" : currentUser?.role === "cps" ? "outline" : "secondary"} className="mt-1">
+                  <Badge className={currentUser?.role === "cps" ? "bg-[#1f8f5f] text-white mt-1" : currentUser?.role === "ets" ? "bg-[#DAA520] text-white mt-1" : currentUser?.role === "admin" ? "bg-primary text-primary-foreground mt-1" : "mt-1"}>
                     {currentUser?.role === "admin" ? "Administrator" : currentUser?.role === "cps" ? "CPS" : "ETS"}
                   </Badge>
                 </div>
@@ -769,7 +769,7 @@ function SettingsContent() {
                             </div>
                           </div>
                           <div className="hidden md:flex items-center gap-3">
-                            <Badge variant={user.role === "admin" ? "default" : user.role === "cps" ? "outline" : "secondary"}>
+                            <Badge className={user.role === "cps" ? "bg-[#1f8f5f] text-white" : user.role === "ets" ? "bg-[#DAA520] text-white" : user.role === "admin" ? "bg-primary text-primary-foreground" : ""}>
                               {user.role === "admin" ? (
                                 <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
                               ) : user.role === "cps" ? (
@@ -897,7 +897,7 @@ function SettingsContent() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Role</span>
-              <Badge variant={selectedUserForDialog?.role === "admin" ? "default" : selectedUserForDialog?.role === "cps" ? "outline" : "secondary"}>
+              <Badge className={selectedUserForDialog?.role === "cps" ? "bg-[#1f8f5f] text-white" : selectedUserForDialog?.role === "ets" ? "bg-[#DAA520] text-white" : selectedUserForDialog?.role === "admin" ? "bg-primary text-primary-foreground" : ""}>
                 {selectedUserForDialog?.role === "admin" ? (
                   <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
                 ) : selectedUserForDialog?.role === "cps" ? (
