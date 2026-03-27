@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("assistant"), // 'admin' | 'assistant'
+  role: text("role").notNull().default("cps"), // 'admin' | 'cps' | 'ets'
   fullName: text("full_name").notNull(),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow(),

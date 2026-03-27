@@ -568,8 +568,9 @@ function SettingsContent() {
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="assistant">Assistant</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="cps">CPS</SelectItem>
+                            <SelectItem value="ets">ETS</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

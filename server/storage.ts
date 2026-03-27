@@ -638,11 +638,28 @@ export class DatabaseStorage implements IStorage {
         sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
       ));
 
-    // Notify all users about overdue activities (exclude admin)
+    // Notify users about overdue activities based on role and concern department
     const allUsers = await this.getUsers();
     const nonAdminUsers = allUsers.filter(u => u.role !== 'admin');
+    
     for (const activity of overdueActivities) {
       for (const user of nonAdminUsers) {
+        // Filter based on user role and activity concern department
+        const userRole = user.role;
+        let shouldNotify = false;
+        
+        if (userRole === 'cps') {
+          shouldNotify = activity.concernDepartment === 'CITET-CPS' || 
+                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        } else if (userRole === 'ets') {
+          shouldNotify = activity.concernDepartment === 'CITET-ETS' || 
+                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        } else {
+          shouldNotify = true; // Other users (if any) get all notifications
+        }
+        
+        if (!shouldNotify) continue;
+        
         // Check if notification already exists
         const [existing] = await db.select().from(notifications)
           .where(and(
@@ -663,7 +680,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // 2. Notify ALL users for upcoming deadlines (within 3 days) - not just owner
+    // 2. Notify users for upcoming deadlines (within 3 days) based on role and concern department
     const upcoming = await db.select().from(activities).where(and(
       gte(activities.deadlineDate, now),
       lt(activities.deadlineDate, threeDaysLater),
@@ -672,6 +689,22 @@ export class DatabaseStorage implements IStorage {
 
     for (const activity of upcoming) {
       for (const user of nonAdminUsers) {
+        // Filter based on user role and activity concern department
+        const userRole = user.role;
+        let shouldNotify = false;
+        
+        if (userRole === 'cps') {
+          shouldNotify = activity.concernDepartment === 'CITET-CPS' || 
+                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        } else if (userRole === 'ets') {
+          shouldNotify = activity.concernDepartment === 'CITET-ETS' || 
+                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        } else {
+          shouldNotify = true;
+        }
+        
+        if (!shouldNotify) continue;
+        
         // Check if notification already exists for this user for this activity
         const [existing] = await db.select().from(notifications)
           .where(and(

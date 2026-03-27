@@ -596,7 +596,26 @@ export async function registerRoutes(
 
   // --- Activity Routes ---
   app.get(api.activities.list.path, isAuthenticated, async (req, res) => {
-    const activities = await storage.getActivities();
+    const user = (req.user as any);
+    const userRole = user?.role;
+    const userDepartment = userRole === 'cps' ? 'CITET-CPS' : userRole === 'ets' ? 'CITET-ETS' : null;
+    
+    let activities = await storage.getActivities();
+    
+    // Filter activities based on user role
+    if (userRole === 'cps') {
+      activities = activities.filter(a => 
+        a.concernDepartment === 'CITET-CPS' || 
+        a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+      );
+    } else if (userRole === 'ets') {
+      activities = activities.filter(a => 
+        a.concernDepartment === 'CITET-ETS' || 
+        a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+      );
+    }
+    // Admin sees all activities
+    
     res.json(activities);
   });
 
@@ -869,7 +888,37 @@ export async function registerRoutes(
 
   // --- Notification Routes ---
   app.get(api.notifications.list.path, isAuthenticated, async (req, res) => {
-    const notifications = await storage.getNotifications((req.user as any).id);
+    const user = (req.user as any);
+    const userId = user.id;
+    const userRole = user?.role;
+    const userDepartment = userRole === 'cps' ? 'CITET-CPS' : userRole === 'ets' ? 'CITET-ETS' : null;
+    
+    let notifications = await storage.getNotifications(userId);
+    
+    // Get the activity IDs from notifications that the user should see
+    const activityIds = notifications.map(n => n.activityId).filter(Boolean);
+    const activities = await Promise.all(
+      activityIds.map(id => storage.getActivity(id)).catch(() => null)
+    );
+    
+    // Filter notifications based on user role
+    if (userRole === 'cps' || userRole === 'ets') {
+      notifications = notifications.filter((n, index) => {
+        const activity = activities[index];
+        if (!activity) return true; // Keep notifications without activity
+        
+        if (userRole === 'cps') {
+          return activity.concernDepartment === 'CITET-CPS' || 
+                 activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        } else if (userRole === 'ets') {
+          return activity.concernDepartment === 'CITET-ETS' || 
+                 activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+        }
+        return true;
+      });
+    }
+    // Admin sees all notifications
+    
     res.json(notifications);
   });
 
