@@ -684,12 +684,16 @@ export async function registerRoutes(
           const concernDept = input.concernDepartment || '';
           const userRole = user.role || '';
           
+          // Notify admin users for all activities created by CPS or ETS
+          if (userRole === 'admin') {
+            shouldNotify = true;
+          }
           // If Concern Department contains CPS, notify CPS users
-          if (concernDept.includes('CITET-CPS') && userRole === 'cps') {
+          else if (concernDept.includes('CITET-CPS') && userRole === 'cps') {
             shouldNotify = true;
           }
           // If Concern Department contains ETS, notify ETS users
-          if (concernDept.includes('CITET-ETS') && userRole === 'ets') {
+          else if (concernDept.includes('CITET-ETS') && userRole === 'ets') {
             shouldNotify = true;
           }
           

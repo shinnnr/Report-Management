@@ -99,6 +99,8 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<void> {
     // First delete related activity logs
     await db.delete(activityLogs).where(eq(activityLogs.userId, id));
+    // Delete notifications for this user
+    await db.delete(notifications).where(eq(notifications.userId, id));
     // Then delete the user
     await db.delete(users).where(eq(users.id, id));
   }
