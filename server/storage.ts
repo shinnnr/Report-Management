@@ -638,10 +638,11 @@ export class DatabaseStorage implements IStorage {
         sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
       ));
 
-    // Notify all users about overdue activities
+    // Notify all users about overdue activities (exclude admin)
     const allUsers = await this.getUsers();
+    const nonAdminUsers = allUsers.filter(u => u.role !== 'admin');
     for (const activity of overdueActivities) {
-      for (const user of allUsers) {
+      for (const user of nonAdminUsers) {
         // Check if notification already exists
         const [existing] = await db.select().from(notifications)
           .where(and(
@@ -670,7 +671,7 @@ export class DatabaseStorage implements IStorage {
     ));
 
     for (const activity of upcoming) {
-      for (const user of allUsers) {
+      for (const user of nonAdminUsers) {
         // Check if notification already exists for this user for this activity
         const [existing] = await db.select().from(notifications)
           .where(and(

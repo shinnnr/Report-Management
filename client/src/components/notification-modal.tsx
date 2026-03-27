@@ -174,7 +174,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
-                    Previous
+                    <ChevronLeft className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"
