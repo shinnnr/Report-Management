@@ -72,7 +72,7 @@ export const api = {
       input: z.object({
         username: z.string().optional(),
         fullName: z.string().optional(),
-        role: z.enum(['admin', 'assistant']).optional(),
+        role: z.enum(['admin', 'assistant', 'cps', 'ets']).optional(),
         status: z.enum(['active', 'inactive']).optional(),
       }),
       responses: {

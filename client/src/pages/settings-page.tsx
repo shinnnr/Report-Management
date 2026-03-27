@@ -901,6 +901,18 @@ function SettingsContent() {
               >
                 {selectedUserForDialog?.role === "admin" ? "Remove Admin" : "Make Admin"}
               </Button>
+              {(selectedUserForDialog?.role === "cps" || selectedUserForDialog?.role === "ets") && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, selectedUserForDialog.role === "cps" ? "ets" : "cps");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  {selectedUserForDialog?.role === "cps" ? "Make ETS" : "Make CPS"}
+                </Button>
+              )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={deleteUserMutation.isPending}>

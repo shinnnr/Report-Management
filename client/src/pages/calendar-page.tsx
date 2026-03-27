@@ -110,6 +110,10 @@ function CalendarContent() {
       }
     };
     fetchSetting();
+    
+    // Poll for setting changes every 2 seconds
+    const interval = setInterval(fetchSetting, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   // Clear department filter when role-based filtering is enabled for non-admin users
