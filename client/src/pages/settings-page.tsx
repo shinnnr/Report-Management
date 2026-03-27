@@ -940,16 +940,28 @@ function SettingsContent() {
                 </Button>
               </>
             ) : (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  handleUpdateRole(selectedUserForDialog.id, "admin");
-                  setIsUserDialogOpen(false);
-                }}
-                disabled={updateUserMutation.isPending}
-              >
-                Make Admin
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, "cps");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  Make CPS
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleUpdateRole(selectedUserForDialog.id, "admin");
+                    setIsUserDialogOpen(false);
+                  }}
+                  disabled={updateUserMutation.isPending}
+                >
+                  Make Admin
+                </Button>
+              </>
             )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
