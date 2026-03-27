@@ -2,7 +2,7 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
@@ -211,7 +211,7 @@ function DashboardContent() {
         if (lowerAction.includes('delete_report')) return Trash2;
         if (lowerAction.includes('delete_folder')) return Trash2;
         if (lowerAction.includes('create') || lowerAction.includes('upload')) return Plus;
-        if (lowerAction.includes('update') || lowerAction.includes('update_profile')) return Pencil;
+        if (lowerAction.includes('update') || lowerAction.includes('update_profile')) return UserCog;
         if (lowerAction.includes('delete')) return Trash2;
         if (lowerAction.includes('move')) return ArrowRightLeft;
         if (lowerAction.includes('archive')) return Archive;
@@ -220,6 +220,10 @@ function DashboardContent() {
         if (lowerAction.includes('logout')) return LogOut;
         if (lowerAction.includes('password')) return Key;
         if (lowerAction.includes('settings')) return Settings;
+        if (lowerAction.includes('role_filter_enabled')) return ToggleRight;
+        if (lowerAction.includes('role_filter_disabled')) return ToggleLeft;
+        if (lowerAction.includes('update_user')) return UserCog;
+        if (lowerAction.includes('update_setting')) return Settings;
         if (lowerAction.includes('report')) return File;
         if (lowerAction.includes('folder')) return Folder;
         return Activity;
@@ -626,7 +630,7 @@ function DashboardContent() {
           <DialogHeader className="shrink-0">
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>
-              View all your recent activity logs here. You can select multiple logs to archive or delete them.
+              View all your recent activity logs here. You can select multiple logs to delete them.
             </DialogDescription>
           </DialogHeader>
           
@@ -699,7 +703,7 @@ function DashboardContent() {
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
-                    Previous
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -707,7 +711,7 @@ function DashboardContent() {
                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
                     disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
                   >
-                    Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </>
               )}
