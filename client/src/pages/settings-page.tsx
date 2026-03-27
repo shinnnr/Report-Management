@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCheckDeadlines } from "@/hooks/use-activities";
@@ -762,7 +762,7 @@ function SettingsContent() {
                           onClick={() => setUserCurrentPage(p => Math.max(1, p - 1))}
                           disabled={userCurrentPage === 1}
                         >
-                          Previous
+                          <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
@@ -770,7 +770,7 @@ function SettingsContent() {
                           onClick={() => setUserCurrentPage(p => Math.min(totalUserPages, p + 1))}
                           disabled={userCurrentPage >= totalUserPages}
                         >
-                          Next
+                          <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

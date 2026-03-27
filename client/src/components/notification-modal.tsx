@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Check, X } from "lucide-react";
+import { Trash2, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -174,7 +174,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
@@ -182,7 +182,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
                     disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
                   >
-                    Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </>
               )}

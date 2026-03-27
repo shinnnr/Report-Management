@@ -1198,8 +1198,7 @@ function CalendarContent() {
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Activity
+                      Add Activity
                     </>
                   )}
                 </Button>
@@ -1291,28 +1290,28 @@ function CalendarContent() {
                 </div>
                 </ScrollArea>
                 {dayActs.length > dayActivitiesPerPage && (
-                  <div className="shrink-0 flex items-center justify-between pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
-                      disabled={dayActivitiesPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
+                  <div className="shrink-0 flex items-center justify-between p-4 border-t bg-muted/10">
+                    <p className="text-sm text-muted-foreground">
                       Page {dayActivitiesPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
-                      disabled={dayActivitiesPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                        disabled={dayActivitiesPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                        disabled={dayActivitiesPage === totalPages}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </DialogContent>
