@@ -640,7 +640,7 @@ function SettingsContent() {
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="admin">ADMIN</SelectItem>
                             <SelectItem value="cps">CPS</SelectItem>
                             <SelectItem value="ets">ETS</SelectItem>
                           </SelectContent>

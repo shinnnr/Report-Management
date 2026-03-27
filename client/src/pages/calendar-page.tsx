@@ -82,6 +82,30 @@ function CalendarContent() {
   const [filterAgency, setFilterAgency] = useState<string>('');
   const [filterDepartment, setFilterDepartment] = useState<string>('');
   const [agencyFilterPage, setAgencyFilterPage] = useState(1);
+  const [enableRoleFiltering, setEnableRoleFiltering] = useState(true);
+
+  // Fetch role filtering setting
+  useEffect(() => {
+    const fetchSetting = async () => {
+      try {
+        const res = await fetch('/api/settings/enable_role_filtering', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setEnableRoleFiltering(data.value !== 'false');
+        }
+      } catch (error) {
+        console.error('Error fetching setting:', error);
+      }
+    };
+    fetchSetting();
+  }, []);
+
+  // Clear department filter when role-based filtering is enabled for non-admin users
+  useEffect(() => {
+    if (enableRoleFiltering && user && user.role !== 'admin') {
+      setFilterDepartment('');
+    }
+  }, [enableRoleFiltering, user]);
   
   // Reset pagination when filters change
   useEffect(() => {
@@ -1095,12 +1119,12 @@ function CalendarContent() {
                   </h3>
                   <div className="grid gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="title" className="text-sm font-medium">Title <span className="text-red-500">*</span></Label>
-                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border-0" />
+                      <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border border-gray-300 dark:border-gray-600" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
-                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border-0" rows={2} />
+                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
                     </div>
                   </div>
                 </div>
@@ -1115,7 +1139,7 @@ function CalendarContent() {
                     <div className="space-y-2">
                       <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
                       <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Select agency" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1129,7 +1153,7 @@ function CalendarContent() {
                     <div className="space-y-2">
                       <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
                       <Select value={concernDepartment} onValueChange={setConcernDepartment}>
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1150,7 +1174,7 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
-                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border-0" rows={3} />
+                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border border-gray-300 dark:border-gray-600" rows={3} />
                   </div>
                 </div>
 
@@ -1167,7 +1191,7 @@ function CalendarContent() {
                       type="time" 
                       value={activityTime} 
                       onChange={(e) => setActivityTime(e.target.value)} 
-                      className="h-10 border-0"
+                      className="h-10 border border-gray-300 dark:border-gray-600"
                     />
                     <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
                   </div>
@@ -1181,7 +1205,7 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
-                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border-0" rows={2} />
+                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
                   </div>
                 </div>
               </div>
@@ -1191,7 +1215,7 @@ function CalendarContent() {
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !selectedDate}>
+                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || !concernDepartment}>
                   {createActivity.isPending ? (
                     <>
                       Creating...
@@ -2060,45 +2084,72 @@ function CalendarContent() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-1 block">Concern Department</label>
-              <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={!filterAgency}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={filterAgency ? "All Departments" : "Select Agency First"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {filterAgency === 'DOE' && (
-                    <>
-                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                    </>
-                  )}
-                  {filterAgency === 'ERC' && (
-                    <>
-                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                    </>
-                  )}
-                  {filterAgency === 'NEA' && (
-                    <>
-                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                    </>
-                  )}
-                  {filterAgency === 'NEA-WEB PORTAL' && (
-                    <>
-                      <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                      <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                      <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            {enableRoleFiltering && user?.role !== 'admin' ? (
+              // When role-based filtering is enabled and user is not admin, show auto-filtered department
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-1 block">Concern Department</label>
+                <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={true}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Auto-filtered" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {user?.role === 'cps' && (
+                      <>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                    {user?.role === 'ets' && (
+                      <>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-1 block">Concern Department</label>
+                <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={!filterAgency}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={filterAgency ? "All Departments" : "Select Agency First"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {filterAgency === 'DOE' && (
+                      <>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                    {filterAgency === 'ERC' && (
+                      <>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                    {filterAgency === 'NEA' && (
+                      <>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                    {filterAgency === 'NEA-WEB PORTAL' && (
+                      <>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
+                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           
           {/* Filtered Activities List */}
@@ -2106,7 +2157,20 @@ function CalendarContent() {
             {activities && (() => {
               const filtered = activities.filter(a => {
                 const matchesAgency = !filterAgency || a.regulatoryAgency === filterAgency;
-                const matchesDept = !filterDepartment || a.concernDepartment === filterDepartment;
+                
+                // Apply role-based department filtering
+                let matchesDept = true;
+                if (filterDepartment) {
+                  matchesDept = a.concernDepartment === filterDepartment;
+                } else if (enableRoleFiltering && user?.role && user.role !== 'admin') {
+                  // Auto-filter based on user role when role-based filtering is enabled
+                  if (user.role === 'cps') {
+                    matchesDept = a.concernDepartment === 'CITET-CPS' || a.concernDepartment === 'CITET-ETS/ CITET-CPS';
+                  } else if (user.role === 'ets') {
+                    matchesDept = a.concernDepartment === 'CITET-ETS' || a.concernDepartment === 'CITET-ETS/ CITET-CPS';
+                  }
+                }
+                
                 return matchesAgency && matchesDept;
               });
               
