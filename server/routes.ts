@@ -704,7 +704,7 @@ export async function registerRoutes(
               userId: user.id,
               activityId: activity.id,
               title: "New Activity Added",
-              content: `${activity.title}\nConcern Department: ${concernDept}\nAdded by: ${creatorUser?.fullName || 'Unknown'}`,
+              content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\nConcern Department: ${concernDept}`,
               isRead: false
             });
           }
