@@ -806,9 +806,10 @@ function SettingsContent() {
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => handleDeleteUser(user.id)}
+                                        disabled={deleteUserMutation.isPending}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        Delete
+                                        {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -904,7 +905,7 @@ function SettingsContent() {
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={deleteUserMutation.isPending}>
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -921,9 +922,10 @@ function SettingsContent() {
                         handleDeleteUser(selectedUserForDialog?.id);
                         setIsUserDialogOpen(false);
                       }}
+                      disabled={deleteUserMutation.isPending}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Delete
+                      {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

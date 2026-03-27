@@ -675,6 +675,8 @@ export async function registerRoutes(
 
       // Create notification for users based on Concern Department
       const users = await storage.getUsers();
+      const creatorRole = (req.user as any).role;
+      
       for (const user of users) {
         // Exclude the creator from receiving notification
         if (user.id !== (req.user as any).id) {
@@ -684,8 +686,8 @@ export async function registerRoutes(
           const concernDept = input.concernDepartment || '';
           const userRole = user.role || '';
           
-          // Notify admin users for all activities created by CPS or ETS
-          if (userRole === 'admin') {
+          // Notify admin users when CPS or ETS creates an activity
+          if ((creatorRole === 'cps' || creatorRole === 'ets') && userRole === 'admin') {
             shouldNotify = true;
           }
           // If Concern Department contains CPS, notify CPS users
