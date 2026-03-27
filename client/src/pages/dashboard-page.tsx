@@ -296,7 +296,7 @@ function DashboardContent() {
                                 <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                                   {notification.title}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
                                   {notification.content}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">

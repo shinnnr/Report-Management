@@ -127,7 +127,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
                       </h4>
-                      <p className="text-sm text-muted-foreground mt-1 break-words">
+                      <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">
                         {notification.content}
                       </p>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs text-muted-foreground">
