@@ -586,8 +586,8 @@ function SettingsContent() {
         {isAdmin && (
           <TabsContent value="users" className="space-y-4">
             <Card className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+                <div className="min-w-0">
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <Users className="h-5 w-5" />
                     User Management
@@ -747,7 +747,7 @@ function SettingsContent() {
                       {paginatedUsers.map((user) => (
                         <div
                           key={user.id}
-                          className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 ${
+                          className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 overflow-hidden ${
                             user.id === currentUser?.id 
                               ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
                               : "hover:bg-muted/50"
@@ -768,7 +768,7 @@ function SettingsContent() {
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
-                          <div className="hidden md:flex items-center gap-3">
+                          <div className="hidden md:flex md:flex-wrap items-center gap-2">
                             <Badge className={user.role === "cps" ? "bg-[#1f8f5f] text-white" : user.role === "ets" ? "bg-[#DAA520] text-white" : user.role === "admin" ? "bg-primary text-primary-foreground" : ""}>
                               {user.role === "admin" ? (
                                 <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
