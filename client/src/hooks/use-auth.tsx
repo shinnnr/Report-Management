@@ -68,7 +68,14 @@ export function useLoginMutation() {
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid username or password");
+        if (res.status === 401) {
+          const data = await res.json().catch(() => ({}));
+          // Check if account is deactivated
+          if (data.message && data.message.includes('deactivated')) {
+            throw new Error(data.message);
+          }
+          throw new Error("Invalid username or password");
+        }
         throw new Error("Login failed");
       }
       return api.auth.login.responses[200].parse(await res.json());

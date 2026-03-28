@@ -17,6 +17,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/theme-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -29,6 +38,8 @@ export default function AuthPage() {
   const { user, loginMutation } = useAuth();
   const { theme, resetTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [showDeactivatedModal, setShowDeactivatedModal] = useState(false);
 
   // Force light mode on auth page
   useEffect(() => {
@@ -170,6 +181,23 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Deactivated Account Modal */}
+      <AlertDialog open={showDeactivatedModal} onOpenChange={setShowDeactivatedModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Account Deactivated</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your account has been deactivated by the administrator. Please contact the administrator for assistance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDeactivatedModal(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
