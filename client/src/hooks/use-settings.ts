@@ -16,6 +16,8 @@ export function useSettings() {
       if (!res.ok) throw new Error("Failed to fetch user");
       return api.auth.me.responses[200].parse(await res.json());
     },
+    // Poll every 5 seconds to detect role changes from other sessions (e.g., admin changes)
+    refetchInterval: 5000,
   });
 
   // Update username mutation

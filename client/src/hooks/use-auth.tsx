@@ -35,6 +35,8 @@ export function useUser() {
       // Don't throw on auth errors to suppress console errors
       return error.name === "AuthError" ? false : true;
     },
+    // Poll every 5 seconds to detect role changes from other sessions (e.g., admin changes)
+    refetchInterval: 5000,
   });
 }
 
