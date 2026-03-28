@@ -646,7 +646,31 @@ export class DatabaseStorage implements IStorage {
 
     // Notify users about overdue activities based on role and concern department
     const allUsers = await this.getUsers();
+    const adminUsers = allUsers.filter(u => u.role === 'admin');
     const nonAdminUsers = allUsers.filter(u => u.role !== 'admin');
+    
+    // Notify admins about ALL overdue activities
+    for (const activity of overdueActivities) {
+      for (const admin of adminUsers) {
+        // Check if notification already exists
+        const [existingAdmin] = await db.select().from(notifications)
+          .where(and(
+            eq(notifications.activityId, activity.id),
+            eq(notifications.userId, admin.id),
+            eq(notifications.title, "Activity Overdue")
+          ));
+
+        if (!existingAdmin) {
+          await this.createNotification({
+            userId: admin.id,
+            activityId: activity.id,
+            title: "Activity Overdue",
+            content: `${activity.title}\nDeadline: ${activity.deadlineDate.toLocaleDateString()}`,
+            isRead: false
+          });
+        }
+      }
+    }
     
     for (const activity of overdueActivities) {
       for (const user of nonAdminUsers) {
@@ -655,11 +679,9 @@ export class DatabaseStorage implements IStorage {
         let shouldNotify = false;
         
         if (userRole === 'cps') {
-          shouldNotify = activity.concernDepartment === 'CITET-CPS' || 
-                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+          shouldNotify = activity.concernDepartment?.includes('CITET-CPS') || false;
         } else if (userRole === 'ets') {
-          shouldNotify = activity.concernDepartment === 'CITET-ETS' || 
-                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+          shouldNotify = activity.concernDepartment?.includes('CITET-ETS') || false;
         } else {
           shouldNotify = true; // Other users (if any) get all notifications
         }
@@ -700,11 +722,9 @@ export class DatabaseStorage implements IStorage {
         let shouldNotify = false;
         
         if (userRole === 'cps') {
-          shouldNotify = activity.concernDepartment === 'CITET-CPS' || 
-                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+          shouldNotify = activity.concernDepartment?.includes('CITET-CPS') || false;
         } else if (userRole === 'ets') {
-          shouldNotify = activity.concernDepartment === 'CITET-ETS' || 
-                         activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
+          shouldNotify = activity.concernDepartment?.includes('CITET-ETS') || false;
         } else {
           shouldNotify = true;
         }
