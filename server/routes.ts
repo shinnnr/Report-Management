@@ -312,7 +312,17 @@ export async function registerRoutes(
 
       // Admin can update all fields
       const user = await storage.updateUser(userId, input);
-      await storage.createLog(currentUser.id, "UPDATE_USER", `Updated user: ${user.username}`);
+      
+      // Log specific actions based on what was updated
+      if (input.role) {
+        const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
+        await storage.createLog(currentUser.id, "CHANGE_ROLE", `Changed user ${displayName} (${user.username}) to ${input.role} role`);
+      } else if (input.status) {
+        const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
+        await storage.createLog(currentUser.id, input.status === "active" ? "ACTIVATE_USER" : "DEACTIVATE_USER", `${input.status === "active" ? "Activated" : "Deactivated"} user ${displayName} (${user.username})`);
+      } else {
+        await storage.createLog(currentUser.id, "UPDATE_USER", `Updated user: ${user.username}`);
+      }
       res.json(user);
     } catch (err: any) {
       if (err instanceof z.ZodError) {

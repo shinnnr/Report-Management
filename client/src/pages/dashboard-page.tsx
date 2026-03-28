@@ -2,7 +2,7 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
@@ -226,6 +226,10 @@ function DashboardContent() {
         if (lowerAction.includes('update_setting')) return Settings;
         if (lowerAction.includes('report')) return File;
         if (lowerAction.includes('folder')) return Folder;
+        // Role change, activate, deactivate - check deactivate before activate since it contains "activate"
+        if (lowerAction.includes('change_role')) return ShieldCheck;
+        if (lowerAction === 'deactivate_user') return Pause;
+        if (lowerAction === 'activate_user') return Play;
         return Activity;
     };
 

@@ -78,6 +78,8 @@ function SettingsContent() {
   // Mobile user dialog state
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
+  const [changingRoleUserId, setChangingRoleUserId] = useState<{ userId: number; role: string } | null>(null);
 
   // User search and pagination state
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -274,10 +276,13 @@ function SettingsContent() {
 
   // Update user role
   const handleUpdateRole = async (userId: number, role: "admin" | "cps" | "ets") => {
+    setChangingRoleUserId({ userId, role });
     try {
       await updateUserMutation.mutateAsync({ userId, updates: { role } });
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setChangingRoleUserId(null);
     }
   };
 
@@ -287,6 +292,26 @@ function SettingsContent() {
       await deleteUserMutation.mutateAsync(userId);
     } catch (error) {
       // Error handled in mutation
+    }
+  };
+
+  // Toggle user status (activate/deactivate)
+  const handleToggleUserStatus = async (userId: number) => {
+    // Find the user to get current status
+    const user = users?.find(u => u.id === userId);
+    if (!user) return;
+    
+    const newStatus = user.status === "active" ? "inactive" : "active";
+    setTogglingUserId(userId);
+    try {
+      await updateUserMutation.mutateAsync({ 
+        userId, 
+        updates: { status: newStatus } 
+      });
+    } catch (error) {
+      // Error handled in mutation
+    } finally {
+      setTogglingUserId(null);
     }
   };
 
@@ -753,7 +778,8 @@ function SettingsContent() {
                               : "hover:bg-muted/50"
                           }`}
                           onClick={() => {
-                            if (isMobile) {
+                            // Only open dialog for mobile users who are active
+                            if (isMobile && user.status === "active") {
                               setSelectedUserForDialog(user);
                               setIsUserDialogOpen(true);
                             }
@@ -778,9 +804,21 @@ function SettingsContent() {
                                 <><Shield className="mr-1 h-3 w-3" /> ETS</>
                               )}
                             </Badge>
-                            <Badge variant="outline">
-                              {user.status}
-                            </Badge>
+                            {/* Activate/Deactivate button - only show for non-current users */}
+                            {user.id !== currentUser?.id && (
+                              <Button
+                                variant={user.status === "active" ? "destructive" : "outline"}
+                                size="sm"
+                                onClick={() => handleToggleUserStatus(user.id)}
+                                disabled={togglingUserId === user.id}
+                              >
+                                {togglingUserId === user.id ? (
+                                  user.status === "active" ? "Deactivating..." : "Activating..."
+                                ) : (
+                                  user.status === "active" ? "Deactivate" : "Activate"
+                                )}
+                              </Button>
+                            )}
                             {user.id !== currentUser?.id && (
                               <div className="flex items-center gap-2">
                                 {user.role === "admin" ? (
@@ -789,17 +827,17 @@ function SettingsContent() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "cps")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make CPS
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "cps" ? "Making CPS..." : "Make CPS"}
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "ets")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make ETS
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "ets" ? "Making ETS..." : "Make ETS"}
                                 </Button>
                               </>
                             ) : user.role === "cps" ? (
@@ -808,17 +846,17 @@ function SettingsContent() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "ets")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make ETS
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "ets" ? "Making ETS..." : "Make ETS"}
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "admin")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make Admin
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "admin" ? "Making Admin..." : "Make Admin"}
                                 </Button>
                               </>
                             ) : (
@@ -827,17 +865,17 @@ function SettingsContent() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "cps")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make CPS
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "cps" ? "Making CPS..." : "Make CPS"}
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleUpdateRole(user.id, "admin")}
-                                  disabled={updateUserMutation.isPending}
+                                  disabled={changingRoleUserId?.userId === user.id}
                                 >
-                                  Make Admin
+                                  {changingRoleUserId?.userId === user.id && changingRoleUserId?.role === "admin" ? "Making Admin..." : "Make Admin"}
                                 </Button>
                               </>
                             )}
@@ -938,9 +976,29 @@ function SettingsContent() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Status</span>
-              <Badge variant="outline">
-                {selectedUserForDialog?.status}
-              </Badge>
+              {selectedUserForDialog?.id !== currentUser?.id ? (
+                <Button
+                  variant={selectedUserForDialog?.status === "active" ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (selectedUserForDialog) {
+                      handleToggleUserStatus(selectedUserForDialog.id);
+                      setIsUserDialogOpen(false);
+                    }
+                  }}
+                  disabled={togglingUserId === selectedUserForDialog?.id}
+                >
+                  {togglingUserId === selectedUserForDialog?.id ? (
+                    selectedUserForDialog?.status === "active" ? "Deactivating..." : "Activating..."
+                  ) : (
+                    selectedUserForDialog?.status === "active" ? "Deactivate" : "Activate"
+                  )}
+                </Button>
+              ) : (
+                <Badge variant="outline">
+                  {selectedUserForDialog?.status}
+                </Badge>
+              )}
             </div>
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
@@ -953,9 +1011,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make CPS
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "cps" ? "Making CPS..." : "Make CPS"}
                 </Button>
                 <Button
                   variant="outline"
@@ -963,9 +1021,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make ETS
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "ets" ? "Making ETS..." : "Make ETS"}
                 </Button>
               </>
             ) : selectedUserForDialog?.role === "cps" ? (
@@ -976,9 +1034,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make ETS
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "ets" ? "Making ETS..." : "Make ETS"}
                 </Button>
                 <Button
                   variant="outline"
@@ -986,9 +1044,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make Admin
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "admin" ? "Making Admin..." : "Make Admin"}
                 </Button>
               </>
             ) : (
@@ -999,9 +1057,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make CPS
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "cps" ? "Making CPS..." : "Make CPS"}
                 </Button>
                 <Button
                   variant="outline"
@@ -1009,9 +1067,9 @@ function SettingsContent() {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                     setIsUserDialogOpen(false);
                   }}
-                  disabled={updateUserMutation.isPending}
+                  disabled={changingRoleUserId !== null}
                 >
-                  Make Admin
+                  {changingRoleUserId?.userId === selectedUserForDialog?.id && changingRoleUserId?.role === "admin" ? "Making Admin..." : "Make Admin"}
                 </Button>
               </>
             )}
