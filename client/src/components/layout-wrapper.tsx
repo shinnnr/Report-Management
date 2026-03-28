@@ -1,8 +1,17 @@
 import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useLogoutMutation } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Create context for sidebar
 interface SidebarContextType {
@@ -30,11 +39,33 @@ function useSidebarToggle() {
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
+  const logoutMutation = useLogoutMutation();
   const isMobile = useIsMobile();
   const isSidebarToggleable = isMobile === true; // Only true when explicitly true
   const [sidebarOpen, setSidebarOpen] = useState(false); // Always start closed
+  const [showDeactivatedModal, setShowDeactivatedModal] = useState(false);
+  const [deactivatedMessage, setDeactivatedMessage] = useState("Your account has been deactivated by the administrator.");
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+
+  // Listen for user deactivation events
+  useEffect(() => {
+    const handleUserDeactivated = (e: CustomEvent) => {
+      setDeactivatedMessage(e.detail || "Your account has been deactivated by the administrator.");
+      setShowDeactivatedModal(true);
+    };
+
+    window.addEventListener('user-deactivated', handleUserDeactivated as EventListener);
+    return () => {
+      window.removeEventListener('user-deactivated', handleUserDeactivated as EventListener);
+    };
+  }, []);
+
+  // Handle logout from deactivated modal
+  const handleDeactivatedLogout = () => {
+    setShowDeactivatedModal(false);
+    logoutMutation.mutate();
+  };
 
   // Handle sidebar state based on mobile/toggleable status
   useEffect(() => {
@@ -94,6 +125,29 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
 
   if (!user) {
     return <Redirect to="/login" />;
+  }
+
+  // Show deactivated modal if user was deactivated
+  if (showDeactivatedModal) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <AlertDialog open={showDeactivatedModal} onOpenChange={setShowDeactivatedModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Account Deactivated</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deactivatedMessage}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleDeactivatedLogout}>
+                Logout
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
   }
 
   return (

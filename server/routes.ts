@@ -123,6 +123,10 @@ export async function registerRoutes(
         if (!user) {
           return done(null, false, { message: "Incorrect username." });
         }
+        // Check if user is active
+        if (user.status !== 'active') {
+          return done(null, false, { message: "Your account has been deactivated. Please contact the administrator." });
+        }
         const isValid = await comparePassword(password, user.password);
         if (!isValid) {
           return done(null, false, { message: "Incorrect password." });
@@ -207,8 +211,24 @@ export async function registerRoutes(
     });
   });
 
-  app.get(api.auth.me.path, isAuthenticated, (req, res) => {
-    res.json(req.user);
+  app.get(api.auth.me.path, isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      // Re-fetch user from database to check their current status
+      const freshUser = await storage.getUser(user.id);
+      if (!freshUser) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      if (freshUser.status !== 'active') {
+        return res.status(401).json({ 
+          message: "Your account has been deactivated by the administrator.",
+          deactivated: true 
+        });
+      }
+      res.json(user);
+    } catch (err) {
+      res.status(500).json({ message: "Server error" });
+    }
   });
 
   // --- Settings Routes ---

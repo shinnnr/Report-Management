@@ -22,7 +22,15 @@ export function useUser() {
     queryKey: [api.auth.me.path],
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: 'include' });
-      if (res.status === 401) return null;
+      if (res.status === 401) {
+        // Check if user was deactivated
+        const data = await res.json().catch(() => ({}));
+        if (data.deactivated) {
+          // Dispatch custom event for deactivation
+          window.dispatchEvent(new CustomEvent('user-deactivated', { detail: data.message }));
+        }
+        return null;
+      }
       if (!res.ok) {
         const error = new Error("Failed to fetch user");
         error.name = "AuthError"; // Mark as auth error to suppress console error
