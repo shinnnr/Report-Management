@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -82,6 +82,7 @@ function ArchivesContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();
+  const isCompactDesktop = useIsCompactDesktop();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -478,10 +479,23 @@ function ArchivesContent() {
               onChange={(e) => setArchivesSearchQuery(e.target.value)}
               className="max-w-sm"
             />
+            {/* Bulk actions below search bar on compact desktop */}
+            {isCompactDesktop && isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0) && (
+              <div className="flex gap-2 mt-2">
+                <Button variant="outline" className="gap-2 whitespace-nowrap" onClick={() => setIsBulkRestoreOpen(true)}>
+                  <RotateCcw className="w-4 h-4" />
+                  Restore ({selectedFolders.length + selectedFiles.length})
+                </Button>
+                <Button variant="destructive" className="gap-2 whitespace-nowrap" onClick={() => setIsBulkDeleteOpen(true)}>
+                  <Trash2 className="w-4 h-4" />
+                  Delete ({selectedFolders.length + selectedFiles.length})
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-        {/* Bulk actions - shown when select mode is active */}
-        {isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0) && (
+        {/* Bulk actions on non-compact desktop */}
+        {!isCompactDesktop && isSelectMode && (selectedFolders.length > 0 || selectedFiles.length > 0) && (
           <div className="flex flex-row items-center gap-2 mt-4">
             <Button variant="outline" className="gap-2 whitespace-nowrap" onClick={() => setIsBulkRestoreOpen(true)}>
               <RotateCcw className="w-4 h-4" />

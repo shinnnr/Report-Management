@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
@@ -100,6 +100,7 @@ function DriveContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();
+  const isCompactDesktop = useIsCompactDesktop();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -791,11 +792,116 @@ function DriveContent() {
               onChange={(e) => setDriveSearchQuery(e.target.value)}
               className="max-w-sm"
             />
+            {/* New Folder and Upload buttons below search bar on compact desktop */}
+            {isCompactDesktop && (
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex gap-2">
+                  <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <Plus className="w-4 h-4" /> New Folder
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Folder</DialogTitle>
+                        <DialogDescription>Create a new folder in the current location.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="new-folder-name">Folder Name</Label>
+                          <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
+                          {createFolder.isPending ? "Creating..." : "Create"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2 bg-primary">
+                        <UploadCloud className="w-4 h-4" /> Upload
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Upload Files</DialogTitle>
+                        <DialogDescription>Select and upload files to the current location.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div 
+                          className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                        >
+                          <Input type="file" name="files" className="hidden" id="file-upload-multiple-compact" multiple onChange={(e) => setUploadFiles(e.target.files ? Array.from(e.target.files) : [])} />
+                          <Label htmlFor="file-upload-multiple-compact" className="cursor-pointer">
+                            <UploadCloud className="w-10 h-10 mx-auto mb-2" />
+                            <span>{uploadFiles.length > 0 ? `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} selected` : "Click to select or drag and drop"}</span>
+                          </Label>
+                        </div>
+
+                        {uploadFiles.length > 0 && (
+                          <div className="text-left p-3 bg-muted/30 rounded-lg">
+                            <p className="text-sm font-medium mb-2">
+                              {uploadFiles.length} file{uploadFiles.length > 1 ? 's' : ''} selected:
+                            </p>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {uploadFiles.map((file, index) => (
+                                <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
+                                  <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUploadFiles(uploadFiles.filter((_, i) => i !== index))}
+                                      className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
+                          {createReport.isPending ? "Uploading..." : "Upload"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Bulk action buttons in compact desktop select mode */}
+                {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
+                      <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
+                    </Button>
+                    <Button variant="outline" className="gap-2" onClick={() => setIsBulkArchiveOpen(true)}>
+                      <Archive className="w-4 h-4" /> Archive ({selectedFiles.length + selectedFolders.length})
+                    </Button>
+                    <Button variant="destructive" className="gap-2" onClick={() => setIsBulkDeleteOpen(true)}>
+                      <Trash2 className="w-4 h-4" /> Delete ({selectedFiles.length + selectedFolders.length})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Right side - Bulk actions always visible on non-compact desktop */}
         <div className="flex flex-wrap items-center gap-3">
-          {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
+          {(selectedFiles.length > 0 || selectedFolders.length > 0) && !isCompactDesktop && (
             <>
               <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                 <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
@@ -809,88 +915,93 @@ function DriveContent() {
             </>
           )}
 
-          <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Plus className="w-4 h-4" /> New Folder
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Folder</DialogTitle>
-                <DialogDescription>Create a new folder in the current location.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-folder-name">Folder Name</Label>
-                  <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
-                  {createFolder.isPending ? "Creating..." : "Create"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-primary">
-                <UploadCloud className="w-4 h-4" /> Upload
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Files</DialogTitle>
-                <DialogDescription>Select and upload files to the current location.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div 
-                  className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFiles(e.target.files ? Array.from(e.target.files) : [])} />
-                  <Label htmlFor="file-upload-multiple" className="cursor-pointer">
-                    <UploadCloud className="w-10 h-10 mx-auto mb-2" />
-                    <span>{uploadFiles.length > 0 ? `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} selected` : "Click to select or drag and drop"}</span>
-                  </Label>
-                </div>
-
-                {uploadFiles.length > 0 && (
-                  <div className="text-left p-3 bg-muted/30 rounded-lg">
-                    <p className="text-sm font-medium mb-2">
-                      {uploadFiles.length} file{uploadFiles.length > 1 ? 's' : ''} selected:
-                    </p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {uploadFiles.map((file, index) => (
-                        <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
-                          <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                            <button
-                              type="button"
-                              onClick={() => setUploadFiles(uploadFiles.filter((_, i) => i !== index))}
-                              className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+          {/* New Folder and Upload buttons - only show when NOT compact desktop */}
+          {!isCompactDesktop && (
+            <>
+              <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Plus className="w-4 h-4" /> New Folder
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Folder</DialogTitle>
+                    <DialogDescription>Create a new folder in the current location.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-folder-name">Folder Name</Label>
+                      <Input id="new-folder-name" name="folderName" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} />
                     </div>
                   </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
-                  {createReport.isPending ? "Uploading..." : "Upload"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button onClick={handleCreateFolder} disabled={createFolder.isPending}>
+                      {createFolder.isPending ? "Creating..." : "Create"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 bg-primary">
+                    <UploadCloud className="w-4 h-4" /> Upload
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Upload Files</DialogTitle>
+                    <DialogDescription>Select and upload files to the current location.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div 
+                      className={`py-8 text-center border-2 border-dashed rounded-xl transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <Input type="file" name="files" className="hidden" id="file-upload-multiple" multiple onChange={(e) => setUploadFiles(e.target.files ? Array.from(e.target.files) : [])} />
+                      <Label htmlFor="file-upload-multiple" className="cursor-pointer">
+                        <UploadCloud className="w-10 h-10 mx-auto mb-2" />
+                        <span>{uploadFiles.length > 0 ? `${uploadFiles.length} file${uploadFiles.length > 1 ? 's' : ''} selected` : "Click to select or drag and drop"}</span>
+                      </Label>
+                    </div>
+
+                    {uploadFiles.length > 0 && (
+                      <div className="text-left p-3 bg-muted/30 rounded-lg">
+                        <p className="text-sm font-medium mb-2">
+                          {uploadFiles.length} file{uploadFiles.length > 1 ? 's' : ''} selected:
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {uploadFiles.map((file, index) => (
+                            <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
+                              <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setUploadFiles(uploadFiles.filter((_, i) => i !== index))}
+                                  className="p-0.5 hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleUpload} disabled={createReport.isPending || uploadFiles.length === 0}>
+                      {createReport.isPending ? "Uploading..." : "Upload"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
       </div>
 
