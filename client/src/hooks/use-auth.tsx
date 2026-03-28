@@ -17,6 +17,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useUser() {
+  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: [api.auth.me.path],
@@ -26,9 +27,10 @@ export function useUser() {
         // Check if user was deactivated
         const data = await res.json().catch(() => ({}));
         if (data.deactivated) {
-          // Dispatch custom event for deactivation
+          // Dispatch custom event for deactivation - don't clear user data yet
           window.dispatchEvent(new CustomEvent('user-deactivated', { detail: data.message }));
         }
+        // Return null to indicate auth failure
         return null;
       }
       if (!res.ok) {
