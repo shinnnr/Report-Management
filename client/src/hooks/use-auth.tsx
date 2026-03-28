@@ -27,6 +27,9 @@ export function useUser() {
         // Check if user was deactivated
         const data = await res.json().catch(() => ({}));
         if (data.deactivated) {
+          // Store in localStorage so the modal shows before user becomes null
+          localStorage.setItem('userDeactivated', 'true');
+          localStorage.setItem('deactivatedMessage', data.message || "Your account has been deactivated by the administrator.");
           // Dispatch custom event for deactivation - don't clear user data yet
           window.dispatchEvent(new CustomEvent('user-deactivated', { detail: data.message }));
         }
@@ -41,11 +44,12 @@ export function useUser() {
       return api.auth.me.responses[200].parse(await res.json());
     },
     retry: false,
+    staleTime: 30000, // Cache user data for 30 seconds to prevent rapid refetches
     throwOnError: (error) => {
       // Don't throw on auth errors to suppress console errors
       return error.name === "AuthError" ? false : true;
     },
-    // Poll every 5 seconds to detect role changes from other sessions (e.g., admin changes)
+    // Poll every 5 seconds to detect role changes from other sessions
     refetchInterval: 5000,
   });
 }
@@ -97,6 +101,9 @@ export function useLogoutMutation() {
       if (!res.ok) throw new Error("Logout failed");
     },
     onSuccess: () => {
+      // Clear deactivation flags from localStorage
+      localStorage.removeItem('userDeactivated');
+      localStorage.removeItem('deactivatedMessage');
       queryClient.setQueryData([api.auth.me.path], null);
       resetTheme();
       toast({ title: "Logged out", description: "See you next time!" });

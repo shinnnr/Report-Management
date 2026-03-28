@@ -52,15 +52,35 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
   // Listen for user deactivation events
   useEffect(() => {
     const handleUserDeactivated = (e: CustomEvent) => {
-      setDeactivatedMessage(e.detail || "Your account has been deactivated by the administrator.");
+      const message = e.detail || "Your account has been deactivated by the administrator.";
+      setDeactivatedMessage(message);
       setIsDeactivated(true);
       setShowDeactivatedModal(true);
+      // Store in localStorage to persist even if user state is cleared
+      localStorage.setItem('userDeactivated', 'true');
+      localStorage.setItem('deactivatedMessage', message);
       // Auto-logout after 5 seconds
       setTimeout(() => {
         setShowDeactivatedModal(false);
         logoutMutation.mutate();
       }, 5000);
     };
+
+    // Check localStorage on mount
+    const storedDeactivated = localStorage.getItem('userDeactivated');
+    if (storedDeactivated === 'true') {
+      const storedMessage = localStorage.getItem('deactivatedMessage') || "Your account has been deactivated by the administrator.";
+      setDeactivatedMessage(storedMessage);
+      setIsDeactivated(true);
+      setShowDeactivatedModal(true);
+      // Auto-logout after 5 seconds
+      setTimeout(() => {
+        setShowDeactivatedModal(false);
+        localStorage.removeItem('userDeactivated');
+        localStorage.removeItem('deactivatedMessage');
+        logoutMutation.mutate();
+      }, 5000);
+    }
 
     window.addEventListener('user-deactivated', handleUserDeactivated as EventListener);
     return () => {
