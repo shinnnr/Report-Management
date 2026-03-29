@@ -38,7 +38,7 @@ import { useCheckDeadlines } from "@/hooks/use-activities";
 
 function SettingsContent() {
   const { user } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, isSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
   const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
@@ -794,7 +794,7 @@ function SettingsContent() {
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>
-                          <div className="hidden md:flex md:flex-wrap items-center gap-2">
+                          <div className={`flex flex-wrap items-center gap-2 ${isMobile ? 'hidden' : ''}`}>
                             <Badge className={user.role === "cps" ? "bg-[#1f8f5f] text-white" : user.role === "ets" ? "bg-[#DAA520] text-white" : user.role === "admin" ? "bg-primary text-primary-foreground" : ""}>
                               {user.role === "admin" ? (
                                 <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
