@@ -1,17 +1,8 @@
 import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
-import { useAuth, useLogoutMutation } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // Create context for sidebar
 interface SidebarContextType {
@@ -39,60 +30,11 @@ function useSidebarToggle() {
 
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
-  const logoutMutation = useLogoutMutation();
   const isMobile = useIsMobile();
   const isSidebarToggleable = isMobile === true; // Only true when explicitly true
   const [sidebarOpen, setSidebarOpen] = useState(false); // Always start closed
-  const [showDeactivatedModal, setShowDeactivatedModal] = useState(false);
-  const [deactivatedMessage, setDeactivatedMessage] = useState("Your account has been deactivated by the administrator.");
-  const [isDeactivated, setIsDeactivated] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
-
-  // Listen for user deactivation events
-  useEffect(() => {
-    const handleUserDeactivated = (e: CustomEvent) => {
-      const message = e.detail || "Your account has been deactivated by the administrator.";
-      setDeactivatedMessage(message);
-      setIsDeactivated(true);
-      setShowDeactivatedModal(true);
-      // Store in localStorage to persist even if user state is cleared
-      localStorage.setItem('userDeactivated', 'true');
-      localStorage.setItem('deactivatedMessage', message);
-      // Auto-logout after 5 seconds
-      setTimeout(() => {
-        setShowDeactivatedModal(false);
-        logoutMutation.mutate();
-      }, 5000);
-    };
-
-    // Check localStorage on mount
-    const storedDeactivated = localStorage.getItem('userDeactivated');
-    if (storedDeactivated === 'true') {
-      const storedMessage = localStorage.getItem('deactivatedMessage') || "Your account has been deactivated by the administrator.";
-      setDeactivatedMessage(storedMessage);
-      setIsDeactivated(true);
-      setShowDeactivatedModal(true);
-      // Auto-logout after 5 seconds
-      setTimeout(() => {
-        setShowDeactivatedModal(false);
-        localStorage.removeItem('userDeactivated');
-        localStorage.removeItem('deactivatedMessage');
-        logoutMutation.mutate();
-      }, 5000);
-    }
-
-    window.addEventListener('user-deactivated', handleUserDeactivated as EventListener);
-    return () => {
-      window.removeEventListener('user-deactivated', handleUserDeactivated as EventListener);
-    };
-  }, [logoutMutation]);
-
-  // Handle logout from deactivated modal
-  const handleDeactivatedLogout = () => {
-    setShowDeactivatedModal(false);
-    logoutMutation.mutate();
-  };
 
   // Handle sidebar state based on mobile/toggleable status
   useEffect(() => {
@@ -146,29 +88,6 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Show deactivated modal if user was deactivated (check before user null check)
-  if (isDeactivated || showDeactivatedModal) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <AlertDialog open={isDeactivated || showDeactivatedModal} onOpenChange={setShowDeactivatedModal}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Account Deactivated</AlertDialogTitle>
-              <AlertDialogDescription>
-                {deactivatedMessage}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleDeactivatedLogout}>
-                Logout
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     );
   }

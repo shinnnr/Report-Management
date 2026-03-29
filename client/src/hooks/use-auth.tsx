@@ -27,11 +27,24 @@ export function useUser() {
         // Check if user was deactivated
         const data = await res.json().catch(() => ({}));
         if (data.deactivated) {
-          // Store in localStorage so the modal shows before user becomes null
-          localStorage.setItem('userDeactivated', 'true');
-          localStorage.setItem('deactivatedMessage', data.message || "Your account has been deactivated by the administrator.");
-          // Dispatch custom event for deactivation - don't clear user data yet
-          window.dispatchEvent(new CustomEvent('user-deactivated', { detail: data.message }));
+          // Get current session timestamp from localStorage
+          const sessionTimestamp = localStorage.getItem('userSessionTimestamp');
+          
+          // Store deactivation with both session and current timestamps
+          const deactivationData = {
+            message: data.message || "Your account has been deactivated by the administrator.",
+            timestamp: Date.now(),
+            sessionTimestamp: sessionTimestamp
+          };
+          localStorage.setItem('userDeactivated', JSON.stringify(deactivationData));
+          
+          // Dispatch custom event for deactivation - but keep user logged in
+          window.dispatchEvent(new CustomEvent('user-deactivated', { detail: deactivationData.message }));
+          
+          // Don't return null - keep user logged in
+          // Return cached user data instead to stay logged in
+          const cachedUser = queryClient.getQueryData<User | null>([api.auth.me.path]);
+          return cachedUser ?? null;
         }
         // Return null to indicate auth failure
         return null;
@@ -82,6 +95,8 @@ export function useLoginMutation() {
     },
     onSuccess: (user) => {
       queryClient.setQueryData([api.auth.me.path], user);
+      // Set session timestamp on successful login
+      localStorage.setItem('userSessionTimestamp', Date.now().toString());
       toast({ title: "Welcome back!", description: `Logged in as ${user.fullName}` });
     },
     onError: (error) => {
