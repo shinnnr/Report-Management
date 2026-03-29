@@ -53,15 +53,35 @@ function Router() {
   );
 }
 
+function AppContent() {
+  // useAuth is inside AuthProvider
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  return (
+    <>
+      <Toaster />
+      {/* Only show deactivation alert when user is authenticated */}
+      {user && <DeactivationAlert />}
+      <Router />
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
-            <Toaster />
-            <DeactivationAlert />
-            <Router />
+            <AppContent />
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>

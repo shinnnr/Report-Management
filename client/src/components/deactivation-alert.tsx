@@ -68,6 +68,18 @@ export function DeactivationAlert() {
     }, 1000);
   }, [logoutMutation.isPending, logoutMutation.mutate]);
   
+  // Close modal when user is not authenticated (e.g., on page reload)
+  useEffect(() => {
+    if (!currentUser && isOpen) {
+      // User is no longer logged in - close modal and stop countdown
+      setIsOpen(false);
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }
+  }, [currentUser, isOpen]);
+  
   // Handle showing the deactivation modal - always show it when called
   const showDeactivationModal = useCallback((deactivateMessage: string) => {
     // Prevent showing modal if logout is in progress
@@ -107,25 +119,8 @@ export function DeactivationAlert() {
   // Get session timestamp to compare deactivations across logins
   const sessionTimestamp = localStorage.getItem('userSessionTimestamp');
   
-  // Check localStorage on mount and after user logs in - to handle refresh and re-login scenarios
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("userDeactivated");
-      if (stored) {
-        const data = JSON.parse(stored);
-        // Only show modal if there's a deactivation stored
-        // and it belongs to the current session (or no session was set)
-        const storedSession = data.sessionTimestamp;
-        if (!storedSession || storedSession === sessionTimestamp) {
-          showDeactivationModal(data.message || "Your account has been deactivated by the administrator.");
-          // Also force update to ensure timer starts
-          forceUpdate();
-        }
-      }
-    } catch (e) {
-      // Invalid JSON, ignore
-    }
-  }, [currentUser, showDeactivationModal, sessionTimestamp, forceDeactivationUpdate]);
+  // Don't check localStorage on mount - it causes flash on login page
+  // The custom event from polling will handle showing modal when user is authenticated
 
   // When user logs in (after being logged out), check if they were reactivated but then deactivated again
   // Also refetch to detect if still active after login
