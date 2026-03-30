@@ -388,7 +388,7 @@ function DriveContent() {
       files = dataTransfer.files;
     } else {
       const fileInput = document.getElementById("file-upload-multiple") as HTMLInputElement | null;
-      files = fileInput?.files;
+      files = fileInput?.files ?? null;
     }
     
     if (!files || files.length === 0) return;

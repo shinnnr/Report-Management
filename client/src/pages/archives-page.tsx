@@ -196,7 +196,7 @@ function ArchivesContent() {
         return a.fileName.localeCompare(b.fileName);
       }
       if (sortBy === 'date') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       }
       if (sortBy === 'size') {
         return b.fileSize - a.fileSize;
