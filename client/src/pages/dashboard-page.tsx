@@ -123,7 +123,7 @@ function DashboardContent() {
     };
 
     const getPreviewData = (type: string) => {
-        let data;
+        let data: any[] = [];
         switch (type) {
             case 'folders':
                 data = folders?.map(folder => ({
@@ -470,7 +470,7 @@ function DashboardContent() {
                           </div>
                           <div className="ml-4 mt-1">
                             <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                              {log.userFullName || 'Unknown'}{log.userRole && ` | ${log.userRole === 'admin' ? 'Admin' : log.userRole === 'cps' ? 'CPS' : log.userRole === 'ets' ? 'ETS' : 'Unknown'}`}
+                              {log.userFullName || 'Unknown'}
                             </p>
                           </div>
                         </div>
@@ -668,7 +668,7 @@ function DashboardContent() {
                         <p className="font-medium text-sm text-foreground truncate">{log.description}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-muted-foreground">
-                            {log.userFullName || 'Unknown'}{log.userRole && ` | ${log.userRole === 'admin' ? 'Admin' : log.userRole === 'cps' ? 'CPS' : log.userRole === 'ets' ? 'ETS' : 'Unknown'}`}
+                            {log.userFullName || 'Unknown'}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
