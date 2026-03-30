@@ -29,78 +29,34 @@ export function DeactivationAlert() {
   const { user } = useAuth();
   const hasLoggedOutRef = useRef(false);
   const lastProcessedTimestampRef = useRef<number | null>(null);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Close modal when logout is successful
   useEffect(() => {
     if (logoutMutation.isSuccess) {
       hasLoggedOutRef.current = true;
       setIsOpen(false);
-      // Clear any running interval
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
       // Clear localStorage on logout so subsequent deactivations work fresh
       localStorage.removeItem('userDeactivated');
     }
   }, [logoutMutation.isSuccess]);
-
-  // Function to start countdown timer
-  const startCountdown = useCallback(() => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-    
-    countdownIntervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // Auto logout when countdown reaches 0
-          if (logoutMutation.isPending) {
-            return 0;
-          }
-          logoutMutation.mutate();
-          setIsOpen(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [logoutMutation.isPending, logoutMutation.mutate]);
   
   // Close modal when user is not authenticated (e.g., on page reload)
   useEffect(() => {
     if (!currentUser && isOpen) {
-      // User is no longer logged in - close modal and stop countdown
       setIsOpen(false);
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
-      }
     }
   }, [currentUser, isOpen]);
   
-  // Handle showing the deactivation modal - always show it when called
+  // Handle showing the deactivation modal
   const showDeactivationModal = useCallback((deactivateMessage: string) => {
-    // Prevent showing modal if logout is in progress
     if (logoutMutation.isPending) {
       return;
     }
-    // ALWAYS reset countdown - force it to start
     setCountdown(COUNTDOWN_SECONDS);
     setIsOpen(true);
     setMessage(deactivateMessage);
     setCurrentTimestamp(Date.now());
-    // Start countdown immediately
-    startCountdown();
-  }, [logoutMutation.isPending, startCountdown]);
-
-  // Debug: reset countdown when modal opens
-  useEffect(() => {
-    if (isOpen && countdown === COUNTDOWN_SECONDS) {
-      // Countdown was just reset, timer should start in the countdown effect
-    }
-  }, [isOpen, countdown]);
+  }, [logoutMutation.isPending]);
 
   // Listen for deactivation events via custom event
   useEffect(() => {
@@ -146,27 +102,36 @@ export function DeactivationAlert() {
     }
   }, [currentUser, refetchUser, logoutMutation.isPending, logoutMutation.isSuccess]);
 
-  // Countdown logic - depends on deactivationKey to force re-run
+  // Countdown timer using setInterval for consistent display
   useEffect(() => {
-    deactivationKey; // dependency
-    
-    // Run when modal is open and countdown > 0 and not logged out
-    if (isOpen && countdown > 0 && !logoutMutation.isSuccess && !logoutMutation.isPending) {
-      const timerId = setTimeout(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            // Auto logout when countdown reaches 0
-            logoutMutation.mutate();
-            setIsOpen(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearTimeout(timerId);
+    if (!isOpen || countdown <= 0 || logoutMutation.isPending || logoutMutation.isSuccess) {
+      return;
     }
-  }, [isOpen, countdown, logoutMutation.isSuccess, logoutMutation.isPending, logoutMutation.mutate]);
+
+    // Clear any existing interval
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    
+    // Start the countdown interval
+    intervalId = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          // Auto logout when countdown reaches 0
+          if (!logoutMutation.isPending) {
+            logoutMutation.mutate();
+          }
+          setIsOpen(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isOpen, logoutMutation.isPending, logoutMutation.isSuccess, logoutMutation.mutate]);
 
   // Handle manual logout button click
   const handleLogoutNow = () => {
