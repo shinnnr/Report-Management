@@ -102,6 +102,31 @@
 }
 
 /* Custom Utilities */
+/* Hide scrollbar buttons (arrows) in WebKit browsers */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
 .glass-panel {
   @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
 }
