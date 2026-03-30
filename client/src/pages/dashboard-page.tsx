@@ -241,7 +241,7 @@ function DashboardContent() {
 
   return (
     <>
-      <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+      <header className="mb-8">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
@@ -351,7 +351,7 @@ function DashboardContent() {
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div
           onMouseEnter={(e) => handleMouseEnter('folders', e)}
           onMouseMove={handleMouseMove}
@@ -414,7 +414,7 @@ function DashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity Logs */}
         <div className="lg:col-span-2">
           <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">

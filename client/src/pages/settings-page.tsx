@@ -326,7 +326,7 @@ function SettingsContent() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             {isMobile ? (
@@ -352,7 +352,7 @@ function SettingsContent() {
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <Tabs defaultValue="profile" className="space-y-4">
         <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : "grid-cols-2"} max-w-[500px]`}>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />

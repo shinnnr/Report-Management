@@ -1038,7 +1038,7 @@ function CalendarContent() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="flex flex-col gap-4 mb-8">
         <div className="w-full">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             {isMobile ? (
@@ -1774,7 +1774,7 @@ function CalendarContent() {
         </Dialog>
       </div>
 
-      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Calendar Header */}
         <div className="flex flex-wrap items-center p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
           <div className="flex items-center gap-2 md:gap-4">
@@ -2125,7 +2125,7 @@ function CalendarContent() {
       </div>
 
       {/* Upcoming Activities Sidebar */}
-      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <h3 className="font-semibold text-lg">Upcoming Activities</h3>
           <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
@@ -2206,7 +2206,7 @@ function CalendarContent() {
       </div>
 
       {/* Agency & Department Filter Panel */}
-      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
