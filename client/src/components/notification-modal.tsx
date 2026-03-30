@@ -8,16 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -32,8 +22,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const [, setLocation] = useLocation();
 
   const [selectedNotifications, setSelectedNotifications] = useState<number[]>([]);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [notificationToDelete, setNotificationToDelete] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const notificationsPerPage = 10;
 
@@ -53,30 +41,12 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   };
 
   const handleDelete = (id: number) => {
-    setNotificationToDelete(id);
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (notificationToDelete) {
-      deleteMutation.mutate(notificationToDelete);
-    }
-    setShowDeleteConfirm(false);
-    setNotificationToDelete(null);
+    deleteMutation.mutate(id);
   };
 
   const handleDeleteSelected = () => {
-    if (selectedNotifications.length > 0) {
-      setNotificationToDelete(null);
-      setShowDeleteConfirm(true);
-    }
-  };
-
-  const handleConfirmDeleteSelected = () => {
     selectedNotifications.forEach(id => deleteMutation.mutate(id));
     setSelectedNotifications([]);
-    setShowDeleteConfirm(false);
-    setNotificationToDelete(null);
   };
 
   const toggleSelection = (id: number) => {
@@ -206,31 +176,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
             </div>
           </div>
       </DialogContent>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
-            <AlertDialogDescription>
-              {notificationToDelete 
-                ? "Are you sure you want to delete this notification? This action cannot be undone."
-                : `Are you sure you want to delete ${selectedNotifications.length} notification(s)? This action cannot be undone.`
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={notificationToDelete ? handleConfirmDelete : handleConfirmDeleteSelected}
-              disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 }

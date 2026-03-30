@@ -638,8 +638,8 @@ function DashboardContent() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto min-h-0 pr-4 pb-4">
-            <div className="space-y-2">
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-2 pr-4 pb-4">
               {logs && logs.length > 0 ? (
               logs
                 .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
@@ -690,8 +690,8 @@ function DashboardContent() {
                 No activity logs found.
               </div>
             )}
-          </div>
-          </div>
+            </div>
+          </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0 border-t">

@@ -3,6 +3,7 @@ import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Create context for sidebar
 interface SidebarContextType {
@@ -134,10 +135,12 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-screen p-8 relative">
-        <div className="max-w-7xl mx-auto pb-12">
-          {children}
-        </div>
+      <main className="flex-1 h-screen relative" style={{ overflow: 'hidden' }}>
+        <ScrollArea className="h-full p-8">
+          <div className="max-w-7xl mx-auto pb-12">
+            {children}
+          </div>
+        </ScrollArea>
       </main>
     </div>
     </SidebarContext.Provider>
