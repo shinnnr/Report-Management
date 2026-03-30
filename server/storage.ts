@@ -630,18 +630,18 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
 
-    // 1. Mark overdue activities and notify all users
+    // Get ALL overdue activities (both pending and already marked as overdue)
     const overdueActivities = await db.select().from(activities).where(and(
       lt(activities.deadlineDate, now),
-      sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
+      sql`${activities.status} IN ('pending', 'overdue')`
     ));
 
-    // Update status to overdue
+    // Update status to overdue for activities that are still pending
     await db.update(activities)
       .set({ status: 'overdue' })
       .where(and(
         lt(activities.deadlineDate, now),
-        sql`${activities.status} NOT IN ('completed', 'overdue', 'late')`
+        eq(activities.status, 'pending')
       ));
 
     // Notify users about overdue activities based on role and concern department
@@ -652,7 +652,6 @@ export class DatabaseStorage implements IStorage {
     // Notify admins about ALL overdue activities
     for (const activity of overdueActivities) {
       for (const admin of adminUsers) {
-        // Check if notification already exists
         const [existingAdmin] = await db.select().from(notifications)
           .where(and(
             eq(notifications.activityId, activity.id),
@@ -673,22 +672,21 @@ export class DatabaseStorage implements IStorage {
     }
     
     for (const activity of overdueActivities) {
+      const concernDept = activity.concernDepartment || '';
       for (const user of nonAdminUsers) {
-        // Filter based on user role and activity concern department
         const userRole = user.role;
         let shouldNotify = false;
         
         if (userRole === 'cps') {
-          shouldNotify = activity.concernDepartment?.includes('CITET-CPS') || false;
+          shouldNotify = concernDept.includes('CITET-CPS');
         } else if (userRole === 'ets') {
-          shouldNotify = activity.concernDepartment?.includes('CITET-ETS') || false;
+          shouldNotify = concernDept.includes('CITET-ETS');
         } else {
-          shouldNotify = true; // Other users (if any) get all notifications
+          shouldNotify = true;
         }
         
         if (!shouldNotify) continue;
         
-        // Check if notification already exists
         const [existing] = await db.select().from(notifications)
           .where(and(
             eq(notifications.activityId, activity.id),
@@ -715,23 +713,45 @@ export class DatabaseStorage implements IStorage {
       sql`${activities.status} NOT IN ('completed')`
     ));
 
+    // Also notify admins about upcoming deadlines
     for (const activity of upcoming) {
+      for (const admin of adminUsers) {
+        const [existingAdmin] = await db.select().from(notifications)
+          .where(and(
+            eq(notifications.activityId, activity.id),
+            eq(notifications.userId, admin.id),
+            eq(notifications.title, "Incoming Deadline")
+          ));
+
+        if (!existingAdmin) {
+          const remainingDays = Math.ceil((activity.deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          await this.createNotification({
+            userId: admin.id,
+            activityId: activity.id,
+            title: "Incoming Deadline",
+            content: `${activity.title}\nDate: ${activity.deadlineDate.toLocaleDateString()}\n${remainingDays} days remaining`,
+            isRead: false
+          });
+        }
+      }
+    }
+
+    for (const activity of upcoming) {
+      const concernDept = activity.concernDepartment || '';
       for (const user of nonAdminUsers) {
-        // Filter based on user role and activity concern department
         const userRole = user.role;
         let shouldNotify = false;
         
         if (userRole === 'cps') {
-          shouldNotify = activity.concernDepartment?.includes('CITET-CPS') || false;
+          shouldNotify = concernDept.includes('CITET-CPS');
         } else if (userRole === 'ets') {
-          shouldNotify = activity.concernDepartment?.includes('CITET-ETS') || false;
+          shouldNotify = concernDept.includes('CITET-ETS');
         } else {
           shouldNotify = true;
         }
         
         if (!shouldNotify) continue;
         
-        // Check if notification already exists for this user for this activity
         const [existing] = await db.select().from(notifications)
           .where(and(
             eq(notifications.activityId, activity.id),
