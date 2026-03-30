@@ -29,6 +29,7 @@ export function DeactivationAlert() {
   const { user } = useAuth();
   const hasLoggedOutRef = useRef(false);
   const lastProcessedTimestampRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Close modal when logout is successful
   useEffect(() => {
@@ -102,17 +103,20 @@ export function DeactivationAlert() {
     }
   }, [currentUser, refetchUser, logoutMutation.isPending, logoutMutation.isSuccess]);
 
-  // Countdown timer using setInterval for consistent display
+  // Countdown timer - only triggers when modal opens/closes or logout status changes
   useEffect(() => {
+    // Clear any existing interval when modal opens
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    
     if (!isOpen || countdown <= 0 || logoutMutation.isPending || logoutMutation.isSuccess) {
       return;
     }
 
-    // Clear any existing interval
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    
     // Start the countdown interval
-    intervalId = setInterval(() => {
+    countdownIntervalRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           // Auto logout when countdown reaches 0
@@ -127,11 +131,12 @@ export function DeactivationAlert() {
     }, 1000);
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
       }
     };
-  }, [isOpen, logoutMutation.isPending, logoutMutation.isSuccess, logoutMutation.mutate]);
+  }, [isOpen, logoutMutation.isPending, logoutMutation.isSuccess]);
 
   // Handle manual logout button click
   const handleLogoutNow = () => {
