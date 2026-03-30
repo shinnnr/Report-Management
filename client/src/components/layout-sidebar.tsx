@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 
-import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
+import neecoBanner from "@/assets/neeco_banner.png";
 
 interface SidebarProps {
   onClose?: () => void;

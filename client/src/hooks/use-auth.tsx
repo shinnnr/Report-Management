@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
 import { api } from "@shared/routes";
@@ -16,11 +16,35 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function useUser() {
+export function useUser(isLoginPage: boolean = false) {
   const queryClient = useQueryClient();
+  const wasOnLoginPage = useRef(isLoginPage);
+  
+  // Track if we just logged in - if so, we need to refetch even if on login page
+  const [forceRefetch, setForceRefetch] = useState(false);
+  
+  useEffect(() => {
+    // Listen for login success event
+    const handler = () => {
+      setForceRefetch(true);
+    };
+    window.addEventListener('auth-updated', handler);
+    return () => window.removeEventListener('auth-updated', handler);
+  }, []);
+  
+  // Determine if query should run
+  const shouldRunQuery = !isLoginPage || wasOnLoginPage.current || forceRefetch;
+  
+  // After first successful fetch when we were on login page, update the ref
+  useEffect(() => {
+    if (!isLoginPage && wasOnLoginPage.current) {
+      wasOnLoginPage.current = false;
+      setForceRefetch(false);
+    }
+  }, [isLoginPage]);
 
   return useQuery({
-    queryKey: [api.auth.me.path],
+    queryKey: [api.auth.me.path, isLoginPage, forceRefetch],
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: 'include' });
       if (res.status === 401) {
@@ -41,7 +65,6 @@ export function useUser() {
           // Dispatch custom event for deactivation - but keep user logged in
           window.dispatchEvent(new CustomEvent('user-deactivated', { detail: deactivationData.message }));
           
-          // Don't return null - keep user logged in
           // Return cached user data instead to stay logged in
           const cachedUser = queryClient.getQueryData<User | null>([api.auth.me.path]);
           return cachedUser ?? null;
@@ -56,6 +79,7 @@ export function useUser() {
       }
       return api.auth.me.responses[200].parse(await res.json());
     },
+    enabled: shouldRunQuery,
     retry: false,
     staleTime: 30000, // Cache user data for 30 seconds to prevent rapid refetches
     throwOnError: (error) => {
@@ -63,7 +87,7 @@ export function useUser() {
       return error.name === "AuthError" ? false : true;
     },
     // Poll every 5 seconds to detect role changes from other sessions
-    refetchInterval: 5000,
+    refetchInterval: () => isLoginPage ? false : 5000,
   });
 }
 
@@ -98,6 +122,8 @@ export function useLoginMutation() {
       // Set session timestamp on successful login
       localStorage.setItem('userSessionTimestamp', Date.now().toString());
       toast({ title: "Welcome back!", description: `Logged in as ${user.fullName}` });
+      // Trigger auth update event
+      window.dispatchEvent(new CustomEvent('auth-updated'));
     },
     onError: (error) => {
       toast({ 
@@ -133,8 +159,8 @@ export function useLogoutMutation() {
   });
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const { data: user, isLoading, error, refetch } = useUser();
+export function AuthProvider({ children, isLoginPage = false }: { children: ReactNode; isLoginPage?: boolean }) {
+  const { data: user, isLoading, error, refetch } = useUser(isLoginPage);
   const loginMutation = useLoginMutation();
   const logoutMutation = useLogoutMutation();
 

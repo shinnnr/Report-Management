@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
 import { Redirect } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTheme } from "@/contexts/theme-context";
 import {
   AlertDialog,
@@ -32,7 +33,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-import neecoBanner from "@assets/NEECO_banner_1770341682188.png";
+import neecoBanner from "@/assets/neeco_banner.png";
 
 export default function AuthPage() {
   const { user, loginMutation } = useAuth();
