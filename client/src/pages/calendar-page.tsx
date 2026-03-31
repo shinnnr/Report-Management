@@ -1351,13 +1351,62 @@ function CalendarContent() {
                     {/* Recurrence End Date - only show if recurrence is not none */}
                     {recurrence !== 'none' && (
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Recurrence End Date</Label>
-                        <Input
-                          type="date"
-                          value={recurrenceEndDate}
-                          onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                          className="border border-gray-300 dark:border-gray-600"
-                        />
+                        <Label className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</Label>
+                        {recurrence === 'yearly' ? (
+                          // Yearly: only show year picker
+                          <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01-01')}>
+                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                              <SelectValue placeholder="Select end year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                                <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          // Monthly, Quarterly, Semi-Annual: show month and year picker
+                          <Select value={recurrenceEndDate ? recurrenceEndDate.substring(0, 7) : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01')}>
+                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                              <SelectValue placeholder="Select end month and year" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                              {(() => {
+                                const options: { year: number; month: string; value: string }[] = [];
+                                const now = new Date();
+                                
+                                // Determine the interval based on recurrence type
+                                let interval: number;
+                                switch (recurrence) {
+                                  case 'quarterly':
+                                    interval = 3;
+                                    break;
+                                  case 'semi-annual':
+                                    interval = 6;
+                                    break;
+                                  default:
+                                    interval = 1; // monthly
+                                }
+                                
+                                for (let i = 0; i < 60; i++) {
+                                  const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                                  const year = date.getFullYear();
+                                  const month = date.getMonth() + 1;
+                                  
+                                  // Only include months that match the recurrence interval
+                                  if (recurrence === 'monthly' || (month - 1) % interval === 0) {
+                                    const monthStr = String(month).padStart(2, '0');
+                                    const value = `${year}-${monthStr}`;
+                                    options.push({ year, month: monthStr, value });
+                                  }
+                                }
+                                return options.map(({ year, month, value }) => (
+                                  <SelectItem key={value} value={value}>{new Date(year, parseInt(month) - 1).toLocaleString('default', { month: 'long' })} {year}</SelectItem>
+                                ));
+                              })()}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2346,7 +2395,7 @@ function CalendarContent() {
             )}
 
             {/* Upcoming Section */}
-            <div>
+            <div className="mt-4">
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">
                 Coming Up
               </h4>
