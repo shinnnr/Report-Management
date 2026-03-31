@@ -66,6 +66,10 @@ export const activities = pgTable("activities", {
   completionDate: timestamp("completion_date"),
   completedBy: integer("completed_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+  // Recurrence fields
+  recurrence: text("recurrence"), // 'none', 'monthly', 'quarterly', 'semi-annual', 'yearly'
+  recurrenceEndDate: timestamp("recurrence_end_date"), // When recurrence ends
+  parentActivityId: integer("parent_activity_id"), // Link to parent if this is a recurring instance
 });
 
 // === ACTIVITY SUBMISSIONS ===
@@ -182,6 +186,7 @@ export const insertActivitySchema = createInsertSchema(activities)
   .extend({
     startDate: z.string().transform(str => new Date(str)),
     deadlineDate: z.string().transform(str => new Date(str)),
+    recurrenceEndDate: z.string().transform(str => str ? new Date(str) : null).optional(),
   });
 export const insertActivitySubmissionSchema = createInsertSchema(activitySubmissions).omit({ id: true, submissionDate: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });

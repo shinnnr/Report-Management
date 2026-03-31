@@ -663,6 +663,12 @@ export async function registerRoutes(
     const userRole = user?.role;
     const userDepartment = userRole === 'cps' ? 'CITET-CPS' : userRole === 'ets' ? 'CITET-ETS' : null;
     
+    // Get current year from query param or use current year
+    const currentYear = new Date().getFullYear();
+    
+    // Generate recurring activities for the current year if needed
+    await storage.generateRecurringActivitiesForYear(currentYear);
+    
     let activities = await storage.getActivities();
     
     // Get the role-based filtering setting
@@ -673,13 +679,11 @@ export async function registerRoutes(
     if (isRoleFilteringEnabled && (userRole === 'cps' || userRole === 'ets')) {
       if (userRole === 'cps') {
         activities = activities.filter(a => 
-          a.concernDepartment === 'CITET-CPS' || 
-          a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+          a.concernDepartment?.includes('CITET-CPS')
         );
       } else if (userRole === 'ets') {
         activities = activities.filter(a => 
-          a.concernDepartment === 'CITET-ETS' || 
-          a.concernDepartment === 'CITET-ETS/ CITET-CPS'
+          a.concernDepartment?.includes('CITET-ETS')
         );
       }
     }

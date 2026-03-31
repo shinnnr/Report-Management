@@ -196,6 +196,8 @@ function CalendarContent() {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [regulatoryAgency, setRegulatoryAgency] = useState("");
   const [concernDepartment, setConcernDepartment] = useState<string[]>([]);
+  const [recurrence, setRecurrence] = useState<string>("none");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -751,6 +753,8 @@ function CalendarContent() {
       concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
       reportDetails: reportDetails || null,
       remarks: remarks || null,
+      recurrence: recurrence !== 'none' ? recurrence : null,
+      recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? new Date(recurrenceEndDate) : null,
     });
     setIsNewActivityOpen(false);
     setSelectedDate(null);
@@ -759,6 +763,8 @@ function CalendarContent() {
     setActivityTime("23:59");
     setRegulatoryAgency("");
     setConcernDepartment([]);
+    setRecurrence("none");
+    setRecurrenceEndDate("");
     setReportDetails("");
     setRemarks("");
   };
@@ -1093,6 +1099,8 @@ function CalendarContent() {
               setActivityTime("23:59");
               setRegulatoryAgency("");
               setConcernDepartment([]);
+              setRecurrence("none");
+              setRecurrenceEndDate("");
               setReportDetails("");
               setRemarks("");
             }
@@ -1322,6 +1330,36 @@ function CalendarContent() {
                         </PopoverContent>
                       </Popover>
                     </div>
+                    
+                    {/* Recurrence Section */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Recurrence</Label>
+                      <Select value={recurrence} onValueChange={setRecurrence}>
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                          <SelectValue placeholder="Select recurrence" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly (Every 3 months)</SelectItem>
+                          <SelectItem value="semi-annual">Semi-Annual (Every 6 months)</SelectItem>
+                          <SelectItem value="yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Recurrence End Date - only show if recurrence is not none */}
+                    {recurrence !== 'none' && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Recurrence End Date</Label>
+                        <Input
+                          type="date"
+                          value={recurrenceEndDate}
+                          onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                          className="border border-gray-300 dark:border-gray-600"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2470,14 +2508,14 @@ function CalendarContent() {
                 let matchesDept = true;
                 if (filterDepartment) {
                   // Check if the stored department string contains the filter department
-                  matchesDept = a.concernDepartment?.includes(filterDepartment);
+                  matchesDept = a.concernDepartment?.includes(filterDepartment) ?? false;
                 } else if (enableRoleFiltering && user?.role && user.role !== 'admin') {
                   // Auto-filter based on user role when role-based filtering is enabled
                   // Now departments are stored as comma-separated values
                   if (user.role === 'cps') {
-                    matchesDept = a.concernDepartment?.includes('CITET-CPS');
+                    matchesDept = a.concernDepartment?.includes('CITET-CPS') ?? false;
                   } else if (user.role === 'ets') {
-                    matchesDept = a.concernDepartment?.includes('CITET-ETS');
+                    matchesDept = a.concernDepartment?.includes('CITET-ETS') ?? false;
                   }
                 }
                 

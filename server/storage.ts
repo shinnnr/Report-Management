@@ -38,6 +38,7 @@ export interface IStorage {
   getActivities(): Promise<Activity[]>;
   getActivity(id: number): Promise<Activity | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  generateRecurringActivitiesForYear(year: number): Promise<Activity[]>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
   startActivity(id: number, userId: number): Promise<void>;
@@ -547,6 +548,95 @@ export class DatabaseStorage implements IStorage {
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const [activity] = await db.insert(activities).values(insertActivity).returning();
     return activity;
+  }
+
+  // Generate recurring activities for a specific year when user visits it
+  async generateRecurringActivitiesForYear(year: number): Promise<Activity[]> {
+    const currentYear = new Date().getFullYear();
+    
+    // Get all activities with recurrence (not null and not 'none')
+    const recurringActivities = await db.select().from(activities).where(
+      and(
+        ne(activities.recurrence, null),
+        ne(activities.recurrence, 'none')
+      )
+    );
+    
+    const newActivities: Activity[] = [];
+    
+    for (const activity of recurringActivities) {
+      // Check if this activity has already been generated for this year
+      const startYear = new Date(activity.startDate).getFullYear();
+      const endDate = activity.recurrenceEndDate ? new Date(activity.recurrenceEndDate) : null;
+      
+      // Skip if this activity's recurrence has ended before the requested year
+      if (endDate && endDate.getFullYear() < year) {
+        continue;
+      }
+      
+      // Calculate the deadline for this year
+      const originalMonth = new Date(activity.deadlineDate).getMonth();
+      const originalDay = new Date(activity.deadlineDate).getDate();
+      
+      let newDeadline: Date;
+      let recurrenceInterval: number;
+      
+      switch (activity.recurrence) {
+        case 'monthly':
+          recurrenceInterval = 1;
+          break;
+        case 'quarterly':
+          recurrenceInterval = 3;
+          break;
+        case 'semi-annual':
+          recurrenceInterval = 6;
+          break;
+        case 'yearly':
+          recurrenceInterval = 12;
+          break;
+        default:
+          continue;
+      }
+      
+      // Calculate how many months to add from the original start
+      const monthsToAdd = (year - startYear) * recurrenceInterval;
+      
+      // Create new deadline for this year
+      newDeadline = new Date(startYear, originalMonth, originalDay);
+      newDeadline.setMonth(newDeadline.getMonth() + monthsToAdd);
+      
+      // Check if an activity already exists for this parent and year
+      const existingActivity = await db.select().from(activities).where(
+        and(
+          eq(activities.parentActivityId, activity.id),
+          eq(activities.deadlineDate, newDeadline)
+        )
+      ).then(results => results[0]);
+      
+      if (existingActivity) {
+        continue; // Already generated for this year
+      }
+      
+      // Create the recurring activity for this year
+      const newActivity = await this.createActivity({
+        title: activity.title,
+        description: activity.description,
+        startDate: new Date(year, 0, 1),
+        deadlineDate: newDeadline,
+        status: 'pending',
+        regulatoryAgency: activity.regulatoryAgency,
+        concernDepartment: activity.concernDepartment,
+        reportDetails: activity.reportDetails,
+        remarks: activity.remarks,
+        recurrence: null, // The recurring instance doesn't repeat
+        recurrenceEndDate: null,
+        parentActivityId: activity.id,
+      });
+      
+      newActivities.push(newActivity);
+    }
+    
+    return newActivities;
   }
 
   async updateActivity(id: number, updates: Partial<Activity>): Promise<Activity> {
