@@ -21,7 +21,7 @@ import {
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -1179,7 +1179,7 @@ function CalendarContent() {
                       <Label className="text-sm font-medium">Concern Department</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="h-10 w-full justify-start border border-gray-300 dark:border-gray-600 font-normal">
+                          <Button variant="outline" className="h-10 w-full justify-between border-gray-400 font-normal" style={{ borderColor: '#9ca3af' }}>
                             {concernDepartment.length > 0 ? (
                               <span className="truncate">
                                 {concernDepartment.join(", ")}
@@ -1187,6 +1187,7 @@ function CalendarContent() {
                             ) : (
                               <span className="text-muted-foreground">Select departments</span>
                             )}
+                            <ChevronDown className="h-4 w-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[300px] p-2" align="start">
