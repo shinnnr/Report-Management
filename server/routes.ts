@@ -713,7 +713,7 @@ export async function registerRoutes(
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
 
       // Create notification for all users (except the creator)
-      const users = await storage.getUsers();
+      const users = await storage.getUsers();;
       
       for (const user of users) {
         // Exclude the creator from receiving notification
@@ -729,40 +729,6 @@ export async function registerRoutes(
         }
       }
       
-      for (const user of users) {
-        // Exclude the creator from receiving notification
-        if (user.id !== (req.user as any).id) {
-          // Determine if we should notify this user based on Concern Department
-          let shouldNotify = false;
-          
-          const concernDept = input.concernDepartment || '';
-          const userRole = user.role || '';
-          
-          // Notify admin users when CPS or ETS creates an activity
-          if ((creatorRole === 'cps' || creatorRole === 'ets') && userRole === 'admin') {
-            shouldNotify = true;
-          }
-          // If Concern Department contains CPS, notify CPS users
-          else if (concernDept.includes('CITET-CPS') && userRole === 'cps') {
-            shouldNotify = true;
-          }
-          // If Concern Department contains ETS, notify ETS users
-          else if (concernDept.includes('CITET-ETS') && userRole === 'ets') {
-            shouldNotify = true;
-          }
-          
-          if (shouldNotify) {
-            await storage.createNotification({
-              userId: user.id,
-              activityId: activity.id,
-              title: "New Activity Added",
-              content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\nConcern Department: ${concernDept}`,
-              isRead: false
-            });
-          }
-        }
-      }
-
       res.status(201).json(activity);
     } catch (err) {
       if (err instanceof z.ZodError) {
