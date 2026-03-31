@@ -547,6 +547,20 @@ export class DatabaseStorage implements IStorage {
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const [activity] = await db.insert(activities).values(insertActivity).returning();
+    
+    // If this activity has recurrence, generate activities for future years
+    if (activity.recurrence && activity.recurrence !== 'none') {
+      const currentYear = new Date().getFullYear();
+      const endYear = activity.recurrenceEndDate 
+        ? new Date(activity.recurrenceEndDate).getFullYear() 
+        : currentYear + 5; // Default to 5 years if no end date
+      
+      // Generate for current year and next few years (up to 5 years ahead)
+      for (let year = currentYear; year <= Math.min(endYear, currentYear + 5); year++) {
+        await this.generateRecurringActivitiesForYear(year);
+      }
+    }
+    
     return activity;
   }
 
