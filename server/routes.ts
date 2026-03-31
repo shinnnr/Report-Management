@@ -712,9 +712,22 @@ export async function registerRoutes(
       
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
 
-      // Create notification for users based on Concern Department
+      // Create notification for all users (except the creator)
       const users = await storage.getUsers();
-      const creatorRole = (req.user as any).role;
+      
+      for (const user of users) {
+        // Exclude the creator from receiving notification
+        if (user.id !== (req.user as any).id) {
+          // Notify all users about the new activity
+          await storage.createNotification({
+            userId: user.id,
+            activityId: activity.id,
+            title: "New Activity Added",
+            content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\nConcern Department: ${input.concernDepartment || 'N/A'}`,
+            isRead: false
+          });
+        }
+      }
       
       for (const user of users) {
         // Exclude the creator from receiving notification
@@ -982,34 +995,9 @@ export async function registerRoutes(
   app.get(api.notifications.list.path, isAuthenticated, async (req, res) => {
     const user = (req.user as any);
     const userId = user.id;
-    const userRole = user?.role;
-    const userDepartment = userRole === 'cps' ? 'CITET-CPS' : userRole === 'ets' ? 'CITET-ETS' : null;
     
-    let notifications = await storage.getNotifications(userId);
-    
-    // Get the activity IDs from notifications that the user should see
-    const activityIds = notifications.map(n => n.activityId).filter(Boolean);
-    const activities = await Promise.all(
-      activityIds.map(id => storage.getActivity(id).catch(() => null))
-    );
-    
-    // Filter notifications based on user role
-    if (userRole === 'cps' || userRole === 'ets') {
-      notifications = notifications.filter((n, index) => {
-        const activity = activities[index];
-        if (!activity) return true; // Keep notifications without activity
-        
-        if (userRole === 'cps') {
-          return activity.concernDepartment === 'CITET-CPS' || 
-                 activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
-        } else if (userRole === 'ets') {
-          return activity.concernDepartment === 'CITET-ETS' || 
-                 activity.concernDepartment === 'CITET-ETS/ CITET-CPS';
-        }
-        return true;
-      });
-    }
-    // Admin sees all notifications
+    // Get all notifications for the user (no filtering by role)
+    const notifications = await storage.getNotifications(userId);
     
     res.json(notifications);
   });

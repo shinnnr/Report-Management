@@ -672,21 +672,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     for (const activity of overdueActivities) {
-      const concernDept = activity.concernDepartment || '';
       for (const user of nonAdminUsers) {
-        const userRole = user.role;
-        let shouldNotify = false;
-        
-        if (userRole === 'cps') {
-          shouldNotify = concernDept.includes('CITET-CPS');
-        } else if (userRole === 'ets') {
-          shouldNotify = concernDept.includes('CITET-ETS');
-        } else {
-          shouldNotify = true;
-        }
-        
-        if (!shouldNotify) continue;
-        
         const [existing] = await db.select().from(notifications)
           .where(and(
             eq(notifications.activityId, activity.id),
@@ -706,7 +692,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // 2. Notify users for upcoming deadlines (within 3 days) based on role and concern department
+    // 2. Notify users for upcoming deadlines (within 3 days)
     const upcoming = await db.select().from(activities).where(and(
       gte(activities.deadlineDate, now),
       lt(activities.deadlineDate, threeDaysLater),
@@ -737,21 +723,8 @@ export class DatabaseStorage implements IStorage {
     }
 
     for (const activity of upcoming) {
-      const concernDept = activity.concernDepartment || '';
       for (const user of nonAdminUsers) {
-        const userRole = user.role;
-        let shouldNotify = false;
-        
-        if (userRole === 'cps') {
-          shouldNotify = concernDept.includes('CITET-CPS');
-        } else if (userRole === 'ets') {
-          shouldNotify = concernDept.includes('CITET-ETS');
-        } else {
-          shouldNotify = true;
-        }
-        
-        if (!shouldNotify) continue;
-        
+        // Notify all users about upcoming deadline
         const [existing] = await db.select().from(notifications)
           .where(and(
             eq(notifications.activityId, activity.id),
