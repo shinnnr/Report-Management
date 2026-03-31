@@ -13,6 +13,7 @@ import {
   startOfWeek,
   endOfWeek,
   addWeeks,
+  addMonths,
   differenceInDays,
   isBefore,
   isAfter,
@@ -2018,20 +2019,24 @@ function CalendarContent() {
             </Button>
             <div className="flex gap-1">
               <Button variant="outline" size="icon" onClick={() => {
-                const newDate = new Date(currentDate);
-                if (view === 'day') newDate.setDate(newDate.getDate() - 1);
-                else if (view === 'week') newDate.setDate(newDate.getDate() - 7);
-                else newDate.setMonth(newDate.getMonth() - 1);
-                setCurrentDate(newDate);
+                if (view === 'day') {
+                  setCurrentDate(addDays(currentDate, -1));
+                } else if (view === 'week') {
+                  setCurrentDate(addWeeks(currentDate, -1));
+                } else {
+                  setCurrentDate(addMonths(currentDate, -1));
+                }
               }}>
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <Button variant="outline" size="icon" onClick={() => {
-                const newDate = new Date(currentDate);
-                if (view === 'day') newDate.setDate(newDate.getDate() + 1);
-                else if (view === 'week') newDate.setDate(newDate.getDate() + 7);
-                else newDate.setMonth(newDate.getMonth() + 1);
-                setCurrentDate(newDate);
+                if (view === 'day') {
+                  setCurrentDate(addDays(currentDate, 1));
+                } else if (view === 'week') {
+                  setCurrentDate(addWeeks(currentDate, 1));
+                } else {
+                  setCurrentDate(addMonths(currentDate, 1));
+                }
               }}>
                 <ChevronRight className="w-4 h-4" />
               </Button>
