@@ -47,6 +47,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function CalendarPage() {
   return (
@@ -193,7 +195,13 @@ function CalendarContent() {
   const [activityTime, setActivityTime] = useState<string>("23:59"); // Default to end of day
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [regulatoryAgency, setRegulatoryAgency] = useState("");
-  const [concernDepartment, setConcernDepartment] = useState("");
+  const [concernDepartment, setConcernDepartment] = useState<string[]>([]);
+  
+  // Clear concern department when regulatory agency changes
+  useEffect(() => {
+    setConcernDepartment([]);
+  }, [regulatoryAgency]);
+  
   const [reportDetails, setReportDetails] = useState("");
   const [remarks, setRemarks] = useState("");
 
@@ -740,7 +748,7 @@ function CalendarContent() {
       deadlineDate: deadlineWithTime,
       status: 'pending',
       regulatoryAgency: regulatoryAgency || null,
-      concernDepartment: concernDepartment || null,
+      concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
       reportDetails: reportDetails || null,
       remarks: remarks || null,
     });
@@ -750,7 +758,7 @@ function CalendarContent() {
     setDescription("");
     setActivityTime("23:59");
     setRegulatoryAgency("");
-    setConcernDepartment("");
+    setConcernDepartment([]);
     setReportDetails("");
     setRemarks("");
   };
@@ -1084,7 +1092,7 @@ function CalendarContent() {
               setDescription("");
               setActivityTime("23:59");
               setRegulatoryAgency("");
-              setConcernDepartment("");
+              setConcernDepartment([]);
               setReportDetails("");
               setRemarks("");
             }
@@ -1163,21 +1171,155 @@ function CalendarContent() {
                           <SelectItem value="ERC">ERC</SelectItem>
                           <SelectItem value="NEA">NEA</SelectItem>
                           <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                          <SelectItem value="IEMOP">IEMOP</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
-                      <Select value={concernDepartment} onValueChange={setConcernDepartment}>
-                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                          <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                          <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-sm font-medium">Concern Department</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="h-10 w-full justify-start border border-gray-300 dark:border-gray-600 font-normal">
+                            {concernDepartment.length > 0 ? (
+                              <span className="truncate">
+                                {concernDepartment.join(", ")}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">Select departments</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-2" align="start">
+                          <div className="space-y-2">
+                            {/* ERC Departments */}
+                            {regulatoryAgency === 'ERC' && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">ERC Departments</div>
+                                {["FSD-CACD", "ISD-MSD", "CITET-ETS", "ISD-CWDC", "TSD-DNOD", "TSD-DAMD"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                            {/* NEA-WEB PORTAL Departments */}
+                            {regulatoryAgency === 'NEA-WEB PORTAL' && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">NEA-WEB PORTAL Departments</div>
+                                {["TSD-DAMD", "ISD-MSD", "FSD-GAD", "ZONE-ZOS", "OGM", "TSD-DNOD", "CITET-ETS"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                            {/* IEMOP Departments */}
+                            {regulatoryAgency === 'IEMOP' && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">IEMOP Departments</div>
+                                {["FSD-CASHIER", "FSD-ACCOUNTING CLERK"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                            {/* DOE Departments */}
+                            {regulatoryAgency === 'DOE' && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">DOE Departments</div>
+                                {["CITET-ETS", "CITET-CPS"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                            {/* NEA Departments */}
+                            {regulatoryAgency === 'NEA' && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">NEA Departments</div>
+                                {["CITET-ETS", "TSD-DAMD"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                            {/* Default/show all when no agency selected */}
+                            {!regulatoryAgency && (
+                              <>
+                                <div className="text-xs font-medium text-muted-foreground px-2 py-1">All Departments</div>
+                                {["CITET-CPS", "CITET-ETS", "FSD-CACD", "ISD-MSD", "ISD-CWDC", "TSD-DAMD", "TSD-DNOD", "ZONE-ZOS", "OGM", "FSD-CASHIER", "FSD-ACCOUNTING CLERK"].map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={concernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setConcernDepartment([...concernDepartment, dept]);
+                                        } else {
+                                          setConcernDepartment(concernDepartment.filter(d => d !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>
@@ -1231,7 +1373,7 @@ function CalendarContent() {
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || !concernDepartment}>
+                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0}>
                   {createActivity.isPending ? (
                     <>
                       Creating...
@@ -2226,6 +2368,7 @@ function CalendarContent() {
                   <SelectItem value="ERC">ERC</SelectItem>
                   <SelectItem value="NEA">NEA</SelectItem>
                   <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                  <SelectItem value="IEMOP">IEMOP</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2242,13 +2385,21 @@ function CalendarContent() {
                     {user?.role === 'cps' && (
                       <>
                         <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        <SelectItem value="FSD-CACD">FSD-CACD</SelectItem>
+                        <SelectItem value="ISD-MSD">ISD-MSD</SelectItem>
+                        <SelectItem value="ISD-CWDC">ISD-CWDC</SelectItem>
+                        <SelectItem value="TSD-DAMD">TSD-DAMD</SelectItem>
+                        <SelectItem value="TSD-DNOD">TSD-DNOD</SelectItem>
+                        <SelectItem value="ZONE-ZOS">ZONE-ZOS</SelectItem>
+                        <SelectItem value="OGM">OGM</SelectItem>
+                        <SelectItem value="FSD-CASHIER">FSD-CASHIER</SelectItem>
+                        <SelectItem value="FSD-ACCOUNTING CLERK">FSD-ACCOUNTING CLERK</SelectItem>
                       </>
                     )}
                     {user?.role === 'ets' && (
                       <>
                         <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
                       </>
                     )}
                   </SelectContent>
@@ -2265,30 +2416,41 @@ function CalendarContent() {
                     <SelectItem value="all">All Departments</SelectItem>
                     {filterAgency === 'DOE' && (
                       <>
-                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
                         <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
                       </>
                     )}
                     {filterAgency === 'ERC' && (
                       <>
-                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="FSD-CACD">FSD-CACD</SelectItem>
+                        <SelectItem value="ISD-MSD">ISD-MSD</SelectItem>
                         <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        <SelectItem value="ISD-CWDC">ISD-CWDC</SelectItem>
+                        <SelectItem value="TSD-DNOD">TSD-DNOD</SelectItem>
+                        <SelectItem value="TSD-DAMD">TSD-DAMD</SelectItem>
                       </>
                     )}
                     {filterAgency === 'NEA' && (
                       <>
-                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
                         <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                        <SelectItem value="TSD-DAMD">TSD-DAMD</SelectItem>
                       </>
                     )}
                     {filterAgency === 'NEA-WEB PORTAL' && (
                       <>
-                        <SelectItem value="CITET-CPS">CITET-CPS</SelectItem>
+                        <SelectItem value="TSD-DAMD">TSD-DAMD</SelectItem>
+                        <SelectItem value="ISD-MSD">ISD-MSD</SelectItem>
+                        <SelectItem value="FSD-GAD">FSD-GAD</SelectItem>
+                        <SelectItem value="ZONE-ZOS">ZONE-ZOS</SelectItem>
+                        <SelectItem value="OGM">OGM</SelectItem>
+                        <SelectItem value="TSD-DNOD">TSD-DNOD</SelectItem>
                         <SelectItem value="CITET-ETS">CITET-ETS</SelectItem>
-                        <SelectItem value="CITET-ETS/ CITET-CPS">CITET-ETS/ CITET-CPS</SelectItem>
+                      </>
+                    )}
+                    {filterAgency === 'IEMOP' && (
+                      <>
+                        <SelectItem value="FSD-CASHIER">FSD-CASHIER</SelectItem>
+                        <SelectItem value="FSD-ACCOUNTING CLERK">FSD-ACCOUNTING CLERK</SelectItem>
                       </>
                     )}
                   </SelectContent>
@@ -2306,13 +2468,15 @@ function CalendarContent() {
                 // Apply role-based department filtering
                 let matchesDept = true;
                 if (filterDepartment) {
-                  matchesDept = a.concernDepartment === filterDepartment;
+                  // Check if the stored department string contains the filter department
+                  matchesDept = a.concernDepartment?.includes(filterDepartment);
                 } else if (enableRoleFiltering && user?.role && user.role !== 'admin') {
                   // Auto-filter based on user role when role-based filtering is enabled
+                  // Now departments are stored as comma-separated values
                   if (user.role === 'cps') {
-                    matchesDept = a.concernDepartment === 'CITET-CPS' || a.concernDepartment === 'CITET-ETS/ CITET-CPS';
+                    matchesDept = a.concernDepartment?.includes('CITET-CPS');
                   } else if (user.role === 'ets') {
-                    matchesDept = a.concernDepartment === 'CITET-ETS' || a.concernDepartment === 'CITET-ETS/ CITET-CPS';
+                    matchesDept = a.concernDepartment?.includes('CITET-ETS');
                   }
                 }
                 
