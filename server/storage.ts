@@ -654,15 +654,24 @@ export class DatabaseStorage implements IStorage {
           continue;
         }
         
-        // Skip if deadline is after recurrence end date (compare only year and month)
+        // Skip if deadline is after recurrence end date
         if (endDate) {
           const deadlineYear = deadlineDate.getFullYear();
-          const deadlineMonth = deadlineDate.getMonth();
           const endYear = endDate.getFullYear();
-          const endMonth = endDate.getMonth();
           
-          if (deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth)) {
-            continue;
+          // For yearly recurrence, only compare years
+          if (activity.recurrence === 'yearly') {
+            if (deadlineYear > endYear) {
+              continue;
+            }
+          } else {
+            // For monthly, quarterly, semi-annual: compare year and month
+            const deadlineMonth = deadlineDate.getMonth();
+            const endMonth = endDate.getMonth();
+            
+            if (deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth)) {
+              continue;
+            }
           }
         }
         
