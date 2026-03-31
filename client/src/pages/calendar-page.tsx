@@ -1776,7 +1776,7 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Calendar Header */}
-        <div className="flex flex-wrap items-center p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
+        <div className="flex flex-wrap items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
           <div className="flex items-center gap-2 md:gap-4">
             <Button 
               variant="outline" 
