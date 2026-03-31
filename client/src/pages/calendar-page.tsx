@@ -1038,7 +1038,7 @@ function CalendarContent() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-8">
         <div className="w-full">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
             {isMobile ? (
@@ -1061,7 +1061,7 @@ function CalendarContent() {
           <p className="text-muted-foreground text-sm lg:text-base">Manage your schedule and deadlines.</p>
         </div>
         
-        {/* Action buttons - kept together in a flex container */}
+        {/* Action buttons - positioned based on screen size */}
         <div className="flex flex-row items-center gap-2">
           {/* Delete All Activities Button - shows when date is selected with activities */}
           {selectedDate && selectedDateActivities.length > 0 && (
