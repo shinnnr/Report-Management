@@ -654,9 +654,16 @@ export class DatabaseStorage implements IStorage {
           continue;
         }
         
-        // Skip if deadline is after recurrence end date
-        if (endDate && deadlineDate > endDate) {
-          continue;
+        // Skip if deadline is after recurrence end date (compare only year and month)
+        if (endDate) {
+          const deadlineYear = deadlineDate.getFullYear();
+          const deadlineMonth = deadlineDate.getMonth();
+          const endYear = endDate.getFullYear();
+          const endMonth = endDate.getMonth();
+          
+          if (deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth)) {
+            continue;
+          }
         }
         
         // Check if an activity already exists for this deadline (either as child or as original)
