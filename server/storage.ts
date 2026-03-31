@@ -549,7 +549,7 @@ export class DatabaseStorage implements IStorage {
     const [activity] = await db.insert(activities).values(insertActivity).returning();
     
     // If this activity has recurrence, generate activities for future years
-    if (activity.recurrence && activity.recurrence !== 'none') {
+    if (activity.recurrence && activity.recurrence !== 'none' && activity.recurrence !== null) {
       const currentYear = new Date().getFullYear();
       const endYear = activity.recurrenceEndDate 
         ? new Date(activity.recurrenceEndDate).getFullYear() 
@@ -564,6 +564,20 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
+  // Helper function to adjust date if it falls on weekend (Saturday = 6, Sunday = 0)
+  // If date is on Saturday or Sunday, move to previous Friday
+  private adjustDateForWeekend(date: Date): Date {
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 6) { // Saturday
+      // Move to Friday (subtract 1 day)
+      date.setDate(date.getDate() - 1);
+    } else if (dayOfWeek === 0) { // Sunday
+      // Move to Friday (subtract 2 days)
+      date.setDate(date.getDate() - 2);
+    }
+    return date;
+  }
+
   // Generate recurring activities for a specific year when user visits it
   async generateRecurringActivitiesForYear(year: number): Promise<Activity[]> {
     const currentYear = new Date().getFullYear();
@@ -571,7 +585,7 @@ export class DatabaseStorage implements IStorage {
     // Get all activities with recurrence (not null and not 'none')
     const recurringActivities = await db.select().from(activities).where(
       and(
-        ne(activities.recurrence, null),
+        sql`${activities.recurrence} IS NOT NULL`,
         ne(activities.recurrence, 'none')
       )
     );
@@ -618,6 +632,9 @@ export class DatabaseStorage implements IStorage {
       // Create new deadline for this year
       newDeadline = new Date(startYear, originalMonth, originalDay);
       newDeadline.setMonth(newDeadline.getMonth() + monthsToAdd);
+      
+      // Adjust for weekends - if deadline falls on weekend, move to previous Friday
+      newDeadline = this.adjustDateForWeekend(newDeadline);
       
       // Check if an activity already exists for this parent and year
       const existingActivity = await db.select().from(activities).where(
