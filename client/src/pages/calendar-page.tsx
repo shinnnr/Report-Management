@@ -1862,7 +1862,7 @@ function CalendarContent() {
           
           {/* Activity counts */}
           <div className="text-sm text-muted-foreground md:w-auto md:flex-none">
-            {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'}
+            {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
           </div>
         </div>
 
