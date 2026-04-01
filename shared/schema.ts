@@ -186,7 +186,7 @@ export const insertActivitySchema = createInsertSchema(activities)
   .extend({
     startDate: z.string().transform(str => new Date(str)),
     deadlineDate: z.string().transform(str => new Date(str)),
-    recurrenceEndDate: z.string().transform(str => str ? new Date(str) : null).optional(),
+    recurrenceEndDate: z.string().nullable().transform(str => str ? new Date(str) : null).optional(),
   });
 export const insertActivitySubmissionSchema = createInsertSchema(activitySubmissions).omit({ id: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });

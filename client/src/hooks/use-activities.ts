@@ -31,7 +31,8 @@ export function useCreateActivity() {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: "No response body" }));
         console.error("[Activity] Creation failed:", res.status, errorData);
-        throw new Error(errorData.message || "Failed to create activity");
+        const msg = errorData?.message ?? String(errorData?.message ?? "Failed to create activity");
+        throw new Error(msg);
       }
       return api.activities.create.responses[201].parse(await res.json());
     },

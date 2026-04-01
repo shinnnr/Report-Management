@@ -730,8 +730,11 @@ export async function registerRoutes(
       res.status(201).json(activity);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
+        const zodMessage = err.errors[0]?.message;
+        console.error("[Activity] Zod validation error:", err.errors);
+        return res.status(400).json({ message: zodMessage ?? "Validation error" });
       }
+      console.error("[Activity] Error creating activity:", err);
       throw err;
     }
   });
