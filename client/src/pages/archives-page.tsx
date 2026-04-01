@@ -102,11 +102,8 @@ function ArchivesContent() {
 
   const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived', 5000);
   const { data: allArchivedFolders } = useFolders('all', 'archived', 5000);
-  const { data: archivedReports, isLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived', 5000);
+  const { data: archivedReports } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived', 5000);
   const { toast } = useToast();
-
-  const foldersLoading = !currentArchivedFolders;
-  const isLoading = foldersLoading || reportsLoading;
 
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
 
@@ -709,10 +706,7 @@ function ArchivesContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
-      ) : (
-        <div className="space-y-8">
+      <div className="space-y-8">
           {/* Only show Folders section if:
               1. At Home (root) - always show
               2. Inside a folder with subfolders - show
@@ -1023,7 +1017,6 @@ function ArchivesContent() {
             )}
           </section>
         </div>
-      )}
 
       {/* Mobile File Details Dialog - Only show on mobile */}
       <Dialog open={isFileDialogOpen && isMobile} onOpenChange={setIsFileDialogOpen}>

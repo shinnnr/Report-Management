@@ -41,7 +41,7 @@ function SettingsContent() {
   const { openSidebar, isSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
   const { currentUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
-  const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
+  const { users, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
   const checkDeadlines = useCheckDeadlines();
 
@@ -747,11 +747,7 @@ function SettingsContent() {
                     className="max-w-sm"
                   />
                 </div>
-                {isLoadingUsers ? (
-                  <div className="flex items-center justify-center h-32">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : filteredUsers.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <div className="text-center py-12 border-t">
                     <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
                       <Users className="w-6 h-6 text-muted-foreground" />

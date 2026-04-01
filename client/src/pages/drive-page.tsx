@@ -220,9 +220,6 @@ function DriveContent() {
     return Array.from(types).sort();
   }, [reports]);
 
-  // Only show loading on initial load - use cached data after
-  const isLoading = foldersLoading || allFoldersLoading || reportsLoading;
-
   // Memoize filtered folders to avoid recalculating on every render
   const filteredFolders = useMemo(() => {
     const folders = currentFolders?.filter(f => f.name.toLowerCase().includes(driveSearchQuery.toLowerCase())) || [];
@@ -1444,10 +1441,7 @@ function DriveContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isLoading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
-      ) : (
-        <div className="space-y-8">
+      <div className="space-y-8">
           {/* Only show Folders section if:
               1. At Home (root) - always show
               2. Inside a folder - only if there are subfolders
@@ -1913,7 +1907,6 @@ function DriveContent() {
             )}
           </section>
         </div>
-      )}
 
       {/* Mobile File Details Dialog - Only show on mobile */}
       <Dialog open={isFileDialogOpen && isMobile !== false} onOpenChange={setIsFileDialogOpen}>
