@@ -40,7 +40,7 @@ function SettingsContent() {
   const { user } = useAuth();
   const { openSidebar, isSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
-  const { currentUser, isLoadingUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
+  const { currentUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, isLoadingUsers, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const { toast } = useToast();
   const checkDeadlines = useCheckDeadlines();
@@ -314,14 +314,6 @@ function SettingsContent() {
       setTogglingUserId(null);
     }
   };
-
-  if (isLoadingUser) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

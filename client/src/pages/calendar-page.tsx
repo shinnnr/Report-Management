@@ -1876,30 +1876,6 @@ function CalendarContent() {
               )}
 
               {/* File Upload Section */}
-              {selectedActivity?.status === 'pending' && (
-                <Button 
-                  onClick={() => {
-                    setStartingActivityId(selectedActivity.id);
-                    startActivity.mutate(selectedActivity.id, {
-                      onSuccess: (updatedActivity) => {
-                        setStartingActivityId(null);
-                        if (updatedActivity) {
-                          setSelectedActivity(updatedActivity);
-                        }
-                      },
-                      onError: () => {
-                        setStartingActivityId(null);
-                      }
-                    });
-                  }}
-                  disabled={startingActivityId !== null}
-                  className="w-full"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  {startingActivityId !== null ? 'Starting...' : 'Start Activity'}
-                </Button>
-              )}
-
               {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
                 <div className="space-y-4">
                   <div 
@@ -1954,7 +1930,7 @@ function CalendarContent() {
               )}
             </div>
 
-            <DialogFooter className="flex justify-between flex-shrink-0 mt-4">
+            <DialogFooter className="flex flex-shrink-0 mt-4">
               <Button
                 variant="destructive"
                 size="sm"
@@ -1970,16 +1946,41 @@ function CalendarContent() {
                 {deletingActivityId !== null ? 'Deleting Activity...' : 'Delete Activity'}
               </Button>
 
-              {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
-                <Button
-                  className="gap-2"
-                  onClick={handleSubmit}
-                  disabled={selectedFiles.length === 0 || isSubmitting}
-                >
-                  <Upload className="w-4 h-4" />
-                  {isSubmitting ? 'Submitting...' : `Submit ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`}
-                </Button>
-              )}
+              <div className="ml-auto">
+                {selectedActivity?.status === 'pending' && (
+                  <Button 
+                    onClick={() => {
+                      setStartingActivityId(selectedActivity.id);
+                      startActivity.mutate(selectedActivity.id, {
+                        onSuccess: (updatedActivity) => {
+                          setStartingActivityId(null);
+                          if (updatedActivity) {
+                            setSelectedActivity(updatedActivity);
+                          }
+                        },
+                        onError: () => {
+                          setStartingActivityId(null);
+                        }
+                      });
+                    }}
+                    disabled={startingActivityId !== null}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    {startingActivityId !== null ? 'Starting...' : 'Start Activity'}
+                  </Button>
+                )}
+
+                {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
+                  <Button
+                    className="gap-2"
+                    onClick={handleSubmit}
+                    disabled={selectedFiles.length === 0 || isSubmitting}
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isSubmitting ? 'Submitting...' : `Submit ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`}
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

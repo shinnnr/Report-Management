@@ -1,24 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import type { User } from "@shared/schema";
 
 export function useSettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  // Get current user data
-  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
-    queryKey: [api.auth.me.path],
-    queryFn: async () => {
-      const res = await fetch(api.auth.me.path, { credentials: 'include' });
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch user");
-      return api.auth.me.responses[200].parse(await res.json());
-    },
-    // Poll every 5 seconds to detect role changes from other sessions (e.g., admin changes)
-    refetchInterval: 5000,
-  });
+  const { user: currentUser, isLoading: isLoadingUser } = useAuth();
 
   // Update username mutation
   const updateUsernameMutation = useMutation({
