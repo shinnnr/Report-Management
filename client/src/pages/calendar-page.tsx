@@ -747,7 +747,7 @@ function CalendarContent() {
     await createActivity.mutateAsync({
       title,
       description,
-      startDate: new Date(),
+      startDate: selectedDate,
       deadlineDate: deadlineWithTime,
       status: 'pending',
       regulatoryAgency: regulatoryAgency || null,
