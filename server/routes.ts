@@ -627,22 +627,26 @@ export async function registerRoutes(
   });
 
   app.patch(api.reports.update.path, isAuthenticated, async (req, res) => {
-    const id = parseInt(req.params.id as string);
-    const updates = api.reports.update.input.parse(req.body);
-    const report = await storage.updateReport(id, updates);
+    try {
+      const id = parseInt(req.params.id as string);
+      const updates = api.reports.update.input.parse(req.body);
+      const report = await storage.updateReport(id, updates);
 
-    // Log specific action based on what was updated
-    if (updates.status === 'archived') {
-      await storage.createLog((req.user as any).id, "ARCHIVE_REPORT", `Archived report: ${report.title}`);
-    } else if (updates.status === 'active') {
-      await storage.createLog((req.user as any).id, "RESTORE_REPORT", `Restored report: ${report.title}`);
-    } else if (updates.fileName || updates.title) {
-      await storage.createLog((req.user as any).id, "RENAME_REPORT", `Renamed file to: ${updates.fileName || updates.title}`);
-    } else {
-      await storage.createLog((req.user as any).id, "UPDATE_REPORT", `Updated report: ${report.title}`);
+      // Log specific action based on what was updated
+      if (updates.status === 'archived') {
+        await storage.createLog((req.user as any).id, "ARCHIVE_REPORT", `Archived report: ${report.title}`);
+      } else if (updates.status === 'active') {
+        await storage.createLog((req.user as any).id, "RESTORE_REPORT", `Restored report: ${report.title}`);
+      } else if (updates.fileName || updates.title) {
+        await storage.createLog((req.user as any).id, "RENAME_REPORT", `Renamed file to: ${updates.fileName || updates.title}`);
+      } else {
+        await storage.createLog((req.user as any).id, "UPDATE_REPORT", `Updated report: ${report.title}`);
+      }
+
+      res.json(report);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
     }
-
-    res.json(report);
   });
 
   app.delete(api.reports.delete.path, isAuthenticated, async (req, res) => {

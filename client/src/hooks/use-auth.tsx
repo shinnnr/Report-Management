@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useEffect, useRef } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
 import { api } from "@shared/routes";
@@ -37,7 +37,6 @@ function setStoredUser(user: User | null) {
 
 export function useUser(isLoginPage: boolean = false) {
   const queryClient = useQueryClient();
-  const wasOnLoginPage = useRef(isLoginPage);
 
   // Track if we just logged in - if so, we need to refetch even if on login page
   const [forceRefetch, setForceRefetch] = useState(false);
@@ -51,13 +50,11 @@ export function useUser(isLoginPage: boolean = false) {
     return () => window.removeEventListener("auth-updated", handler);
   }, []);
 
-  // Determine if query should run
-  const shouldRunQuery = !isLoginPage || wasOnLoginPage.current || forceRefetch;
+  // Determine if query should run - skip on login page until forceRefetch triggers
+  const shouldRunQuery = !isLoginPage || forceRefetch;
 
-  // After first successful fetch when we were on login page, update the ref
   useEffect(() => {
-    if (!isLoginPage && wasOnLoginPage.current) {
-      wasOnLoginPage.current = false;
+    if (!isLoginPage) {
       setForceRefetch(false);
     }
   }, [isLoginPage]);
@@ -121,6 +118,7 @@ export function useLoginMutation() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (credentials: Pick<InsertUser, "username" | "password">) => {
       const res = await fetch(api.auth.login.path, {
         method: api.auth.login.method,
@@ -167,6 +165,7 @@ export function useLogoutMutation() {
   const { resetTheme } = useTheme();
 
   return useMutation({
+    retry: false,
     mutationFn: async () => {
       const res = await fetch(api.auth.logout.path, {
         method: api.auth.logout.method,

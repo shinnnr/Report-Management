@@ -11,6 +11,7 @@ export function useSettings() {
 
   // Update username mutation
   const updateUsernameMutation = useMutation({
+    retry: false,
     mutationFn: async ({ userId, username }: { userId: number; username: string }) => {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
@@ -20,7 +21,7 @@ export function useSettings() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to update username");
+        return Promise.reject(new Error(error.message || "Failed to update username"));
       }
       return api.users.update.responses[200].parse(await res.json());
     },
@@ -40,6 +41,7 @@ export function useSettings() {
 
   // Update password mutation
   const updatePasswordMutation = useMutation({
+    retry: false,
     mutationFn: async ({ userId, currentPassword, newPassword }: { userId: number; currentPassword: string; newPassword: string }) => {
       const res = await fetch(`/api/users/${userId}/password`, {
         method: 'POST',
@@ -49,7 +51,7 @@ export function useSettings() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to update password");
+        return Promise.reject(new Error(error.message || "Failed to update password"));
       }
       return api.users.updatePassword.responses[200].parse(await res.json());
     },
@@ -85,6 +87,7 @@ export function useUserManagement() {
 
   // Create user mutation
   const createUserMutation = useMutation({
+    retry: false,
     mutationFn: async (data: { username: string; password: string; fullName: string; role: "admin" | "cps" | "ets" }) => {
       const res = await fetch(api.users.create.path, {
         method: api.users.create.method,
@@ -94,7 +97,7 @@ export function useUserManagement() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to create user");
+        return Promise.reject(new Error(error.message || "Failed to create user"));
       }
       return api.users.create.responses[201].parse(await res.json());
     },
@@ -109,6 +112,7 @@ export function useUserManagement() {
 
   // Update user mutation
   const updateUserMutation = useMutation({
+    retry: false,
     mutationFn: async ({ userId, updates }: { userId: number; updates: { username?: string; fullName?: string; role?: "admin" | "cps" | "ets"; status?: "active" | "inactive" } }) => {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PATCH',
@@ -118,7 +122,7 @@ export function useUserManagement() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to update user");
+        return Promise.reject(new Error(error.message || "Failed to update user"));
       }
       return api.users.update.responses[200].parse(await res.json());
     },
@@ -141,6 +145,7 @@ export function useUserManagement() {
 
   // Delete user mutation
   const deleteUserMutation = useMutation({
+    retry: false,
     mutationFn: async (userId: number) => {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
@@ -148,7 +153,7 @@ export function useUserManagement() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to delete user");
+        return Promise.reject(new Error(error.message || "Failed to delete user"));
       }
       return api.users.delete.responses[200].parse(await res.json());
     },

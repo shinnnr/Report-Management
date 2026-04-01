@@ -20,18 +20,22 @@ export function useMarkNotificationRead() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ userId, notificationId }: { userId: number; notificationId: number }) => {
       const res = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to mark notification as read");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to mark notification as read"));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to mark notification as read", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -41,19 +45,23 @@ export function useDeleteNotification() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/notifications/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to delete notification");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to delete notification"));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
       toast({ title: "Success", description: "Notification deleted" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to delete notification", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -63,19 +71,23 @@ export function useDeleteAllNotifications() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async () => {
       const res = await fetch('/api/notifications', {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to delete all notifications");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to delete all notifications"));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
       toast({ title: "Success", description: "All notifications deleted" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to delete all notifications", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }

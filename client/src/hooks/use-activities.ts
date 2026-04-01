@@ -21,6 +21,7 @@ export function useCreateActivity() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (data: InsertActivity) => {
       console.log("[Activity] Creating with data:", JSON.stringify(data, null, 2));
       const res = await fetch(api.activities.create.path, {
@@ -32,7 +33,7 @@ export function useCreateActivity() {
         const errorData = await res.json().catch(() => ({ message: "No response body" }));
         console.error("[Activity] Creation failed:", res.status, errorData);
         const msg = errorData?.message ?? String(errorData?.message ?? "Failed to create activity");
-        throw new Error(msg);
+        return Promise.reject(new Error(msg));
       }
       return api.activities.create.responses[201].parse(await res.json());
     },
@@ -40,8 +41,8 @@ export function useCreateActivity() {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       toast({ title: "Success", description: "Activity created" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create activity", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -51,14 +52,21 @@ export function useDeleteActivity() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (id: number) => {
       const url = buildUrl(api.activities.delete.path, { id });
       const res = await fetch(url, { method: api.activities.delete.method });
-      if (!res.ok) throw new Error("Failed to delete activity");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to delete activity"));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       toast({ title: "Deleted", description: "Activity removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -81,6 +89,7 @@ export function useDeleteAllLogs() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async () => {
       const res = await fetch(api.logs.deleteAll.path, {
         method: api.logs.deleteAll.method,
@@ -88,7 +97,7 @@ export function useDeleteAllLogs() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to delete logs");
+        return Promise.reject(new Error(error.message || "Failed to delete logs"));
       }
       return api.logs.deleteAll.responses[200].parse(await res.json());
     },
@@ -107,6 +116,7 @@ export function useDeleteLog() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (logId: number) => {
       const res = await fetch(buildUrl(api.logs.delete.path, { id: logId }), {
         method: api.logs.delete.method,
@@ -114,7 +124,7 @@ export function useDeleteLog() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to delete log");
+        return Promise.reject(new Error(error.message || "Failed to delete log"));
       }
       return api.logs.delete.responses[200].parse(await res.json());
     },
@@ -133,6 +143,7 @@ export function useStartActivity() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/activities/${id}/start`, {
         method: "POST",
@@ -142,9 +153,9 @@ export function useStartActivity() {
         const text = await res.text();
         try {
           const error = JSON.parse(text);
-          throw new Error(error.message || "Failed to start activity");
+          return Promise.reject(new Error(error.message || "Failed to start activity"));
         } catch {
-          throw new Error(text || "Failed to start activity");
+          return Promise.reject(new Error(text || "Failed to start activity"));
         }
       }
       // Fetch the updated activity and return it
@@ -169,6 +180,7 @@ export function useUpdateActivity() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, data }: { id: number; data: Partial<{ title: string; description: string; deadlineDate: Date; status: string }> }) => {
       const url = buildUrl(api.activities.update.path, { id });
       const res = await fetch(url, {
@@ -176,15 +188,18 @@ export function useUpdateActivity() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update activity");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to update activity"));
+      }
       return api.activities.update.responses[200].parse(await res.json());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
       toast({ title: "Success", description: "Activity updated" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update activity", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -193,6 +208,7 @@ export function useCheckDeadlines() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async () => {
       const res = await fetch("/api/check-deadlines", {
         method: "POST",
@@ -202,9 +218,9 @@ export function useCheckDeadlines() {
         const text = await res.text();
         try {
           const error = JSON.parse(text);
-          throw new Error(error.message || "Failed to check deadlines");
+          return Promise.reject(new Error(error.message || "Failed to check deadlines"));
         } catch {
-          throw new Error(text || "Failed to check deadlines");
+          return Promise.reject(new Error(text || "Failed to check deadlines"));
         }
       }
       return res.json();

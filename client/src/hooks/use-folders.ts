@@ -38,6 +38,7 @@ export function useCreateFolder(currentParentId: number | null = null) {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (data: InsertFolder) => {
       const res = await fetch(api.folders.create.path, {
         method: api.folders.create.method,
@@ -48,7 +49,7 @@ export function useCreateFolder(currentParentId: number | null = null) {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to create folder");
+        return Promise.reject(new Error(error.message || "Failed to create folder"));
       }
       return api.folders.create.responses[201].parse(await res.json());
     },
@@ -67,6 +68,7 @@ export function useRenameFolder() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, name }: { id: number; name: string }) => {
       const url = buildUrl(api.folders.rename.path, { id });
       const res = await fetch(url, {
@@ -77,7 +79,7 @@ export function useRenameFolder() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to rename folder");
+        return Promise.reject(new Error(error.message || "Failed to rename folder"));
       }
       return api.folders.rename.responses[200].parse(await res.json());
     },
@@ -95,6 +97,7 @@ export function useMoveFolder() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, targetParentId, suppressToast }: { id: number; targetParentId: number | null; suppressToast?: boolean }) => {
       const url = buildUrl(api.folders.move.path, { id });
       const res = await fetch(url, {
@@ -105,7 +108,7 @@ export function useMoveFolder() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "Failed to move folder");
+        return Promise.reject(new Error(error.message || "Failed to move folder"));
       }
       return { ...await api.folders.move.responses[200].parse(await res.json()), suppressToast };
     },
@@ -126,10 +129,14 @@ export function useDeleteFolder() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, suppressToast }: { id: number; suppressToast?: boolean }) => {
       const url = buildUrl(api.folders.delete.path, { id });
       const res = await fetch(url, { method: api.folders.delete.method, credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to delete folder");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to delete folder"));
+      }
       return { suppressToast };
     },
     onSuccess: (data) => {
@@ -146,6 +153,7 @@ export function useUpdateFolder() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, suppressToast, ...data }: { id: number; suppressToast?: boolean } & Partial<InsertFolder>) => {
       const url = buildUrl(api.folders.update.path, { id });
       const res = await fetch(url, {
@@ -154,7 +162,10 @@ export function useUpdateFolder() {
         credentials: 'include',
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update folder");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to update folder"));
+      }
       return { ...api.folders.update.responses[200].parse(await res.json()), suppressToast };
     },
     onSuccess: (data, variables) => {

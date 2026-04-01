@@ -60,6 +60,7 @@ export function useCreateReport() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async (data: InsertReport & { _suppressToast?: boolean }) => {
       const res = await fetch(api.reports.create.path, {
         method: api.reports.create.method,
@@ -68,7 +69,10 @@ export function useCreateReport() {
         body: JSON.stringify(data),
       });
       
-      if (!res.ok) throw new Error("Failed to upload report");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to upload report"));
+      }
       return api.reports.create.responses[201].parse(await res.json());
     },
     onSuccess: (data, variables) => {
@@ -81,8 +85,8 @@ export function useCreateReport() {
         toast({ title: "Success", description: "File uploaded successfully" });
       }
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to upload file", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -92,6 +96,7 @@ export function useMoveReports() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ reportIds, folderId, suppressToast }: { reportIds: number[]; folderId: number | null; suppressToast?: boolean }) => {
       const res = await fetch(api.reports.move.path, {
         method: api.reports.move.method,
@@ -99,7 +104,10 @@ export function useMoveReports() {
         credentials: 'include',
         body: JSON.stringify({ reportIds, folderId }),
       });
-      if (!res.ok) throw new Error("Failed to move reports");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to move reports"));
+      }
       return { ...await api.reports.move.responses[200].parse(await res.json()), suppressToast };
     },
     onSuccess: (data) => {
@@ -117,10 +125,14 @@ export function useDeleteReport() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, suppressToast }: { id: number; suppressToast?: boolean }) => {
       const url = buildUrl(api.reports.delete.path, { id });
       const res = await fetch(url, { method: api.reports.delete.method, credentials: 'include' });
-      if (!res.ok) throw new Error("Failed to delete report");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to delete report"));
+      }
       return { suppressToast };
     },
     onSuccess: (data) => {
@@ -138,6 +150,7 @@ export function useUpdateReport() {
   const { toast } = useToast();
 
   return useMutation({
+    retry: false,
     mutationFn: async ({ id, suppressToast, ...updates }: { id: number; suppressToast?: boolean } & Partial<InsertReport>) => {
       const url = buildUrl(api.reports.update.path, { id });
       const res = await fetch(url, {
@@ -146,7 +159,10 @@ export function useUpdateReport() {
         credentials: 'include',
         body: JSON.stringify(updates),
       });
-      if (!res.ok) throw new Error("Failed to update report");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return Promise.reject(new Error(data.message || "Failed to update report"));
+      }
       return { ...api.reports.update.responses[200].parse(await res.json()), suppressToast };
     },
     onSuccess: (data, variables) => {
