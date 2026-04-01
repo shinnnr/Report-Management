@@ -1935,15 +1935,14 @@ function CalendarContent() {
                 variant="destructive"
                 size="sm"
                 onClick={() => {
-                  setDeletingActivityId(selectedActivity.id);
                   setActivityToDelete(selectedActivity);
                   setShowDeleteConfirm(true);
                 }}
-                disabled={deletingActivityId !== null}
+                disabled={deletingActivityId === selectedActivity?.id}
                 className="gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                {deletingActivityId !== null ? 'Deleting Activity...' : 'Delete Activity'}
+                {deletingActivityId === selectedActivity?.id ? 'Deleting Activity...' : 'Delete Activity'}
               </Button>
 
               <div className="ml-auto">
