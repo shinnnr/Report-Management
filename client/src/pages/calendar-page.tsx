@@ -1336,8 +1336,8 @@ function CalendarContent() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Recurrence</Label>
                       <Select value={recurrence} onValueChange={setRecurrence}>
-                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
-                          <SelectValue placeholder="Select recurrence" />
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left min-w-0">
+                          <SelectValue placeholder="Select recurrence" className="whitespace-nowrap overflow-hidden text-ellipsis" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
@@ -1356,7 +1356,7 @@ function CalendarContent() {
                         {recurrence === 'yearly' ? (
                           // Yearly: only show year picker
                           <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01-01')}>
-                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end year" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1368,7 +1368,7 @@ function CalendarContent() {
                         ) : (
                           // Monthly, Quarterly, Semi-Annual: show month and year picker
                           <Select value={recurrenceEndDate ? recurrenceEndDate.substring(0, 7) : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01')}>
-                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end month and year" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">

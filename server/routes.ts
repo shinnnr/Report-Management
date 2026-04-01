@@ -1018,7 +1018,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only admins can delete logs" });
       }
       
-      const logId = parseInt(req.params.id);
+      const logId = parseInt(req.params.id as string);
       if (isNaN(logId)) {
         return res.status(400).json({ message: "Invalid log ID" });
       }
@@ -1032,7 +1032,7 @@ export async function registerRoutes(
   });
 
   // Delete all logs (admin only)
-  app.delete(api.logs.list.path, isAuthenticated, async (req, res) => {
+  app.delete(api.logs.deleteAll.path, isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any).id;
       const user = await storage.getUser(userId);
