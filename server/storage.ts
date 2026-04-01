@@ -555,8 +555,8 @@ export class DatabaseStorage implements IStorage {
         ? new Date(activity.recurrenceEndDate).getFullYear() 
         : currentYear + 5; // Default to 5 years if no end date
       
-      // Generate for current year and future years up to endYear
-      for (let year = currentYear; year <= endYear; year++) {
+      // Generate for future years only (not current year since master activity already exists)
+      for (let year = currentYear + 1; year <= endYear; year++) {
         await this.generateRecurringActivitiesForYear(year);
       }
     }
@@ -643,6 +643,13 @@ export class DatabaseStorage implements IStorage {
       }
       
       for (const month of targetMonths) {
+        // Skip if this deadline is before the original deadline
+        const originalDeadlineYear = originalDeadline.getFullYear();
+        const originalDeadlineMonth = originalDeadline.getMonth();
+        if (year === originalDeadlineYear && month <= originalDeadlineMonth) {
+          continue;
+        }
+        
         // Skip if this deadline is before the start date
         let deadlineDate = new Date(year, month, originalDay);
         
@@ -676,8 +683,12 @@ export class DatabaseStorage implements IStorage {
         }
         
         // Check if an activity already exists for this deadline (either as child or as original)
+        // Check by deadline date AND ensure it's not the same parent
         const existingActivity = await db.select().from(activities).where(
-          eq(activities.deadlineDate, deadlineDate)
+          and(
+            eq(activities.deadlineDate, deadlineDate),
+            eq(activities.parentActivityId, activity.id)
+          )
         ).then(results => results[0]);
         
         if (existingActivity) {

@@ -1336,8 +1336,8 @@ function CalendarContent() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Recurrence</Label>
                       <Select value={recurrence} onValueChange={setRecurrence}>
-                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left min-w-0">
-                          <SelectValue placeholder="Select recurrence" className="whitespace-nowrap overflow-hidden text-ellipsis" />
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
+                          <SelectValue placeholder="Select recurrence" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
@@ -1374,7 +1374,10 @@ function CalendarContent() {
                             <SelectContent className="max-h-60">
                               {(() => {
                                 const options: { year: number; month: string; value: string }[] = [];
-                                const now = new Date();
+                                // Use selectedDate if available, otherwise use current date
+                                const baseDate = selectedDate || new Date();
+                                // Start from the next month after the selected date
+                                const startDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
                                 
                                 // Determine the interval based on recurrence type
                                 let interval: number;
@@ -1390,7 +1393,7 @@ function CalendarContent() {
                                 }
                                 
                                 for (let i = 0; i < 60; i++) {
-                                  const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                                  const date = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
                                   const year = date.getFullYear();
                                   const month = date.getMonth() + 1;
                                   
