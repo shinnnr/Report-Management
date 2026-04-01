@@ -1825,7 +1825,7 @@ function CalendarContent() {
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-muted-foreground" />
                           <span 
-                            className="text-sm truncate max-w-[150px] cursor-pointer hover:text-primary" 
+                            className="text-sm truncate md:whitespace-normal md:max-w-none cursor-pointer hover:text-primary" 
                             title={submission.report?.fileName || submission.title}
                             onClick={() => {
                               if (submission.report?.fileData) {
@@ -1910,7 +1910,7 @@ function CalendarContent() {
                       <div className="space-y-1 max-h-32 overflow-y-auto">
                         {selectedFiles.map((file, index) => (
                           <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
-                            <span className="truncate max-w-[150px]" title={file.name}>{file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}</span>
+                            <span className="truncate max-w-[150px] md:max-w-none" title={file.name}>{file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}</span>
                             <div className="flex items-center gap-2">
                               <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                               <button

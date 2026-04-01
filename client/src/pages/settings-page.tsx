@@ -602,7 +602,7 @@ function SettingsContent() {
         {/* User Management Tab (Admin Only) */}
         {isAdmin && (
           <TabsContent value="users" className="space-y-4">
-            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
                 <div className="min-w-0">
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -755,12 +755,12 @@ function SettingsContent() {
                     <p className="text-sm text-muted-foreground">No users found</p>
                   </div>
                 ) : (
-                  <ScrollArea className="h-[400px] pr-4">
+                  <ScrollArea className="h-[400px]">
                     <div className="space-y-3">
                       {paginatedUsers.map((user) => (
                         <div
                           key={user.id}
-                          className={`flex flex-wrap items-start justify-between p-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 overflow-hidden ${
+                          className={`flex flex-wrap items-start justify-between p-4 pr-4 border rounded-lg transition-colors cursor-pointer md:cursor-auto gap-3 overflow-visible ${
                             user.id === currentUser?.id 
                               ? "bg-primary/10 border-primary/30 dark:bg-primary/20" 
                               : "hover:bg-muted/50"
@@ -778,7 +778,7 @@ function SettingsContent() {
                               <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                             </div>
                             <div>
-                              <p className="font-medium truncate max-w-[150px]">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
+                              <p className="font-medium truncate md:whitespace-normal md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
                           </div>

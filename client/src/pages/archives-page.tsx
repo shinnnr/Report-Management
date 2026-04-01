@@ -750,7 +750,7 @@ function ArchivesContent() {
                       )}
                       <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                         <FolderIcon className="w-10 h-10 text-secondary" />
-                        <span className="truncate max-w-[100px] md:max-w-none">{f.name}</span>
+                        <span className="truncate max-w-[100px] sm:max-w-none">{f.name}</span>
                       </div>
                       <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
@@ -943,7 +943,7 @@ function ArchivesContent() {
                         <td className="px-4 py-4 w-auto min-w-[150px] align-middle">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
-                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{removeFileExtension(r.fileName)}</span>
+                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] sm:max-w-none md:cursor-default">{removeFileExtension(r.fileName)}</span>
                           </div>
                         </td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>

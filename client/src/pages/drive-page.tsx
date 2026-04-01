@@ -804,7 +804,7 @@ function DriveContent() {
             title="Single-click to select as destination, double-click to navigate"
           >
             <FolderIcon className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm truncate flex-1">{folder.name}</span>
+            <span className="text-sm truncate md:whitespace-normal md:max-w-none flex-1">{folder.name}</span>
           </div>
           {isExpanded && hasChildren && renderFolderTree(folder.id, level + 1)}
         </div>
@@ -922,7 +922,7 @@ function DriveContent() {
                             <div className="space-y-1 max-h-32 overflow-y-auto">
                               {uploadFiles.map((file, index) => (
                                 <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
-                                  <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
+<span className="truncate max-w-[200px] md:max-w-none" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
                                   <div className="flex items-center gap-2">
                                     <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                                     <button
@@ -1044,7 +1044,7 @@ function DriveContent() {
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           {uploadFiles.map((file, index) => (
                             <div key={index} className="text-xs text-muted-foreground flex justify-between items-center">
-                              <span className="truncate max-w-[200px]" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
+                              <span className="truncate max-w-[200px] md:max-w-none" title={file.name}>{file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name}</span>
                               <div className="flex items-center gap-2">
                                 <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                                 <button
@@ -1479,7 +1479,7 @@ function DriveContent() {
                       {isSelectMode && <Checkbox className="absolute top-2 left-2 z-10" checked={selectedFolders.includes(f.id)} onCheckedChange={() => toggleFolderSelection(f.id)} />}
                       <div onClick={() => isSelectMode ? toggleFolderSelection(f.id) : handleFolderClick(f.id)} className="flex items-center gap-3 pt-4 cursor-pointer">
                         <FolderIcon className="w-10 h-10 text-secondary flex-shrink-0" />
-                        <span className="truncate">{f.name}</span>
+                        <span className="truncate md:whitespace-normal md:max-w-none">{f.name}</span>
                       </div>
                       <div className="absolute top-2 right-4 w-8 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
@@ -1830,9 +1830,9 @@ function DriveContent() {
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             {isSelectMode ? (
-                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{removeFileExtension(r.fileName)}</span>
+                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate sm:whitespace-normal sm:max-w-none">{removeFileExtension(r.fileName)}</span>
                             ) : (
-                              <span className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{removeFileExtension(r.fileName)}</span>
+                              <span className="cursor-pointer hover:text-primary truncate sm:whitespace-normal sm:max-w-none">{removeFileExtension(r.fileName)}</span>
                             )}
                           </div>
                         </td>
