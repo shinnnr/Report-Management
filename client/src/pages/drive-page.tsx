@@ -1452,7 +1452,7 @@ function DriveContent() {
                 <h2 className="text-sm font-semibold">Folders</h2>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="mr-3">
                       <MoreVertical className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -1481,9 +1481,9 @@ function DriveContent() {
                         <FolderIcon className="w-10 h-10 text-secondary flex-shrink-0" />
                         <span className="truncate">{f.name}</span>
                       </div>
-                      <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2 right-4 w-8 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
@@ -1512,7 +1512,7 @@ function DriveContent() {
               <h2 className="text-sm font-semibold">Files</h2>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="mr-3">
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1805,7 +1805,7 @@ function DriveContent() {
                           </DropdownMenu>
                         </div>
                       </th>
-                      <th className="px-6 py-3 w-[50px]"></th>
+                      <th className="px-4 py-3 w-[50px]"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -1843,17 +1843,17 @@ function DriveContent() {
                           {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-right text-muted-foreground align-middle hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="px-6 py-3 text-right align-middle">
-                          <div className="flex items-end justify-end h-full">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 mr-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent>
+                        <td className="px-4 py-3 text-right align-top">
+                          <div className="w-8 ml-auto mr-0 flex justify-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                              <DropdownMenuContent>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(removeFileExtension(r.fileName)); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setArchiveFileId(r.id);}}>Archive</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </tr>
@@ -1906,7 +1906,7 @@ function DriveContent() {
               </div>
             )}
           </section>
-        </div>
+      </div>
 
       {/* Mobile File Details Dialog - Only show on mobile */}
       <Dialog open={isFileDialogOpen && isMobile !== false} onOpenChange={setIsFileDialogOpen}>
