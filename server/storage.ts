@@ -38,7 +38,7 @@ export interface IStorage {
   getActivities(): Promise<Activity[]>;
   getActivity(id: number): Promise<Activity | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
-  generateRecurringActivitiesForYear(year: number): Promise<Activity[]>;
+  generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
   startActivity(id: number, userId: number): Promise<void>;
@@ -549,6 +549,7 @@ export class DatabaseStorage implements IStorage {
     const [activity] = await db.insert(activities).values(insertActivity).returning();
     
     // If this activity has recurrence, generate activities for future years
+    // Only generate for the newly created activity, not for all master activities
     if (activity.recurrence && activity.recurrence !== 'none' && activity.recurrence !== null) {
       const currentYear = new Date().getFullYear();
       const deadlineYear = new Date(activity.deadlineDate).getFullYear();
@@ -564,7 +565,8 @@ export class DatabaseStorage implements IStorage {
         endYear,
         originalDeadline: activity.deadlineDate,
         recurrenceEndDate: activity.recurrenceEndDate,
-        startDate: activity.startDate
+        startDate: activity.startDate,
+        activityId: activity.id
       });
       
       // Start generating from the deadline year (not current year)
@@ -575,8 +577,8 @@ export class DatabaseStorage implements IStorage {
       
       // Generate for startYear and future years up to endYear
       for (let year = startYear; year <= endYear; year++) {
-        console.log(`Calling generateRecurringActivitiesForYear(${year})`);
-        await this.generateRecurringActivitiesForYear(year);
+        console.log(`Calling generateRecurringActivitiesForYear(${year}) for activity ${activity.id}`);
+        await this.generateRecurringActivitiesForYear(year, activity.id);
       }
     }
     
@@ -597,18 +599,30 @@ export class DatabaseStorage implements IStorage {
     return date;
   }
 
-  // Generate recurring activities for a specific year when user visits it
-  async generateRecurringActivitiesForYear(year: number): Promise<Activity[]> {
-    // Get all activities with recurrence (not null and not 'none') - these are the master activities
-    // Also exclude deleted master activities
-    const recurringActivities = await db.select().from(activities).where(
-      and(
-        sql`${activities.recurrence} IS NOT NULL`,
-        ne(activities.recurrence, 'none'),
-        isNull(activities.parentActivityId), // Only get master activities, not child instances
-        ne(activities.status, 'deleted') // Exclude deleted master activities
-      )
-    );
+  // Generate recurring activities for a specific year
+  // If masterActivityId is provided, only generate for that specific master activity
+  // Otherwise, generate for all master activities (used when user visits a year)
+  async generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]> {
+    let recurringActivities: Activity[];
+    
+    if (masterActivityId) {
+      // Only generate for the specific master activity
+      const [activity] = await db.select().from(activities).where(
+        eq(activities.id, masterActivityId)
+      );
+      recurringActivities = activity ? [activity] : [];
+    } else {
+      // Get all activities with recurrence (not null and not 'none') - these are the master activities
+      // Also exclude deleted master activities
+      recurringActivities = await db.select().from(activities).where(
+        and(
+          sql`${activities.recurrence} IS NOT NULL`,
+          ne(activities.recurrence, 'none'),
+          isNull(activities.parentActivityId), // Only get master activities, not child instances
+          ne(activities.status, 'deleted') // Exclude deleted master activities
+        )
+      );
+    }
     
     const newActivities: Activity[] = [];
     
