@@ -183,6 +183,7 @@ function CalendarContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [startingActivityId, setStartingActivityId] = useState<number | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
   
   // Day Activities Modal State
   const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
@@ -1544,7 +1545,7 @@ function CalendarContent() {
                 <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0}>
                   {createActivity.isPending ? (
                     <>
-                      Creating...
+                      Adding...
                     </>
                   ) : (
                     <>
@@ -1613,7 +1614,9 @@ function CalendarContent() {
                         )}
                         onClick={() => {
                           setSelectedActivity(activity);
-                          setStartingActivityId(null);
+                          // Only reset if clicking a different activity
+                          setStartingActivityId(current => current === activity.id ? current : null);
+                          setDeletingActivityId(current => current === activity.id ? current : null);
                           setActivityFromDayModal(true);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
@@ -1691,7 +1694,7 @@ function CalendarContent() {
             setSelectedFiles([]);
             setSelectedActivity(null);
             setIsLoadingSubmissions(false);
-            // Keep startingActivityId when closing modal - will reset when opening different activity
+            // Keep startingActivityId when closing modal - it persists for the same activity
             // Reopen day activities modal if it was opened from there
             if (activityFromDayModal && dayActivitiesModalDate) {
               setShowDayActivitiesModal(true);
@@ -1956,13 +1959,15 @@ function CalendarContent() {
                 variant="destructive"
                 size="sm"
                 onClick={() => {
+                  setDeletingActivityId(selectedActivity.id);
                   setActivityToDelete(selectedActivity);
                   setShowDeleteConfirm(true);
                 }}
+                disabled={deletingActivityId !== null}
                 className="gap-2"
               >
                 <Trash2 className="w-4 h-4" />
-                Delete Activity
+                {deletingActivityId !== null ? 'Deleting Activity...' : 'Delete Activity'}
               </Button>
 
               {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
@@ -2036,7 +2041,8 @@ function CalendarContent() {
                             onClick={() => {
                               setShowTimeSlotActivitiesModal(false);
                               setSelectedActivity(activity);
-                              setStartingActivityId(null);
+                              setStartingActivityId(current => current === activity.id ? current : null);
+                              setDeletingActivityId(current => current === activity.id ? current : null);
                               setActivityFromDayModal(true);
                               setIsActivityModalOpen(true);
                               // Clear previous submissions and show loading
@@ -2128,7 +2134,15 @@ function CalendarContent() {
                 variant="destructive"
                 onClick={() => {
                   if (activityToDelete) {
-                    deleteActivity.mutate(activityToDelete.id);
+                    setDeletingActivityId(activityToDelete.id);
+                    deleteActivity.mutate(activityToDelete.id, {
+                      onSuccess: () => {
+                        if (selectedActivity?.id === activityToDelete.id) {
+                          setIsActivityModalOpen(false);
+                        }
+                      },
+                      onSettled: () => setDeletingActivityId(null)
+                    });
                     setIsActivityModalOpen(false);
                   }
                   setShowDeleteConfirm(false);
@@ -2428,7 +2442,8 @@ function CalendarContent() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedActivity(activity);
-                      setStartingActivityId(null);
+                      setStartingActivityId(current => current === activity.id ? current : null);
+                      setDeletingActivityId(current => current === activity.id ? current : null);
                       setIsActivityModalOpen(true);
                       // Clear previous submissions and show loading
                       setActivitySubmissions([]);
@@ -2477,7 +2492,8 @@ function CalendarContent() {
             }}
             selectedDate={selectedDate}
             onActivityClick={(activity) => {
-              setStartingActivityId(null);
+              setStartingActivityId(current => current === activity.id ? current : null);
+              setDeletingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
               // Clear previous submissions and show loading
@@ -2542,7 +2558,8 @@ function CalendarContent() {
             currentDate={currentDate} 
             activities={filteredActivities}
             onActivityClick={(activity) => {
-              setStartingActivityId(null);
+              setStartingActivityId(current => current === activity.id ? current : null);
+              setDeletingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
               // Clear previous submissions and show loading
@@ -2627,7 +2644,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
-                          setStartingActivityId(null);
+                          setStartingActivityId(current => current === activity.id ? current : null);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
                           setActivitySubmissions([]);
@@ -2674,7 +2691,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
-                          setStartingActivityId(null);
+                          setStartingActivityId(current => current === activity.id ? current : null);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
                           setActivitySubmissions([]);
@@ -2875,7 +2892,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
-                          setStartingActivityId(null);
+                          setStartingActivityId(current => current === activity.id ? current : null);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
                           setActivitySubmissions([]);
