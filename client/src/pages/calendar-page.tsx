@@ -203,6 +203,7 @@ function CalendarContent() {
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [submissionDate, setSubmissionDate] = useState<Date>(new Date());
   const [activitySubmissions, setActivitySubmissions] = useState<any[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -283,11 +284,20 @@ function CalendarContent() {
       if (activity) {
         setSelectedActivity(activity);
         setIsActivityModalOpen(true);
+        // Clear previous submissions and show loading
+        setActivitySubmissions([]);
+        setIsLoadingSubmissions(true);
         // Fetch submissions for this activity when modal opens
         fetch(`/api/activities/${activity.id}/submissions`)
           .then(res => res.json())
-          .then(data => setActivitySubmissions(data))
-          .catch(err => console.error('Failed to fetch submissions:', err));
+          .then(data => {
+            setActivitySubmissions(data);
+            setIsLoadingSubmissions(false);
+          })
+          .catch(err => {
+            console.error('Failed to fetch submissions:', err);
+            setIsLoadingSubmissions(false);
+          });
         // Navigate to the month of the activity's deadline
         const activityDate = new Date(activity.deadlineDate);
         setCurrentDate(activityDate);
@@ -1606,11 +1616,20 @@ function CalendarContent() {
                           setStartingActivityId(null);
                           setActivityFromDayModal(true);
                           setIsActivityModalOpen(true);
+                          // Clear previous submissions and show loading
+                          setActivitySubmissions([]);
+                          setIsLoadingSubmissions(true);
                           // Fetch submissions for this activity when modal opens
                           fetch(`/api/activities/${activity.id}/submissions`)
                             .then(res => res.json())
-                            .then(data => setActivitySubmissions(data))
-                            .catch(err => console.error('Failed to fetch submissions:', err));
+                            .then(data => {
+                              setActivitySubmissions(data);
+                              setIsLoadingSubmissions(false);
+                            })
+                            .catch(err => {
+                              console.error('Failed to fetch submissions:', err);
+                              setIsLoadingSubmissions(false);
+                            });
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -1671,6 +1690,7 @@ function CalendarContent() {
           if (!open) {
             setSelectedFiles([]);
             setSelectedActivity(null);
+            setIsLoadingSubmissions(false);
             // Keep startingActivityId when closing modal - will reset when opening different activity
             // Reopen day activities modal if it was opened from there
             if (activityFromDayModal && dayActivitiesModalDate) {
@@ -1784,8 +1804,16 @@ function CalendarContent() {
                 </div>
               )}
 
+              {/* Loading indicator for submissions */}
+              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && isLoadingSubmissions && (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading submitted files...</span>
+                </div>
+              )}
+
               {/* Submitted Files Section - Show files that have been submitted */}
-              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && activitySubmissions.length > 0 && (
+              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && activitySubmissions.length > 0 && !isLoadingSubmissions && (
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">Submitted Files</h4>
                   <div className="space-y-2 overflow-y-auto">
@@ -2011,11 +2039,20 @@ function CalendarContent() {
                               setStartingActivityId(null);
                               setActivityFromDayModal(true);
                               setIsActivityModalOpen(true);
+                              // Clear previous submissions and show loading
+                              setActivitySubmissions([]);
+                              setIsLoadingSubmissions(true);
                               // Fetch submissions for this activity when modal opens
                               fetch(`/api/activities/${activity.id}/submissions`)
                                 .then(res => res.json())
-                                .then(data => setActivitySubmissions(data))
-                                .catch(err => console.error('Failed to fetch submissions:', err));
+                                .then(data => {
+                                  setActivitySubmissions(data);
+                                  setIsLoadingSubmissions(false);
+                                })
+                                .catch(err => {
+                                  console.error('Failed to fetch submissions:', err);
+                                  setIsLoadingSubmissions(false);
+                                });
                             }}
                           >
                             <div className="flex items-center justify-between">
@@ -2393,11 +2430,20 @@ function CalendarContent() {
                       setSelectedActivity(activity);
                       setStartingActivityId(null);
                       setIsActivityModalOpen(true);
+                      // Clear previous submissions and show loading
+                      setActivitySubmissions([]);
+                      setIsLoadingSubmissions(true);
                       // Fetch submissions for this activity when modal opens
                       fetch(`/api/activities/${activity.id}/submissions`)
                         .then(res => res.json())
-                        .then(data => setActivitySubmissions(data))
-                        .catch(err => console.error('Failed to fetch submissions:', err));
+                        .then(data => {
+                          setActivitySubmissions(data);
+                          setIsLoadingSubmissions(false);
+                        })
+                        .catch(err => {
+                          console.error('Failed to fetch submissions:', err);
+                          setIsLoadingSubmissions(false);
+                        });
                     }}
                     className={cn(
                       "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
@@ -2434,6 +2480,20 @@ function CalendarContent() {
               setStartingActivityId(null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
+              // Clear previous submissions and show loading
+              setActivitySubmissions([]);
+              setIsLoadingSubmissions(true);
+              // Fetch submissions for this activity when modal opens
+              fetch(`/api/activities/${activity.id}/submissions`)
+                .then(res => res.json())
+                .then(data => {
+                  setActivitySubmissions(data);
+                  setIsLoadingSubmissions(false);
+                })
+                .catch(err => {
+                  console.error('Failed to fetch submissions:', err);
+                  setIsLoadingSubmissions(false);
+                });
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
@@ -2485,6 +2545,20 @@ function CalendarContent() {
               setStartingActivityId(null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
+              // Clear previous submissions and show loading
+              setActivitySubmissions([]);
+              setIsLoadingSubmissions(true);
+              // Fetch submissions for this activity when modal opens
+              fetch(`/api/activities/${activity.id}/submissions`)
+                .then(res => res.json())
+                .then(data => {
+                  setActivitySubmissions(data);
+                  setIsLoadingSubmissions(false);
+                })
+                .catch(err => {
+                  console.error('Failed to fetch submissions:', err);
+                  setIsLoadingSubmissions(false);
+                });
             }}
             onSelectTimeSlot={handleSelectTimeSlot}
             selectedTimeSlot={selectedTimeSlot}
@@ -2555,6 +2629,20 @@ function CalendarContent() {
                           setSelectedActivity(activity);
                           setStartingActivityId(null);
                           setIsActivityModalOpen(true);
+                          // Clear previous submissions and show loading
+                          setActivitySubmissions([]);
+                          setIsLoadingSubmissions(true);
+                          // Fetch submissions for this activity when modal opens
+                          fetch(`/api/activities/${activity.id}/submissions`)
+                            .then(res => res.json())
+                            .then(data => {
+                              setActivitySubmissions(data);
+                              setIsLoadingSubmissions(false);
+                            })
+                            .catch(err => {
+                              console.error('Failed to fetch submissions:', err);
+                              setIsLoadingSubmissions(false);
+                            });
                         }}
                         className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                       >
@@ -2588,6 +2676,20 @@ function CalendarContent() {
                           setSelectedActivity(activity);
                           setStartingActivityId(null);
                           setIsActivityModalOpen(true);
+                          // Clear previous submissions and show loading
+                          setActivitySubmissions([]);
+                          setIsLoadingSubmissions(true);
+                          // Fetch submissions for this activity when modal opens
+                          fetch(`/api/activities/${activity.id}/submissions`)
+                            .then(res => res.json())
+                            .then(data => {
+                              setActivitySubmissions(data);
+                              setIsLoadingSubmissions(false);
+                            })
+                            .catch(err => {
+                              console.error('Failed to fetch submissions:', err);
+                              setIsLoadingSubmissions(false);
+                            });
                         }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
@@ -2775,6 +2877,20 @@ function CalendarContent() {
                           setSelectedActivity(activity);
                           setStartingActivityId(null);
                           setIsActivityModalOpen(true);
+                          // Clear previous submissions and show loading
+                          setActivitySubmissions([]);
+                          setIsLoadingSubmissions(true);
+                          // Fetch submissions for this activity when modal opens
+                          fetch(`/api/activities/${activity.id}/submissions`)
+                            .then(res => res.json())
+                            .then(data => {
+                              setActivitySubmissions(data);
+                              setIsLoadingSubmissions(false);
+                            })
+                            .catch(err => {
+                              console.error('Failed to fetch submissions:', err);
+                              setIsLoadingSubmissions(false);
+                            });
                         }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
