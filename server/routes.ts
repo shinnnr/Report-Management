@@ -821,10 +821,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid file type. Only PDF and Word documents are allowed." });
       }
 
-      // Validate file size (10MB limit)
-      if (fileSize > 10 * 1024 * 1024) {
-        return res.status(400).json({ message: "File size too large. Maximum 10MB allowed." });
-      }
+      // No file size limit - allow larger files
 
       // Get activity details for folder creation
       const activity = await storage.getActivity(activityId);

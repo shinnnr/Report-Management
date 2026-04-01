@@ -1793,7 +1793,7 @@ function CalendarContent() {
               {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && activitySubmissions.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">Submitted Files</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2 overflow-y-auto">
                     {activitySubmissions.map((submission: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                         <div className="flex items-center gap-2">
