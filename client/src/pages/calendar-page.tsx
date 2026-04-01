@@ -22,7 +22,9 @@ import {
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2, ChevronDown } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2, ChevronDown, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +51,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function CalendarPage() {
   return (
@@ -181,6 +182,7 @@ function CalendarContent() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [startingActivityId, setStartingActivityId] = useState<number | null>(null);
   
   // Day Activities Modal State
   const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
@@ -199,6 +201,8 @@ function CalendarContent() {
   const [concernDepartment, setConcernDepartment] = useState<string[]>([]);
   const [recurrence, setRecurrence] = useState<string>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
+  const [submissionDate, setSubmissionDate] = useState<Date>(new Date());
+  const [activitySubmissions, setActivitySubmissions] = useState<any[]>([]);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -207,6 +211,67 @@ function CalendarContent() {
   
   const [reportDetails, setReportDetails] = useState("");
   const [remarks, setRemarks] = useState("");
+
+  // Helper function to create blob URL from base64 data
+  const createBlobUrl = (dataUrl: string) => {
+    if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+    const byteCharacters = atob(dataUrl.split(',')[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: dataUrl.split(',')[0].split(';')[0] });
+    return URL.createObjectURL(blob);
+  };
+
+  // Handle file click to open or download
+  const handleFileClick = (fileData: string, fileName: string, fileType?: string, forceDownload?: boolean) => {
+    // Check if file type can be opened in browser
+    const canOpenInBrowser = !forceDownload && fileType && [
+      'application/pdf',
+      'image/',
+      'text/',
+    ].some(type => fileType.toLowerCase().startsWith(type));
+    
+    if (canOpenInBrowser) {
+      // For PDF/image/text files, create a Blob and use object URL
+      const [mimeType, base64Data] = fileData.split(',');
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const mime = mimeType.split(';')[0].replace('data:', '');
+      const blob = new Blob([byteArray], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Open in new window
+      const newWindow = window.open(blobUrl, '_blank');
+      if (!newWindow) {
+        window.location.href = blobUrl;
+      }
+    } else {
+      // For other files or when forceDownload is true, download
+      const [mimeType, base64Data] = fileData.split(',');
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const mime = mimeType.split(';')[0].replace('data:', '');
+      const blob = new Blob([byteArray], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   // Handle activityId from URL query parameter (when clicking from notification)
   useEffect(() => {
@@ -218,6 +283,11 @@ function CalendarContent() {
       if (activity) {
         setSelectedActivity(activity);
         setIsActivityModalOpen(true);
+        // Fetch submissions for this activity when modal opens
+        fetch(`/api/activities/${activity.id}/submissions`)
+          .then(res => res.json())
+          .then(data => setActivitySubmissions(data))
+          .catch(err => console.error('Failed to fetch submissions:', err));
         // Navigate to the month of the activity's deadline
         const activityDate = new Date(activity.deadlineDate);
         setCurrentDate(activityDate);
@@ -976,6 +1046,7 @@ function CalendarContent() {
                   suppressNotification: true,
                   deadlineYear,
                   deadlineMonth,
+                  submissionDate: submissionDate.toISOString(),
                 }),
               });
 
@@ -1537,8 +1608,14 @@ function CalendarContent() {
                         )}
                         onClick={() => {
                           setSelectedActivity(activity);
+                          setStartingActivityId(null);
                           setActivityFromDayModal(true);
                           setIsActivityModalOpen(true);
+                          // Fetch submissions for this activity when modal opens
+                          fetch(`/api/activities/${activity.id}/submissions`)
+                            .then(res => res.json())
+                            .then(data => setActivitySubmissions(data))
+                            .catch(err => console.error('Failed to fetch submissions:', err));
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -1599,6 +1676,7 @@ function CalendarContent() {
           if (!open) {
             setSelectedFiles([]);
             setSelectedActivity(null);
+            setStartingActivityId(null);
             // Reopen day activities modal if it was opened from there
             if (activityFromDayModal && dayActivitiesModalDate) {
               setShowDayActivitiesModal(true);
@@ -1682,6 +1760,77 @@ function CalendarContent() {
                 </div>
               </div>
 
+              {/* Submission Date Picker */}
+              {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Submission Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !submissionDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {submissionDate ? format(submissionDate, 'PPP') : <span>Pick submission date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={submissionDate}
+                        onSelect={(date) => date && setSubmissionDate(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {/* Submitted Files Section - Show files that have been submitted */}
+              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && activitySubmissions.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">Submitted Files</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {activitySubmissions.map((submission: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span 
+                            className="text-sm truncate max-w-[150px] cursor-pointer hover:text-primary" 
+                            title={submission.report?.fileName || submission.title}
+                            onClick={() => {
+                              if (submission.report?.fileData) {
+                                handleFileClick(submission.report.fileData, submission.report.fileName, submission.report.fileType, false);
+                              }
+                            }}
+                          >
+                            {submission.report?.fileName || submission.title}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {submission.submissionDate ? format(new Date(submission.submissionDate), 'PPP') : 'N/A'}
+                          </span>
+                          {submission.report?.fileData && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleFileClick(submission.report.fileData, submission.report.fileName, submission.report.fileType, true)}
+                              title="Download file"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Submission Status */}
               {selectedActivity && (
                 <div className="text-center p-4 border rounded-lg">
@@ -1703,18 +1852,25 @@ function CalendarContent() {
               {/* File Upload Section */}
               {selectedActivity?.status === 'pending' && (
                 <Button 
-                  onClick={() => startActivity.mutate(selectedActivity.id, {
-                    onSuccess: (updatedActivity) => {
-                      if (updatedActivity) {
-                        setSelectedActivity(updatedActivity);
+                  onClick={() => {
+                    setStartingActivityId(selectedActivity.id);
+                    startActivity.mutate(selectedActivity.id, {
+                      onSuccess: (updatedActivity) => {
+                        setStartingActivityId(null);
+                        if (updatedActivity) {
+                          setSelectedActivity(updatedActivity);
+                        }
+                      },
+                      onError: () => {
+                        setStartingActivityId(null);
                       }
-                    }
-                  })}
-                  disabled={startActivity.isPending}
+                    });
+                  }}
+                  disabled={startingActivityId !== null}
                   className="w-full"
                 >
                   <Clock className="w-4 h-4 mr-2" />
-                  {startActivity.isPending ? 'Starting...' : 'Start Activity'}
+                  {startingActivityId !== null ? 'Starting...' : 'Start Activity'}
                 </Button>
               )}
 
@@ -1857,8 +2013,14 @@ function CalendarContent() {
                             onClick={() => {
                               setShowTimeSlotActivitiesModal(false);
                               setSelectedActivity(activity);
+                              setStartingActivityId(null);
                               setActivityFromDayModal(true);
                               setIsActivityModalOpen(true);
+                              // Fetch submissions for this activity when modal opens
+                              fetch(`/api/activities/${activity.id}/submissions`)
+                                .then(res => res.json())
+                                .then(data => setActivitySubmissions(data))
+                                .catch(err => console.error('Failed to fetch submissions:', err));
                             }}
                           >
                             <div className="flex items-center justify-between">
@@ -2235,6 +2397,11 @@ function CalendarContent() {
                       e.stopPropagation();
                       setSelectedActivity(activity);
                       setIsActivityModalOpen(true);
+                      // Fetch submissions for this activity when modal opens
+                      fetch(`/api/activities/${activity.id}/submissions`)
+                        .then(res => res.json())
+                        .then(data => setActivitySubmissions(data))
+                        .catch(err => console.error('Failed to fetch submissions:', err));
                     }}
                     className={cn(
                       "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",

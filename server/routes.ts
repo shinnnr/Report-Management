@@ -795,7 +795,12 @@ export async function registerRoutes(
   // --- Activity Submission Routes ---
   app.get("/api/activities/:id/submissions", isAuthenticated, async (req, res) => {
     const activityId = parseInt(req.params.id as string);
+    console.log('Fetching submissions for activity:', activityId);
     const submissions = await storage.getActivitySubmissions(activityId);
+    console.log('Found submissions:', submissions.length);
+    if (submissions.length > 0) {
+      console.log('First submission report data:', submissions[0].report?.fileData ? 'has fileData' : 'no fileData');
+    }
     res.json(submissions);
   });
 
@@ -808,7 +813,7 @@ export async function registerRoutes(
       // Allow multiple submissions to the same activity (user can upload additional files)
       // No check needed here as we want to allow multiple files per activity
 
-      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth } = req.body;
+      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth, submissionDate } = req.body;
 
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -828,7 +833,7 @@ export async function registerRoutes(
       }
 
       const deadline = new Date(activity.deadlineDate);
-      const now = new Date();
+      const now = submissionDate ? new Date(submissionDate) : new Date();
       const isLate = now > deadline;
 
       // Create organized folder structure: {Activity Year}/{Activity Month}/(files uploaded)
@@ -909,7 +914,8 @@ export async function registerRoutes(
         activityId,
         userId,
         reportId: report.id,
-        status: isLate ? 'late' : 'submitted'
+        status: isLate ? 'late' : 'submitted',
+        submissionDate: now
       });
 
       // Update activity status - mark as 'late' if overdue, 'completed' otherwise

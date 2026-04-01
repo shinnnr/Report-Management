@@ -974,8 +974,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Activity Submissions
-  async getActivitySubmissions(activityId: number): Promise<ActivitySubmission[]> {
-    return db.select().from(activitySubmissions).where(eq(activitySubmissions.activityId, activityId));
+  async getActivitySubmissions(activityId: number): Promise<any[]> {
+    console.log('getActivitySubmissions called for activityId:', activityId);
+    const submissions = await db
+      .select()
+      .from(activitySubmissions)
+      .leftJoin(reports, eq(activitySubmissions.reportId, reports.id))
+      .where(eq(activitySubmissions.activityId, activityId));
+    
+    console.log('Raw submissions from DB:', submissions.length);
+    submissions.forEach((s, i) => {
+      console.log(`Submission ${i}: reportId=${s.activity_submissions.reportId}, reports.fileData present=${!!s.reports?.fileData}, reports.fileData length=${s.reports?.fileData?.length || 0}`);
+    });
+    
+    return submissions.map(sub => ({
+      ...sub.activity_submissions,
+      report: sub.reports ? {
+        id: sub.reports.id,
+        title: sub.reports.title,
+        fileName: sub.reports.fileName,
+        fileType: sub.reports.fileType,
+        fileData: sub.reports.fileData,
+      } : null,
+    }));
   }
 
   async getUserSubmissionForActivity(userId: number, activityId: number): Promise<ActivitySubmission | undefined> {
