@@ -18,6 +18,7 @@ export interface IStorage {
   getFolder(id: number): Promise<Folder | undefined>;
   getFolderPath(id: number): Promise<Folder[]>;
   getFolderByNameAndParent(name: string, parentId: number | null): Promise<Folder | undefined>;
+  getFolderByNameAndParentAnyStatus(name: string, parentId: number | null): Promise<Folder | undefined>;
   getActiveFolderByNameAndParent(name: string, parentId: number | null): Promise<Folder | undefined>;
   createFolder(folder: InsertFolder): Promise<Folder>;
   updateFolder(id: number, updates: Partial<InsertFolder>): Promise<Folder>;
@@ -157,6 +158,17 @@ export class DatabaseStorage implements IStorage {
       and(
         eq(folders.name, name),
         eq(folders.status, 'active'),
+        parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId)
+      )
+    );
+    return folder;
+  }
+
+  // Get folder by name and parent, regardless of status (used to find existing folders before creating new ones)
+  async getFolderByNameAndParentAnyStatus(name: string, parentId: number | null): Promise<Folder | undefined> {
+    const [folder] = await db.select().from(folders).where(
+      and(
+        eq(folders.name, name),
         parentId === null ? isNull(folders.parentId) : eq(folders.parentId, parentId)
       )
     );

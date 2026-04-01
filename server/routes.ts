@@ -857,25 +857,41 @@ export async function registerRoutes(
       const activityMonthName = monthNames[activityMonth];
 
       // Create or get year folder
-      // Always create a new folder if existing one is archived (don't unarchive)
+      // First check for active folder, then check for any folder (archived or active)
       let yearFolder = await storage.getActiveFolderByNameAndParent(`${activityYear}`, null);
       if (!yearFolder) {
-        yearFolder = await storage.createFolder({
-          name: `${activityYear}`,
-          parentId: null,
-          createdBy: userId
-        });
+        // Check if there's an archived folder
+        const archivedYearFolder = await storage.getFolderByNameAndParentAnyStatus(`${activityYear}`, null);
+        if (archivedYearFolder) {
+          // Re-use the archived folder (don't unarchive to avoid conflicts)
+          yearFolder = archivedYearFolder;
+        } else {
+          // Create new folder only if none exists
+          yearFolder = await storage.createFolder({
+            name: `${activityYear}`,
+            parentId: null,
+            createdBy: userId
+          });
+        }
       }
 
       // Create or get month folder
-      // Always create a new folder if existing one is archived (don't unarchive)
+      // First check for active folder, then check for any folder (archived or active)
       let monthFolder = await storage.getActiveFolderByNameAndParent(activityMonthName, yearFolder.id);
       if (!monthFolder) {
-        monthFolder = await storage.createFolder({
-          name: activityMonthName,
-          parentId: yearFolder.id,
-          createdBy: userId
-        });
+        // Check if there's an archived folder
+        const archivedMonthFolder = await storage.getFolderByNameAndParentAnyStatus(activityMonthName, yearFolder.id);
+        if (archivedMonthFolder) {
+          // Re-use the archived folder (don't unarchive to avoid conflicts)
+          monthFolder = archivedMonthFolder;
+        } else {
+          // Create new folder only if none exists
+          monthFolder = await storage.createFolder({
+            name: activityMonthName,
+            parentId: yearFolder.id,
+            createdBy: userId
+          });
+        }
       }
 
       // Check for duplicate file name and append (n) if needed

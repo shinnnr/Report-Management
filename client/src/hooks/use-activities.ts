@@ -22,12 +22,17 @@ export function useCreateActivity() {
 
   return useMutation({
     mutationFn: async (data: InsertActivity) => {
+      console.log("[Activity] Creating with data:", JSON.stringify(data, null, 2));
       const res = await fetch(api.activities.create.path, {
         method: api.activities.create.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create activity");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "No response body" }));
+        console.error("[Activity] Creation failed:", res.status, errorData);
+        throw new Error(errorData.message || "Failed to create activity");
+      }
       return api.activities.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
