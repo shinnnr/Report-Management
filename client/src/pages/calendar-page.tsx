@@ -1015,67 +1015,62 @@ function CalendarContent() {
   const handleSubmit = async () => {
     if (!selectedActivity || selectedFiles.length === 0) return;
 
+    // Calculate deadline year/month from activity (before file reading)
+    const deadlineDate = new Date(selectedActivity.deadlineDate);
+    const deadlineYear = deadlineDate.getFullYear();
+    const deadlineMonth = deadlineDate.getMonth() + 1;
+
     setIsSubmitting(true);
     try {
-      // Submit all files without creating notifications
-      const uploadPromises = selectedFiles.map(async (file) => {
-        return new Promise<void>((resolve, reject) => {
+      // Read all files first
+      const fileReaders = selectedFiles.map(file => {
+        return new Promise<{ name: string; type: string; size: number; data: string }>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = async () => {
-            const base64 = reader.result as string;
-
-            try {
-              // Suppress all notifications - we'll create one after all uploads
-              // Also send the deadline year/month to ensure correct folder creation
-              const deadlineDate = new Date(selectedActivity.deadlineDate);
-              const deadlineYear = deadlineDate.getFullYear();
-              const deadlineMonth = deadlineDate.getMonth() + 1;
-              
-              const response = await fetch(`/api/activities/${selectedActivity.id}/submit`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  title: `${selectedActivity.title} - ${file.name}`,
-                  description: `Submission for activity: ${selectedActivity.title}`,
-                  fileName: file.name,
-                  fileType: file.type,
-                  fileSize: file.size,
-                  fileData: base64,
-                  suppressNotification: true,
-                  deadlineYear,
-                  deadlineMonth,
-                  submissionDate: submissionDate.toISOString(),
-                }),
-              });
-
-              if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Upload failed');
-              }
-
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
+          reader.onload = () => {
+            resolve({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              data: reader.result as string
+            });
           };
           reader.onerror = () => reject(new Error('File reading failed'));
           reader.readAsDataURL(file);
         });
       });
 
-      await Promise.all(uploadPromises);
+      const fileDataArray = await Promise.all(fileReaders);
 
-      // Create a single notification after all uploads complete
-      // Fetch the list of users to notify (excluding the submitter)
+      // Send all files in one request
+      const response = await fetch(`/api/activities/${selectedActivity.id}/submit-batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          files: fileDataArray,
+          activityTitle: selectedActivity.title,
+          suppressNotification: true,
+          deadlineYear,
+          deadlineMonth,
+          submissionDate: submissionDate.toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const result = await response.json();
+
+      // Fetch users list once for notification creation
       const usersResponse = await fetch(api.users.list.path);
       const users = await usersResponse.json();
       
-      // Create notifications for all other users
-      for (const recipient of users) {
-        if (recipient.id !== user?.id) {
-          await fetch(api.notifications.create.path, {
+      // Create notifications in parallel (one per user, not per file)
+      const notificationPromises = users
+        .filter((recipient: any) => recipient.id !== user?.id)
+        .map((recipient: any) => 
+          fetch(api.notifications.create.path, {
             method: api.notifications.create.method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1085,9 +1080,9 @@ function CalendarContent() {
               content: `${user?.fullName || 'A user'} submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} for: ${selectedActivity.title}`,
               isRead: false
             })
-          });
-        }
-      }
+          })
+        );
+      await Promise.all(notificationPromises);
 
       toast({
         title: "Submission successful",

@@ -657,7 +657,6 @@ export async function registerRoutes(
     res.json({ message: "Report deleted" });
   });
 
-  // --- Activity Routes ---
   app.get(api.activities.list.path, isAuthenticated, async (req, res) => {
     const user = (req.user as any);
     const userRole = user?.role;
@@ -759,6 +758,16 @@ export async function registerRoutes(
     await storage.deleteActivity(id);
     await storage.createLog((req.user as any).id, "DELETE_ACTIVITY", `Deleted activity ID: ${id}`);
     res.json({ message: "Activity deleted" });
+  });
+
+  // GET single activity by ID
+  app.get("/api/activities/:id", isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id as string);
+    const activity = await storage.getActivity(id);
+    if (!activity) {
+      return res.status(404).json({ message: "Activity not found" });
+    }
+    res.json(activity);
   });
 
   // --- Start Activity Route ---
@@ -974,6 +983,159 @@ export async function registerRoutes(
         return res.status(400).json({ message: err.errors[0].message });
       }
       res.status(500).json({ message: "Submission failed" });
+    }
+  });
+
+  // Batch submit endpoint - submit multiple files at once
+  app.post("/api/activities/:id/submit-batch", isAuthenticated, async (req, res) => {
+    try {
+      const activityId = parseInt(req.params.id as string);
+      const userId = (req.user as any).id;
+      const { files, activityTitle, suppressNotification, deadlineYear, deadlineMonth, submissionDate } = req.body;
+
+      if (!files || !Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ message: "No files provided" });
+      }
+
+      // Get activity details for folder creation
+      const activity = await storage.getActivity(activityId);
+      if (!activity) {
+        return res.status(404).json({ message: "Activity not found" });
+      }
+
+      const deadline = new Date(activity.deadlineDate);
+      const now = submissionDate ? new Date(submissionDate) : new Date();
+      const isLate = now > deadline;
+
+      // Calculate year/month (use client-provided values or extract from deadline)
+      let activityYear: number;
+      let activityMonth: number;
+      
+      if (deadlineYear && deadlineMonth) {
+        activityYear = deadlineYear;
+        activityMonth = deadlineMonth - 1;
+      } else {
+        const deadlineISO = deadline.toISOString();
+        activityYear = parseInt(deadlineISO.substring(0, 4));
+        activityMonth = parseInt(deadlineISO.substring(5, 7)) - 1;
+      }
+      
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      const activityMonthName = monthNames[activityMonth];
+
+      // Create year folder (only once)
+      let yearFolder = await storage.getActiveFolderByNameAndParent(`${activityYear}`, null);
+      if (!yearFolder) {
+        const archivedYearFolder = await storage.getFolderByNameAndParentAnyStatus(`${activityYear}`, null);
+        if (archivedYearFolder) {
+          yearFolder = archivedYearFolder;
+        } else {
+          yearFolder = await storage.createFolder({
+            name: `${activityYear}`,
+            parentId: null,
+            createdBy: userId
+          });
+        }
+      }
+
+      // Create month folder (only once)
+      let monthFolder = await storage.getActiveFolderByNameAndParent(activityMonthName, yearFolder.id);
+      if (!monthFolder) {
+        const archivedMonthFolder = await storage.getFolderByNameAndParentAnyStatus(activityMonthName, yearFolder.id);
+        if (archivedMonthFolder) {
+          monthFolder = archivedMonthFolder;
+        } else {
+          monthFolder = await storage.createFolder({
+            name: activityMonthName,
+            parentId: yearFolder.id,
+            createdBy: userId
+          });
+        }
+      }
+
+      // Get existing reports in the month folder
+      const existingReports = await storage.getReports(monthFolder.id);
+
+      // Create all reports in the same folder
+      const createdReports = [];
+      for (const file of files) {
+        // Check for duplicate file name and append (n) if needed
+        let finalFileName = file.name;
+        let counter = 1;
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        const ext = file.name.includes('.') ? '.' + file.name.split('.').pop() : '';
+        
+        while (existingReports.some(r => r.fileName === finalFileName)) {
+          finalFileName = `${nameWithoutExt} (${counter})${ext}`;
+          counter++;
+        }
+
+        const report = await storage.createReport({
+          title: `${activityTitle} - ${file.name}`,
+          description: `Submission for activity: ${activityTitle}`,
+          fileName: finalFileName,
+          fileType: file.type,
+          fileSize: file.size,
+          fileData: file.data,
+          folderId: monthFolder.id,
+          uploadedBy: userId,
+          activityId,
+          year: activityYear,
+          month: deadline.getMonth() + 1,
+          status: 'active'
+        });
+
+        // Create submission record
+        await storage.createActivitySubmission({
+          activityId,
+          userId,
+          reportId: report.id,
+          status: isLate ? 'late' : 'submitted',
+          submissionDate: now
+        });
+
+        createdReports.push(report);
+      }
+
+      // Update activity status
+      await storage.updateActivity(activityId, {
+        status: isLate ? 'late' : 'completed',
+        completionDate: now,
+        completedBy: userId
+      });
+
+      // Log the submission
+      await storage.createLog(userId, "ACTIVITY_SUBMIT", `Submitted ${files.length} report(s) for activity: ${activity.title}`);
+
+      // Create notification
+      if (!suppressNotification) {
+        const users = await storage.getUsers();
+        const submittingUser = await storage.getUser(userId);
+        for (const user of users) {
+          if (user.id !== userId) {
+            await storage.createNotification({
+              userId: user.id,
+              activityId: activity.id,
+              title: "Activity Submitted",
+              content: `${submittingUser?.fullName || 'A user'} submitted ${files.length} files for: ${activity.title}`,
+              isRead: false
+            });
+          }
+        }
+      }
+
+      res.status(201).json({
+        message: isLate ? `Submitted ${files.length} files (marked as late)` : `Successfully submitted ${files.length} files`,
+        reports: createdReports,
+        isLate
+      });
+    } catch (err: any) {
+      console.error("Batch submission error:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Batch submission failed" });
     }
   });
 
