@@ -1676,7 +1676,7 @@ function CalendarContent() {
           if (!open) {
             setSelectedFiles([]);
             setSelectedActivity(null);
-            setStartingActivityId(null);
+            // Keep startingActivityId when closing modal - will reset when opening different activity
             // Reopen day activities modal if it was opened from there
             if (activityFromDayModal && dayActivitiesModalDate) {
               setShowDayActivitiesModal(true);
@@ -2396,6 +2396,7 @@ function CalendarContent() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedActivity(activity);
+                      setStartingActivityId(null);
                       setIsActivityModalOpen(true);
                       // Fetch submissions for this activity when modal opens
                       fetch(`/api/activities/${activity.id}/submissions`)
@@ -2435,6 +2436,7 @@ function CalendarContent() {
             }}
             selectedDate={selectedDate}
             onActivityClick={(activity) => {
+              setStartingActivityId(null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
             }}
@@ -2485,6 +2487,7 @@ function CalendarContent() {
             currentDate={currentDate} 
             activities={filteredActivities}
             onActivityClick={(activity) => {
+              setStartingActivityId(null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
             }}
@@ -2555,6 +2558,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
+                          setStartingActivityId(null);
                           setIsActivityModalOpen(true);
                         }}
                         className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
@@ -2587,6 +2591,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
+                          setStartingActivityId(null);
                           setIsActivityModalOpen(true);
                         }}
                         className={cn(
@@ -2773,6 +2778,7 @@ function CalendarContent() {
                           const activityDate = new Date(activity.deadlineDate);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
+                          setStartingActivityId(null);
                           setIsActivityModalOpen(true);
                         }}
                         className={cn(
