@@ -70,6 +70,15 @@ import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { format, formatDistanceToNow } from "date-fns";
 
+// Helper function to remove file extension
+const removeFileExtension = (filename: string): string => {
+  const lastDot = filename.lastIndexOf('.');
+  if (lastDot > 0) {
+    return filename.substring(0, lastDot);
+  }
+  return filename;
+};
+
 // Helper function to convert MIME type to readable extension
 const getFileExtension = (mimeType: string): string => {
   const mimeToExt: Record<string, string> = {
@@ -322,12 +331,65 @@ function DriveContent() {
   const [isBulkArchiveOpen, setIsBulkArchiveOpen] = useState(false);
   const [archiveFolderId, setArchiveFolderId] = useState<number | null>(null);
   const [archiveFileId, setArchiveFileId] = useState<number | null>(null);
-  const [isArchiving, setIsArchiving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [archiveItems, setArchiveItems] = useState<Set<number>>(new Set());
+  const [isBulkArchiving, setIsBulkArchiving] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+  const [renamingItems, setRenamingItems] = useState<Set<number>>(new Set());
+
+  // Helper to check if a specific item is being renamed
+  const isRenaming = (id: number) => renamingItems.has(id);
+
+  // Helper to mark an item as renaming
+  const setRenaming = (id: number, renaming: boolean) => {
+    setRenamingItems(prev => {
+      const newSet = new Set(prev);
+      if (renaming) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper to check if a specific item is being archived
+  const isArchiving = (id: number) => archiveItems.has(id);
+
+  // Helper to mark an item as archiving
+  const setArchiving = (id: number, archiving: boolean) => {
+    setArchiveItems(prev => {
+      const newSet = new Set(prev);
+      if (archiving) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+  const [deletingItems, setDeletingItems] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Helper to check if a specific item is being deleted
+  const isDeleting = (id: number) => deletingItems.has(id);
+
+  // Helper to mark an item as deleting
+  const setDeleting = (id: number, deleting: boolean) => {
+    setDeletingItems(prev => {
+      const newSet = new Set(prev);
+      if (deleting) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
 
   const handleRenameFile = async () => {
     if (!renameFileName.trim() || !renameFileId) return;
     
+    setRenaming(renameFileId, true);
     try {
       // Wait for the mutation to complete - the hook's onSuccess will invalidate reports
       await updateReport.mutateAsync({ id: renameFileId, title: renameFileName, fileName: renameFileName });
@@ -342,6 +404,8 @@ function DriveContent() {
       // Handle error - show error message
       console.error("Failed to rename file:", error);
       toast({ title: "Error", description: error?.message || "A file named already exists in this location.", variant: "destructive" });
+    } finally {
+      setRenaming(renameFileId, false);
     }
   };
 
@@ -360,6 +424,7 @@ function DriveContent() {
   const handleRenameFolder = async () => {
     if (!renameName.trim() || !renameId) return;
     
+    setRenaming(renameId, true);
     try {
       // Wait for the mutation to complete - the hook's onSuccess will invalidate folders
       await renameFolder.mutateAsync({ id: renameId, name: renameName });
@@ -374,6 +439,8 @@ function DriveContent() {
       // Handle error - show error message
       console.error("Failed to rename folder:", error);
       toast({ title: "Error", description: error?.message || "A folder named already exists in this location.", variant: "destructive" });
+    } finally {
+      setRenaming(renameId, false);
     }
   };
 
@@ -401,7 +468,7 @@ function DriveContent() {
           const base64 = reader.result as string;
           try {
             await createReport.mutateAsync({
-              title: file.name,
+              title: removeFileExtension(file.name),
               fileName: file.name,
               fileType: file.type,
               fileSize: file.size,
@@ -469,45 +536,49 @@ function DriveContent() {
     const filesCount = selectedFiles.length;
     const foldersCount = selectedFolders.length;
 
-    // Move items
-    if (selectedFiles.length > 0) {
-      await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId, suppressToast: true });
-    }
-    if (selectedFolders.length > 0) {
-      for (const id of selectedFolders) {
-        await moveFolder.mutateAsync({ id, targetParentId: targetFolderId, suppressToast: true });
+    try {
+      // Move items
+      if (selectedFiles.length > 0) {
+        await moveReports.mutateAsync({ reportIds: selectedFiles, folderId: targetFolderId, suppressToast: true });
       }
-    }
-    queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-    
-    // Show success message based on number of items moved
-    const totalCount = filesCount + foldersCount;
-    const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
-    const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
-    const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
-    
-    toast({
-      title: "Moved",
-      description: `${fileText}${andText}${folderText} moved successfully`
-    });
-    
-    setSelectedFiles([]);
-    setSelectedFolders([]);
-    setIsMoveOpen(false);
-    setIsSelectMode(false); // Exit select mode after successful move
-    if (targetFolderId !== null) {
-      setLocation(`/drive?folder=${targetFolderId}`);
-    } else {
-      // When moving to Home, redirect to Home
-      setLocation('/drive');
+      if (selectedFolders.length > 0) {
+        for (const id of selectedFolders) {
+          await moveFolder.mutateAsync({ id, targetParentId: targetFolderId, suppressToast: true });
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      
+      // Show success message based on number of items moved
+      const totalCount = filesCount + foldersCount;
+      const fileText = filesCount > 0 ? `${filesCount} file${filesCount > 1 ? 's' : ''}` : '';
+      const folderText = foldersCount > 0 ? `${foldersCount} folder${foldersCount > 1 ? 's' : ''}` : '';
+      const andText = filesCount > 0 && foldersCount > 0 ? ' and ' : '';
+      
+      toast({
+        title: "Moved",
+        description: `${fileText}${andText}${folderText} moved successfully`
+      });
+      
+      setSelectedFiles([]);
+      setSelectedFolders([]);
+      setIsMoveOpen(false);
+      setIsSelectMode(false); // Exit select mode after successful move
+      if (targetFolderId !== null) {
+        setLocation(`/drive?folder=${targetFolderId}`);
+      } else {
+        // When moving to Home, redirect to Home
+        setLocation('/drive');
+      }
+    } finally {
+      setIsMoving(false);
     }
   };
 
   const handleBulkDelete = async () => {
     const filesCount = selectedFiles.length;
     const foldersCount = selectedFolders.length;
-    setIsDeleting(true);
+    setIsBulkDeleting(true);
     
     try {
       if (selectedFiles.length > 0) {
@@ -539,14 +610,14 @@ function DriveContent() {
       setIsBulkDeleteOpen(false);
       setIsSelectMode(false); // Exit select mode after successful delete
     } finally {
-      setIsDeleting(false);
+      setIsBulkDeleting(false);
     }
   };
 
   const handleBulkArchive = async () => {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
-    setIsArchiving(true);
+    setIsBulkArchiving(true);
     
     try {
       if (selectedFolders.length > 0) {
@@ -577,7 +648,7 @@ function DriveContent() {
       setIsBulkArchiveOpen(false);
       setIsSelectMode(false);
     } finally {
-      setIsArchiving(false);
+      setIsBulkArchiving(false);
     }
   };
 
@@ -1015,7 +1086,7 @@ function DriveContent() {
             <Label htmlFor="rename-file-input">File Name</Label>
             <Input id="rename-file-input" name="fileName" value={renameFileName} onChange={(e) => setRenameFileName(e.target.value)} />
           </div>
-          <DialogFooter><Button onClick={handleRenameFile} disabled={updateReport.isPending}>{updateReport.isPending ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleRenameFile} disabled={isRenaming(renameFileId!)}>{isRenaming(renameFileId!) ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1029,7 +1100,7 @@ function DriveContent() {
             <Label htmlFor="rename-folder-input">Folder Name</Label>
             <Input id="rename-folder-input" name="folderName" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
           </div>
-          <DialogFooter><Button onClick={handleRenameFolder} disabled={renameFolder.isPending}>{renameFolder.isPending ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleRenameFolder} disabled={isRenaming(renameId!)}>{isRenaming(renameId!) ? 'Renaming...' : 'Rename'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1178,10 +1249,12 @@ function DriveContent() {
             <Button
               onClick={() => {
                 if (selectedDestination !== null || (selectedDestination === null && destinationSelected)) {
+                  setIsMoving(true);
                   handleMoveItems();
                 }
               }}
               disabled={
+                isMoving ||
                 (selectedDestination === null && !destinationSelected) || // No destination selected
                 selectedDestination === currentFolderId || // Trying to move to the same folder
                 (selectedDestination === null && currentFolderId === null && destinationSelected) || // Trying to move to Home when already at Home
@@ -1194,7 +1267,7 @@ function DriveContent() {
                  ))
               }
             >
-              Move Here
+              {isMoving ? "Moving..." : "Move Here"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1213,20 +1286,20 @@ function DriveContent() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
-                  setIsDeleting(true);
+                  setDeleting(deleteFolderId, true);
                   deleteFolder.mutate({ id: deleteFolderId }, {
                     onSuccess: () => {
                       setDeleteFolderId(null);
-                      setIsDeleting(false);
+                      setDeleting(deleteFolderId, false);
                     },
-                    onError: () => setIsDeleting(false)
+                    onError: () => setDeleting(deleteFolderId, false)
                   });
                 }
               }}
-              disabled={isDeleting}
+              disabled={isDeleting(deleteFolderId!)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting(deleteFolderId!) ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1245,20 +1318,20 @@ function DriveContent() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
-                  setIsDeleting(true);
+                  setDeleting(deleteFileId, true);
                   deleteReport.mutate({ id: deleteFileId }, {
                     onSuccess: () => {
                       setDeleteFileId(null);
-                      setIsDeleting(false);
+                      setDeleting(deleteFileId, false);
                     },
-                    onError: () => setIsDeleting(false)
+                    onError: () => setDeleting(deleteFileId, false)
                   });
                 }
               }}
-              disabled={isDeleting}
+              disabled={isDeleting(deleteFileId!)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting(deleteFileId!) ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1276,8 +1349,8 @@ function DriveContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkArchive} disabled={isArchiving}>
-              {isArchiving ? "Archiving..." : "Archive"}
+            <AlertDialogAction onClick={handleBulkArchive} disabled={isBulkArchiving}>
+              {isBulkArchiving ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1297,10 +1370,10 @@ function DriveContent() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
-              disabled={isDeleting}
+              disabled={isBulkDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isBulkDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1320,20 +1393,20 @@ function DriveContent() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFolderId) {
-                  setIsArchiving(true);
+                  setArchiving(archiveFolderId, true);
                   updateFolder.mutate({ id: archiveFolderId, status: 'archived' }, {
                     onSuccess: () => {
                       toast({ title: "Archived", description: "Folder archived successfully" });
                       setArchiveFolderId(null);
-                      setIsArchiving(false);
+                      setArchiving(archiveFolderId, false);
                     },
-                    onError: () => setIsArchiving(false)
+                    onError: () => setArchiving(archiveFolderId, false)
                   });
                 }
               }}
-              disabled={isArchiving}
+              disabled={isArchiving(archiveFolderId!)}
             >
-              {isArchiving ? "Archiving..." : "Archive"}
+              {isArchiving(archiveFolderId!) ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1352,20 +1425,20 @@ function DriveContent() {
             <AlertDialogAction
               onClick={() => {
                 if (archiveFileId) {
-                  setIsArchiving(true);
+                  setArchiving(archiveFileId, true);
                   updateReport.mutate({ id: archiveFileId, status: 'archived' }, {
                     onSuccess: () => {
                       toast({ title: "Archived", description: "File archived successfully" });
                       setArchiveFileId(null);
-                      setIsArchiving(false);
+                      setArchiving(archiveFileId, false);
                     },
-                    onError: () => setIsArchiving(false)
+                    onError: () => setArchiving(archiveFileId, false)
                   });
                 }
               }}
-              disabled={isArchiving}
+              disabled={isArchiving(archiveFileId!)}
             >
-              {isArchiving ? "Archiving..." : "Archive"}
+              {isArchiving(archiveFileId!) ? "Archiving..." : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1763,9 +1836,9 @@ function DriveContent() {
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             {isSelectMode ? (
-                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{r.fileName}</span>
+                              <span onClick={(e) => { e.stopPropagation(); toggleFileSelection(r.id); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{removeFileExtension(r.fileName)}</span>
                             ) : (
-                              <span className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{r.fileName}</span>
+                              <span className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none">{removeFileExtension(r.fileName)}</span>
                             )}
                           </div>
                         </td>
@@ -1781,7 +1854,7 @@ function DriveContent() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 mr-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(r.fileName); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(removeFileExtension(r.fileName)); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setArchiveFileId(r.id);}}>Archive</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
@@ -1848,7 +1921,7 @@ function DriveContent() {
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <span className="break-all">{selectedFileForDialog?.fileName}</span>
+              <span className="break-all">{selectedFileForDialog ? removeFileExtension(selectedFileForDialog.fileName) : ''}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
               File details and download option

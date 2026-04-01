@@ -52,6 +52,15 @@ import {
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
+// Helper function to remove file extension
+const removeFileExtension = (filename: string): string => {
+  const lastDot = filename.lastIndexOf('.');
+  if (lastDot > 0) {
+    return filename.substring(0, lastDot);
+  }
+  return filename;
+};
+
 // Helper function to convert MIME type to readable extension
 const getFileExtension = (mimeType: string): string => {
   const mimeToExt: Record<string, string> = {
@@ -237,8 +246,42 @@ function ArchivesContent() {
   const [deleteFileId, setDeleteFileId] = useState<number | null>(null);
   const [restoreFolderId, setRestoreFolderId] = useState<number | null>(null);
   const [restoreFileId, setRestoreFileId] = useState<number | null>(null);
-  const [isRestoring, setIsRestoring] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [restoringItems, setRestoringItems] = useState<Set<number>>(new Set());
+  const [isBulkRestoring, setIsBulkRestoring] = useState(false);
+
+  // Helper to check if a specific item is being restored
+  const isRestoring = (id: number) => restoringItems.has(id);
+
+  // Helper to mark an item as restoring
+  const setRestoring = (id: number, restoring: boolean) => {
+    setRestoringItems(prev => {
+      const newSet = new Set(prev);
+      if (restoring) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+  const [deletingItems, setDeletingItems] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Helper to check if a specific item is being deleted
+  const isDeleting = (id: number) => deletingItems.has(id);
+
+  // Helper to mark an item as deleting
+  const setDeleting = (id: number, deleting: boolean) => {
+    setDeletingItems(prev => {
+      const newSet = new Set(prev);
+      if (deleting) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
   const [isBulkRestoreOpen, setIsBulkRestoreOpen] = useState(false);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -334,7 +377,7 @@ function ArchivesContent() {
     let errorMessage = "";
     let restoredFolders = 0;
     let restoredFiles = 0;
-    setIsRestoring(true);
+    setIsBulkRestoring(true);
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
@@ -395,13 +438,13 @@ function ArchivesContent() {
     setSelectedFiles([]);
     setIsBulkRestoreOpen(false);
     setIsSelectMode(false);
-    setIsRestoring(false);
+    setIsBulkRestoring(false);
   };
 
   const handleBulkDelete = async () => {
     const foldersCount = selectedFolders.length;
     const filesCount = selectedFiles.length;
-    setIsDeleting(true);
+    setIsBulkDeleting(true);
     
     if (selectedFolders.length > 0) {
       for (const id of selectedFolders) {
@@ -429,7 +472,7 @@ function ArchivesContent() {
     setSelectedFiles([]);
     setIsBulkDeleteOpen(false);
     setIsSelectMode(false);
-    setIsDeleting(false);
+    setIsBulkDeleting(false);
   };
 
   return (
@@ -523,16 +566,15 @@ function ArchivesContent() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFolderId) {
-                  setIsDeleting(true);
+                  setDeleting(deleteFolderId, true);
                   deleteFolder.mutate({ id: deleteFolderId });
                   setDeleteFolderId(null);
-                  setTimeout(() => setIsDeleting(false), 1000);
                 }
               }}
-              disabled={isDeleting}
+              disabled={isDeleting(deleteFolderId!)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting(deleteFolderId!) ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -551,16 +593,15 @@ function ArchivesContent() {
             <AlertDialogAction
               onClick={() => {
                 if (deleteFileId) {
-                  setIsDeleting(true);
+                  setDeleting(deleteFileId, true);
                   deleteReport.mutate({ id: deleteFileId });
                   setDeleteFileId(null);
-                  setTimeout(() => setIsDeleting(false), 1000);
                 }
               }}
-              disabled={isDeleting}
+              disabled={isDeleting(deleteFileId!)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting(deleteFileId!) ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -579,7 +620,7 @@ function ArchivesContent() {
             <AlertDialogAction
               onClick={async () => {
                 if (restoreFolderId) {
-                  setIsRestoring(true);
+                  setRestoring(restoreFolderId, true);
                   try {
                     await updateFolder.mutateAsync({ id: restoreFolderId, status: 'active' });
                     toast({ title: "Restored", description: "Folder restored successfully" });
@@ -587,12 +628,11 @@ function ArchivesContent() {
                     toast({ title: "Error", description: error?.message || "A folder named already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFolderId(null);
-                  setIsRestoring(false);
                 }
               }}
-              disabled={isRestoring}
+              disabled={isRestoring(restoreFolderId!)}
             >
-              {isRestoring ? "Restoring..." : "Restore"}
+              {isRestoring(restoreFolderId!) ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -611,7 +651,7 @@ function ArchivesContent() {
             <AlertDialogAction
               onClick={async () => {
                 if (restoreFileId) {
-                  setIsRestoring(true);
+                  setRestoring(restoreFileId, true);
                   try {
                     await updateReport.mutateAsync({ id: restoreFileId, status: 'active' });
                     toast({ title: "Restored", description: "File restored successfully" });
@@ -619,12 +659,11 @@ function ArchivesContent() {
                     toast({ title: "Error", description: error?.message || "A file named already exists in this location.", variant: "destructive" });
                   }
                   setRestoreFileId(null);
-                  setIsRestoring(false);
                 }
               }}
-              disabled={isRestoring}
+              disabled={isRestoring(restoreFileId!)}
             >
-              {isRestoring ? "Restoring..." : "Restore"}
+              {isRestoring(restoreFileId!) ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -641,8 +680,8 @@ function ArchivesContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleBulkRestore} disabled={isRestoring}>
-              {isRestoring ? "Restoring..." : "Restore"}
+            <AlertDialogAction onClick={handleBulkRestore} disabled={isBulkRestoring}>
+              {isBulkRestoring ? "Restoring..." : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -661,10 +700,10 @@ function ArchivesContent() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
-              disabled={isDeleting}
+              disabled={isBulkDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isBulkDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -910,7 +949,7 @@ function ArchivesContent() {
                         <td className="px-4 py-4 w-auto min-w-[150px] align-middle">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
-                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{r.fileName}</span>
+                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] md:max-w-none md:cursor-default">{removeFileExtension(r.fileName)}</span>
                           </div>
                         </td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
@@ -992,7 +1031,7 @@ function ArchivesContent() {
           <DialogHeader>
             <DialogTitle className="flex items-start gap-2 pr-8 text-left">
               <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <span className="break-all">{selectedFileForDialog?.fileName}</span>
+              <span className="break-all">{selectedFileForDialog ? removeFileExtension(selectedFileForDialog.fileName) : ''}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
               File details and download option
