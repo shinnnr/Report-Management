@@ -2422,7 +2422,7 @@ function CalendarContent() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] pr-2">
+            <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] px-3">
               {/* Activity Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                 <div>
@@ -2497,7 +2497,7 @@ function CalendarContent() {
                         id="submissionDate"
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal !border-gray-300 dark:!border-gray-600",
                           !submissionDate && "text-muted-foreground"
                         )}
                       >
