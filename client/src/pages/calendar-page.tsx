@@ -33,7 +33,7 @@ import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity, 
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from "@/hooks/use-holidays";
 import { useAuth } from "@/hooks/use-auth";
 import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-settings";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
 import { Link, useLocation, useSearch } from "wouter";
@@ -57,6 +57,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,9 +70,11 @@ import { Calendar } from "@/components/ui/calendar";
 
 // Helper functions defined outside component for accessibility
 let holidaysData: any[] = [];
+let holidaysEnabledData: boolean = true;
 
 // Helper function to check if a date is a holiday
 const isDateHoliday = (date: Date) => {
+  if (!holidaysEnabledData) return false;
   return holidaysData?.some(holiday =>
     isSameDay(new Date(holiday.date), date)
   ) || false;
@@ -86,7 +89,11 @@ const isDateWeekend = (date: Date) => {
 // Helper function to get the effective display date for an activity (adjusted for holidays/weekends)
 const getEffectiveActivityDate = (activity: any): Date => {
   const deadlineDate = new Date(activity.deadlineDate);
-  if (isDateHoliday(deadlineDate) || isDateWeekend(deadlineDate)) {
+  
+  // Check if we should adjust for weekends (always, regardless of holidays setting)
+  const shouldAdjust = isDateWeekend(deadlineDate) || (holidaysEnabledData && isDateHoliday(deadlineDate));
+  
+  if (shouldAdjust) {
     // Move to previous weekday that's not a holiday
     let adjustedDate = new Date(deadlineDate);
     let isAdjusted = true;
@@ -102,7 +109,7 @@ const getEffectiveActivityDate = (activity: any): Date => {
       } else if (dayOfWeek === 0) { // Sunday
         adjustedDate.setDate(adjustedDate.getDate() - 2);
         isAdjusted = true;
-      } else if (isDateHoliday(adjustedDate)) { // Check if it's a holiday
+      } else if (holidaysEnabledData && isDateHoliday(adjustedDate)) { // Check if it's a holiday (only when enabled)
         adjustedDate.setDate(adjustedDate.getDate() - 1);
         isAdjusted = true;
       }
@@ -126,6 +133,56 @@ function CalendarContent() {
   const { openSidebar } = useSidebar();
   const { allowNonAdminActivityDelete, allowNonAdminHolidayAdd } = useSystemSettings();
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
+
+  // Holidays enabled state - local with polling for sync across users
+  const [holidaysEnabled, setHolidaysEnabled] = useState<boolean>(true);
+
+  // Poll for holidays enabled setting every 5 seconds for cross-user sync
+  useEffect(() => {
+    const fetchHolidaysEnabled = async () => {
+      try {
+        const res = await fetch('/api/settings/holidays_enabled', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const newValue = data.value === 'true';
+          setHolidaysEnabled(prev => {
+            if (prev !== newValue) {
+              holidaysEnabledData = newValue;
+              return newValue;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+    };
+
+    fetchHolidaysEnabled();
+    const interval = setInterval(fetchHolidaysEnabled, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateHolidaysEnabled = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'holidays_enabled', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return res.json();
+    },
+    onSuccess: (_, value) => {
+      setHolidaysEnabled(value);
+      holidaysEnabledData = value;
+    },
+  });
 
   // Enable real-time polling for settings changes
   useSystemSettingsPolling();
@@ -194,7 +251,8 @@ function CalendarContent() {
   // Update global holidays data when holidays change
   useEffect(() => {
     holidaysData = holidays || [];
-  }, [holidays]);
+    holidaysEnabledData = holidaysEnabled;
+  }, [holidays, holidaysEnabled]);
 
   // Clear department filter when role-based filtering is enabled for non-admin users
   useEffect(() => {
@@ -1507,6 +1565,16 @@ function CalendarContent() {
                 <DialogDescription className="text-sm">
                   Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.
                 </DialogDescription>
+                <div className="flex items-center justify-between pt-2">
+                  <Label htmlFor="holidays-enabled-modal" className="text-sm font-medium">
+                    Enable Holidays
+                  </Label>
+                  <Switch
+                    id="holidays-enabled-modal"
+                    checked={holidaysEnabled}
+                    onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
+                  />
+                </div>
               </DialogHeader>
               <div className="h-[400px] overflow-y-auto py-4 px-6 pb-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                 <div className="space-y-6">
@@ -1542,6 +1610,7 @@ function CalendarContent() {
                                 onSelect={setHolidayDate}
                                 initialFocus
                                 holidays={holidays}
+                                holidaysEnabled={holidaysEnabled}
                               />
                             </PopoverContent>
                         </Popover>
@@ -3608,10 +3677,24 @@ function CalendarContent() {
           {canManageHolidays && (
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-2">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                Holiday Management
-              </h3>
-              <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    Holiday Management
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="holidays-enabled-panel" className="text-sm font-medium whitespace-nowrap">
+                    Enable Holidays
+                  </Label>
+                  <Switch
+                    id="holidays-enabled-panel"
+                    checked={holidaysEnabled}
+                    onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
+                  />
+                </div>
+              </div>
             </div>
             
             <div className="p-6 space-y-6">
@@ -3647,6 +3730,7 @@ function CalendarContent() {
                             onSelect={setHolidayDate}
                             initialFocus
                             holidays={holidays}
+                            holidaysEnabled={holidaysEnabled}
                           />
                         </PopoverContent>
                     </Popover>
@@ -4038,7 +4122,7 @@ function WeekView({
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
           <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
           {weekDays.map((day) => {
-            const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
+            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
 
             return (
@@ -4250,7 +4334,7 @@ function DayView({
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
           (() => {
-            const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
             return (isHoliday || isWeekend) ? "bg-red-50 dark:bg-red-950/20" : "";
           })()
@@ -4260,7 +4344,7 @@ function DayView({
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
                 (() => {
-                  const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : isToday(currentDate) ? "text-primary" : "text-muted-foreground";
                 })()
@@ -4268,13 +4352,13 @@ function DayView({
               <div className={cn(
                 "text-4xl font-bold",
                 (() => {
-                  const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : "";
                 })()
               )}>{format(currentDate, 'd')}</div>
               {(() => {
-                const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                 const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                 if (isHoliday) {
                   const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;

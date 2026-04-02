@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   holidays?: { date: Date | string; name: string }[]
+  holidaysEnabled?: boolean
 }
 
 function Calendar({
@@ -15,10 +16,11 @@ function Calendar({
   classNames,
   showOutsideDays = true,
   holidays = [],
+  holidaysEnabled = true,
   ...props
 }: CalendarProps) {
-  // Create holiday dates for modifiers
-  const holidayDates = holidays?.map(holiday => new Date(holiday.date)) || []
+  // Create holiday dates for modifiers (only if holidays are enabled)
+  const holidayDates = holidaysEnabled ? (holidays?.map(holiday => new Date(holiday.date)) || []) : []
   const today = new Date()
 
   // Create combined modifier for dates that are both today and holiday
