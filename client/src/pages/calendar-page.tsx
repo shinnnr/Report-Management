@@ -2852,6 +2852,7 @@ function CalendarContent() {
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
+            onDayClick={handleDayClickInWeekView}
             holidays={holidays}
             // New activity modal handlers
             setIsNewActivityOpen={setIsNewActivityOpen}
