@@ -3154,7 +3154,7 @@ function CalendarContent() {
        {/* Two-Column Grid for Panels on Desktop */}
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Upcoming Activities Sidebar */}
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[450px]">
+      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[600px]">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg">Upcoming Activities</h3>
               <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
@@ -3265,7 +3265,7 @@ function CalendarContent() {
         </div>
 
       {/* Agency & Department Filter Panel */}
-      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[450px]">
+      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[600px]">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
@@ -3418,8 +3418,8 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="flex-1 p-4 space-y-2 pr-4">
-                  <div className="space-y-2">
+                <ScrollArea className="flex-1 px-4 pt-4 pb-1 space-y-2">
+                  <div className="space-y-2 pb-1">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}
