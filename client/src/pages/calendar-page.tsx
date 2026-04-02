@@ -1374,7 +1374,7 @@ function CalendarContent() {
           <DialogHeader>
             <DialogTitle>Delete Recurring Activities</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete all {deleteRecurPreview.length} {deleteRecurType} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} for {deleteRecurYear}? This action cannot be undone.
+              Are you sure you want to delete all occurrences of a recurring activity type for a specific year? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1401,15 +1401,15 @@ function CalendarContent() {
                   setDeleteRecurType("");
                   setDeleteRecurYear("");
                   if (failedCount === 0) {
-                    toast({
-                      title: "Deleted",
-                      description: `All ${deleteResults.length} ${deleteRecurType} activities for ${deleteRecurYear} have been deleted`,
-                    });
+                     toast({
+                       title: "Deleted",
+                       description: `All ${deleteResults.length} ${deleteRecurType} activities for ${deleteRecurYear} have been deleted`,
+                     });
                   } else {
                     toast({
                       title: "Partially Deleted",
-                      description: `${deleteResults.length - failedCount} activities deleted. ${failedCount} failed.`,
-                      variant: "destructive"
+                       description: `${deleteResults.length - failedCount} activities deleted. ${failedCount} failed.`,
+                       variant: "destructive"
                     });
                   }
                 } catch (error) {
@@ -1611,85 +1611,85 @@ function CalendarContent() {
                   </div>
 
                    {/* Existing Holidays List */}
-                   <div className="space-y-4">
-                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                       <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                       Existing Holidays
-                     </h3>
-                     <div className="space-y-2">
-                       {holidays?.length === 0 ? (
-                         <p className="text-sm text-muted-foreground text-center py-4">No holidays configured</p>
-                       ) : (() => {
-                         const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
-                         const paginatedHolidays = holidays?.slice(
-                           (holidayPage - 1) * holidaysPerPage,
-                           holidayPage * holidaysPerPage
-                         ) || [];
+                   {holidays && holidays.length > 0 && (
+                     <div className="space-y-4">
+                       <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                         <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                         Existing Holidays
+                       </h3>
+                       <div className="space-y-2">
+                         {(() => {
+                           const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
+                           const paginatedHolidays = holidays?.slice(
+                             (holidayPage - 1) * holidaysPerPage,
+                             holidayPage * holidaysPerPage
+                           ) || [];
 
-                         return (
-                           <>
-                             {paginatedHolidays.map((holiday: any) => (
-                               <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                                 <div>
-                                   <p className="font-medium">{holiday.name}</p>
-                                   <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                           return (
+                             <>
+                               {paginatedHolidays.map((holiday: any) => (
+                                 <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                                   <div>
+                                     <p className="font-medium">{holiday.name}</p>
+                                     <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                                   </div>
+                                   <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditingHoliday(holiday);
+                                          setHolidayName(holiday.name);
+                                          setHolidayDate(new Date(holiday.date));
+                                        }}
+                                      >
+                                        Edit
+                                     </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => {
+                                          setHolidayToDelete(holiday);
+                                          setShowDeleteHolidayConfirm(true);
+                                        }}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                   </div>
                                  </div>
-                                 <div className="flex gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingHoliday(holiday);
-                                        setHolidayName(holiday.name);
-                                        setHolidayDate(new Date(holiday.date));
-                                      }}
-                                    >
-                                      Edit
-                                   </Button>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() => {
-                                        setHolidayToDelete(holiday);
-                                        setShowDeleteHolidayConfirm(true);
-                                      }}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                               ))}
+                               {/* Pagination - only show if more than 5 holidays */}
+                               {(holidays?.length || 0) > holidaysPerPage && (
+                                 <div className="flex items-center justify-between pt-4 border-t mt-4">
+                                   <p className="text-sm text-muted-foreground">
+                                     Page {holidayPage} of {totalPages}
+                                   </p>
+                                   <div className="flex gap-2">
+                                     <Button
+                                       variant="outline"
+                                       size="sm"
+                                       onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                                       disabled={holidayPage === 1}
+                                     >
+                                       <ChevronLeft className="w-4 h-4" />
+                                     </Button>
+                                     <Button
+                                       variant="outline"
+                                       size="sm"
+                                       onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
+                                       disabled={holidayPage === totalPages}
+                                     >
+                                       <ChevronRight className="w-4 h-4" />
+                                     </Button>
+                                   </div>
                                  </div>
-                               </div>
-                             ))}
-                             {/* Pagination - only show if more than 5 holidays */}
-                             {(holidays?.length || 0) > holidaysPerPage && (
-                               <div className="flex items-center justify-between pt-4 border-t mt-4">
-                                 <p className="text-sm text-muted-foreground">
-                                   Page {holidayPage} of {totalPages}
-                                 </p>
-                                 <div className="flex gap-2">
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                                     disabled={holidayPage === 1}
-                                   >
-                                     <ChevronLeft className="w-4 h-4" />
-                                   </Button>
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
-                                     disabled={holidayPage === totalPages}
-                                   >
-                                     <ChevronRight className="w-4 h-4" />
-                                   </Button>
-                                 </div>
-                               </div>
-                             )}
-                           </>
-                         );
-                       })()}
+                               )}
+                             </>
+                           );
+                         })()}
+                       </div>
                      </div>
-                   </div>
+                   )}
                 </div>
               </div>
             </DialogContent>
@@ -2770,9 +2770,9 @@ function CalendarContent() {
                   }
                   setShowDeleteConfirm(false);
                 }}
-                disabled={deleteActivity.isPending}
+                disabled={deletingActivityId === activityToDelete?.id}
               >
-                {deleteActivity.isPending ? "Deleting..." : "Delete"}
+                {deletingActivityId === activityToDelete?.id ? "Deleting..." : "Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -3577,9 +3577,9 @@ function CalendarContent() {
         </div>
 
         {/* Holiday Management & Recurring Activity Deletion Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Holiday Management Panel - Left Column */}
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-2">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 Holiday Management
@@ -3710,92 +3710,92 @@ function CalendarContent() {
               </div>
 
               {/* Existing Holidays List - Below Add Form */}
-              <div className="border rounded-lg p-4">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
-                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                  Existing Holidays
-                </h4>
-                <ScrollArea className="h-[300px]">
-                  <div className="space-y-2 pr-4">
-                    {holidays?.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">No holidays configured</p>
-                    ) : (() => {
-                      const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
-                      const paginatedHolidays = holidays?.slice(
-                        (holidayPage - 1) * holidaysPerPage,
-                        holidayPage * holidaysPerPage
-                      ) || [];
+              {holidays && holidays.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                    Existing Holidays
+                  </h4>
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2 pr-4">
+                      {(() => {
+                        const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
+                        const paginatedHolidays = holidays?.slice(
+                          (holidayPage - 1) * holidaysPerPage,
+                          holidayPage * holidaysPerPage
+                        ) || [];
 
-                      return (
-                        <>
-                          {paginatedHolidays.map((holiday: any) => (
-                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                              <div>
-                                <p className="font-medium">{holiday.name}</p>
-                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                        return (
+                          <>
+                            {paginatedHolidays.map((holiday: any) => (
+                              <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                                <div>
+                                  <p className="font-medium">{holiday.name}</p>
+                                  <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                   <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingHoliday(holiday);
+                                        setHolidayName(holiday.name);
+                                        setHolidayDate(new Date(holiday.date));
+                                      }}
+                                    >
+                                      Edit
+                                   </Button>
+                                   <Button
+                                     variant="destructive"
+                                     size="sm"
+                                     onClick={() => {
+                                       setHolidayToDelete(holiday);
+                                       setShowDeleteHolidayConfirm(true);
+                                     }}
+                                   >
+                                     <Trash2 className="w-4 h-4" />
+                                   </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
-                                 <Button
+                            ))}
+                            {/* Pagination - only show if more than 5 holidays */}
+                            {(holidays?.length || 0) > holidaysPerPage && (
+                              <div className="flex items-center justify-between pt-4 border-t mt-4">
+                                <p className="text-sm text-muted-foreground">
+                                  Page {holidayPage} of {totalPages}
+                                </p>
+                                <div className="flex gap-2">
+                                  <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                      setEditingHoliday(holiday);
-                                      setHolidayName(holiday.name);
-                                      setHolidayDate(new Date(holiday.date));
-                                    }}
+                                    onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                                    disabled={holidayPage === 1}
                                   >
-                                    Edit
-                                 </Button>
-                                 <Button
-                                   variant="destructive"
-                                   size="sm"
-                                   onClick={() => {
-                                     setHolidayToDelete(holiday);
-                                     setShowDeleteHolidayConfirm(true);
-                                   }}
-                                 >
-                                   <Trash2 className="w-4 h-4" />
-                                 </Button>
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={holidayPage === totalPages}
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                          {/* Pagination - only show if more than 5 holidays */}
-                          {(holidays?.length || 0) > holidaysPerPage && (
-                            <div className="flex items-center justify-between pt-4 border-t mt-4">
-                              <p className="text-sm text-muted-foreground">
-                                Page {holidayPage} of {totalPages}
-                              </p>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                                  disabled={holidayPage === 1}
-                                >
-                                  <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
-                                  disabled={holidayPage === totalPages}
-                                >
-                                  <ChevronRight className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </ScrollArea>
-              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Delete Recurring Activities Panel - Right Column */}
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-1 lg:self-start">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 Delete Recurring Activities
@@ -3840,16 +3840,16 @@ function CalendarContent() {
                 variant="outline"
                 className="w-full gap-2"
                 disabled={!deleteRecurType || !deleteRecurYear}
-                onClick={() => {
-                  if (!deleteRecurType || !deleteRecurYear) return;
-                  const year = parseInt(deleteRecurYear);
-                  const matched = (activities || []).filter(a => {
-                    if (a.recurrence !== deleteRecurType) return false;
-                    const actDate = new Date(a.deadlineDate);
-                    return actDate.getFullYear() === year;
-                  });
-                  setDeleteRecurPreview(matched);
-                }}
+                 onClick={() => {
+                   if (!deleteRecurType || !deleteRecurYear) return;
+                   const year = parseInt(deleteRecurYear);
+                   const matched = (activities || []).filter(a => {
+                     if (a.recurrence !== deleteRecurType) return false;
+                     const actDate = new Date(a.deadlineDate);
+                     return actDate.getFullYear() === year;
+                   });
+                   setDeleteRecurPreview(matched);
+                 }}
               >
                 Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurType && deleteRecurYear) ? (() => {
                   const year = parseInt(deleteRecurYear || "0");

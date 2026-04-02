@@ -659,7 +659,6 @@ export class DatabaseStorage implements IStorage {
         and(
           sql`${activities.recurrence} IS NOT NULL`,
           ne(activities.recurrence, 'none'),
-          isNull(activities.parentActivityId), // Only get master activities, not child instances
           ne(activities.status, 'deleted') // Exclude deleted master activities
         )
       );
@@ -789,6 +788,7 @@ export class DatabaseStorage implements IStorage {
         
         // Create the recurring activity for this deadline
         const newActivity = await this.createActivity({
+            userId: activity.userId,
             title: activity.title,
             description: activity.description,
             startDate: new Date(year, month, 1),
@@ -798,9 +798,8 @@ export class DatabaseStorage implements IStorage {
           concernDepartment: activity.concernDepartment,
           reportDetails: activity.reportDetails,
           remarks: activity.remarks,
-          recurrence: null, // The recurring instance doesn't repeat
-          recurrenceEndDate: null,
-          parentActivityId: null, // Make each recurring activity independent, not linked to parent
+          recurrence: activity.recurrence, // Same recurrence as master activity
+          recurrenceEndDate: activity.recurrenceEndDate,
         });
         
         // If the deadline has already passed, mark as overdue
