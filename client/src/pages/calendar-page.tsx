@@ -905,6 +905,25 @@ function CalendarContent() {
   const lastClickTimeRef = useRef<number>(0);
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   const DOUBLE_CLICK_DELAY = 300; // milliseconds
+
+  // Optimized timeout cleanup functions
+  const clearDateClickTimeout = useCallback(() => {
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+    setLastClickedDate(null);
+    lastClickTimeRef.current = 0;
+  }, []);
+
+  const clearTimeSlotClickTimeout = useCallback(() => {
+    if (timeSlotClickTimerRef.current) {
+      clearTimeout(timeSlotClickTimerRef.current);
+      timeSlotClickTimerRef.current = null;
+    }
+    setLastClickedTimeSlot(null);
+    lastTimeSlotClickTimeRef.current = 0;
+  }, []);
   
   // Mobile double-click detection for time slots
   const [lastClickedTimeSlot, setLastClickedTimeSlot] = useState<string | null>(null);
@@ -916,7 +935,7 @@ function CalendarContent() {
   const paddingDays = Array.from({ length: startDay });
 
   // Handle single/double click detection for mobile
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = useCallback((date: Date) => {
     const now = Date.now();
     
     // If this is the same date clicked recently, it's a double click
@@ -927,12 +946,7 @@ function CalendarContent() {
       setShowDayActivitiesModal(true);
       
       // Clear the timer and state
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-        clickTimerRef.current = null;
-      }
-      setLastClickedDate(null);
-      lastClickTimeRef.current = 0;
+      clearDateClickTimeout();
     } else {
       // Single click or click on different date - select the date
       if (selectedDate && isSameDay(date, selectedDate)) {
@@ -951,16 +965,12 @@ function CalendarContent() {
       }
       
       // Set timer to reset the double-click state after delay
-      clickTimerRef.current = setTimeout(() => {
-        setLastClickedDate(null);
-        lastClickTimeRef.current = 0;
-        clickTimerRef.current = null;
-      }, DOUBLE_CLICK_DELAY);
+      clickTimerRef.current = setTimeout(clearDateClickTimeout, DOUBLE_CLICK_DELAY);
     }
-  };
+  }, [selectedDate, lastClickedDate, clearDateClickTimeout]);
 
   // Handle single/double click detection for time slots on mobile
-  const handleTimeSlotClick = (date: Date, time: string) => {
+  const handleTimeSlotClick = useCallback((date: Date, time: string) => {
     // First, handle the single click selection
     handleSelectTimeSlot(date, time);
     
@@ -982,12 +992,7 @@ function CalendarContent() {
       setShowTimeSlotActivitiesModal(true);
       
       // Clear the timer and state
-      if (timeSlotClickTimerRef.current) {
-        clearTimeout(timeSlotClickTimerRef.current);
-        timeSlotClickTimerRef.current = null;
-      }
-      setLastClickedTimeSlot(null);
-      lastTimeSlotClickTimeRef.current = 0;
+      clearTimeSlotClickTimeout();
     } else {
       // Single click - update last clicked info
       setLastClickedTimeSlot(timeSlotKey);
@@ -999,13 +1004,9 @@ function CalendarContent() {
       }
       
       // Set timer to reset the double-click state after delay
-      timeSlotClickTimerRef.current = setTimeout(() => {
-        setLastClickedTimeSlot(null);
-        lastTimeSlotClickTimeRef.current = 0;
-        timeSlotClickTimerRef.current = null;
-      }, DOUBLE_CLICK_DELAY);
+      timeSlotClickTimerRef.current = setTimeout(clearTimeSlotClickTimeout, DOUBLE_CLICK_DELAY);
     }
-  };
+  }, [handleSelectTimeSlot, lastClickedTimeSlot, clearTimeSlotClickTimeout]);
 
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
