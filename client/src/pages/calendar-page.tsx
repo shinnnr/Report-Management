@@ -3270,9 +3270,9 @@ function CalendarContent() {
           <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
         </div>
-        <div className="p-4 flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Filter Dropdowns */}
-          <div className="flex gap-3 mb-4 flex-shrink-0">
+          <div className="flex gap-3 mb-4 flex-shrink-0 px-4 pt-4">
             <div className="flex-1">
               <label className="text-sm font-medium mb-1 block">Regulatory Agency</label>
               <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
@@ -3377,7 +3377,7 @@ function CalendarContent() {
           </div>
           
           {/* Filtered Activities List */}
-          <div className="flex-1 flex flex-col overflow-hidden space-y-2">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {activities && (() => {
               const filtered = activities.filter(a => {
                 const matchesAgency = !filterAgency || a.regulatoryAgency === filterAgency;
@@ -3418,8 +3418,8 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="flex-1 px-4 pt-4 pb-1 space-y-2">
-                  <div className="space-y-2 pb-1">
+                <ScrollArea className="flex-1 px-4 pb-2">
+                  <div className="space-y-2 pb-2">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}
@@ -3471,9 +3471,9 @@ function CalendarContent() {
                   </div>
                    </ScrollArea>
                    
-                   {/* Pagination - only show if more than 10 activities */}
-                   {filtered.length > itemsPerPage && (
-                     <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
+                    {/* Pagination - only show if more than 10 activities */}
+                    {filtered.length > itemsPerPage && (
+                      <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
                        <p className="text-sm text-muted-foreground">
                          Page {validPage} of {totalPages}
                        </p>
