@@ -463,6 +463,16 @@ function SettingsContent() {
             </CardHeader>
             <CardContent className="space-y-6">
               <form onSubmit={handleUpdatePassword} className="space-y-4">
+                {/* Hidden username field for accessibility */}
+                <input
+                  type="text"
+                  name="username"
+                  value={user?.username || ""}
+                  autoComplete="username"
+                  style={{ display: "none" }}
+                  aria-hidden="true"
+                  readOnly
+                />
                 <div className="grid gap-2">
                   <Label htmlFor="currentPassword">Current Password</Label>
                   <div className="relative">
