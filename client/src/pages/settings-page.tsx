@@ -1,6 +1,6 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement } from "@/hooks/use-settings";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,29 @@ function SettingsContent() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Optimized click handlers to prevent performance warnings
+  const toggleCurrentPassword = useCallback(() => {
+    setShowCurrentPassword(prev => !prev);
+  }, []);
+
+  const toggleNewPassword = useCallback(() => {
+    setShowNewPassword(prev => !prev);
+  }, []);
+
+  const toggleConfirmPassword = useCallback(() => {
+    setShowConfirmPassword(prev => !prev);
+  }, []);
   const [showCreateUserPassword, setShowCreateUserPassword] = useState(false);
   const [showCreateUserConfirmPassword, setShowCreateUserConfirmPassword] = useState(false);
+
+  const toggleCreateUserPassword = useCallback(() => {
+    setShowCreateUserPassword(prev => !prev);
+  }, []);
+
+  const toggleCreateUserConfirmPassword = useCallback(() => {
+    setShowCreateUserConfirmPassword(prev => !prev);
+  }, []);
   const [passwordError, setPasswordError] = useState("");
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUserData, setNewUserData] = useState({
@@ -452,13 +473,14 @@ function SettingsContent() {
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
                       className="pr-10"
+                      autoComplete="current-password"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      onClick={toggleCurrentPassword}
                     >
                       {showCurrentPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
@@ -475,13 +497,14 @@ function SettingsContent() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password (min 8 characters)"
                       className="pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      onClick={toggleNewPassword}
                     >
                       {showNewPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
@@ -498,13 +521,14 @@ function SettingsContent() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
                       className="pr-10"
+                      autoComplete="new-password"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={toggleConfirmPassword}
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
@@ -681,7 +705,7 @@ function SettingsContent() {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowCreateUserPassword(!showCreateUserPassword)}
+                            onClick={toggleCreateUserPassword}
                           >
                             {showCreateUserPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                           </Button>
@@ -705,7 +729,7 @@ function SettingsContent() {
                             variant="ghost"
                             size="sm"
                             className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowCreateUserConfirmPassword(!showCreateUserConfirmPassword)}
+                            onClick={toggleCreateUserConfirmPassword}
                           >
                             {showCreateUserConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                           </Button>
