@@ -26,7 +26,7 @@ export function DeactivationAlert() {
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const logoutMutation = useLogoutMutation();
   const { data: currentUser, refetch: refetchUser } = useUser();
-  const { user } = useAuth();
+  const { user, isLoggedOut } = useAuth();
   const hasLoggedOutRef = useRef(false);
   const lastProcessedTimestampRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -95,13 +95,13 @@ export function DeactivationAlert() {
 
   // Also refetch periodically to detect deactivations
   useEffect(() => {
-    if (currentUser && !logoutMutation.isPending && !logoutMutation.isSuccess) {
+    if (currentUser && !logoutMutation.isPending && !logoutMutation.isSuccess && !hasLoggedOutRef.current && !isLoggedOut) {
       const interval = setInterval(() => {
         refetchUser();
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [currentUser, refetchUser, logoutMutation.isPending, logoutMutation.isSuccess]);
+  }, [currentUser, refetchUser, logoutMutation.isPending, logoutMutation.isSuccess, isLoggedOut]);
 
   // Countdown timer - only triggers when modal opens/closes or logout status changes
   useEffect(() => {

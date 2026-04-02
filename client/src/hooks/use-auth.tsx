@@ -12,10 +12,14 @@ type AuthContextType = {
   loginMutation: ReturnType<typeof useLoginMutation>;
   logoutMutation: ReturnType<typeof useLogoutMutation>;
   refetchUser: () => void;
+  isLoggedOut: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 const AUTH_STORAGE_KEY = "authUser";
+
+// Global flag to track logout state
+let isLoggedOut = false;
 
 function getStoredUser(): User | null {
   try {
@@ -109,7 +113,11 @@ export function useUser(isLoginPage: boolean = false) {
       return error.name === "AuthError" ? false : true;
     },
     // Poll every 5 seconds to detect role changes from other sessions
-    refetchInterval: () => (isLoginPage ? false : 5000),
+    refetchInterval: (data) => {
+      // Stop polling if on login page, if user is not authenticated, or if logged out
+      if (isLoginPage || !data || isLoggedOut) return false;
+      return 5000;
+    },
   });
 }
 
@@ -141,6 +149,9 @@ export function useLoginMutation() {
       return api.auth.login.responses[200].parse(await res.json());
     },
     onSuccess: (user) => {
+      // Reset logout flag on successful login
+      isLoggedOut = false;
+
       queryClient.setQueryData([api.auth.me.path], user);
       setStoredUser(user);
       // Set session timestamp on successful login
@@ -174,11 +185,17 @@ export function useLogoutMutation() {
       if (!res.ok) throw new Error("Logout failed");
     },
     onSuccess: () => {
+      // Set global logout flag to prevent further polling
+      isLoggedOut = true;
+
       // Clear deactivation flags from localStorage
       localStorage.removeItem("userDeactivated");
       localStorage.removeItem("deactivatedMessage");
       setStoredUser(null);
-      queryClient.setQueryData([api.auth.me.path], null);
+
+      // Clear all queries from cache to stop polling and prevent 401 errors
+      queryClient.clear();
+
       resetTheme();
       toast({ title: "Logged out", description: "See you next time!" });
     },
@@ -199,6 +216,7 @@ export function AuthProvider({ children, isLoginPage = false }: { children: Reac
         loginMutation,
         logoutMutation,
         refetchUser: () => refetch(),
+        isLoggedOut,
       }}
     >
       {children}
