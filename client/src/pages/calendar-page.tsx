@@ -1781,7 +1781,7 @@ function CalendarContent() {
                     <div className="space-y-2">
                       <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
                       <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
-                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                        <SelectTrigger id="regulatoryAgency" className="h-10 border border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Select agency" />
                         </SelectTrigger>
                         <SelectContent>
@@ -3346,9 +3346,9 @@ function CalendarContent() {
           {/* Filter Dropdowns */}
           <div className="flex gap-3 mb-4 flex-shrink-0 px-4 pt-4">
             <div className="flex-1">
-              <label className="text-sm font-medium mb-1 block">Regulatory Agency</label>
+              <label htmlFor="filterAgency" className="text-sm font-medium mb-1 block">Regulatory Agency</label>
               <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id="filterAgency" className="w-full">
                   <SelectValue placeholder="All Agencies" />
                 </SelectTrigger>
                 <SelectContent>
@@ -3364,9 +3364,9 @@ function CalendarContent() {
             {enableRoleFiltering && user?.role !== 'admin' ? (
               // When role-based filtering is enabled and user is not admin, show auto-filtered department
               <div className="flex-1">
-                <label className="text-sm font-medium mb-1 block">Concern Department</label>
+                <label htmlFor="filterDepartmentDisabled" className="text-sm font-medium mb-1 block">Concern Department</label>
                 <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={true}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="filterDepartmentDisabled" className="w-full">
                     <SelectValue placeholder="Auto-filtered" />
                   </SelectTrigger>
                   <SelectContent>
@@ -3396,9 +3396,9 @@ function CalendarContent() {
               </div>
             ) : (
               <div className="flex-1">
-                <label className="text-sm font-medium mb-1 block">Concern Department</label>
+                <label htmlFor="filterDepartmentEnabled" className="text-sm font-medium mb-1 block">Concern Department</label>
                 <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={!filterAgency}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger id="filterDepartmentEnabled" className="w-full">
                     <SelectValue placeholder={filterAgency ? "All Departments" : "Select Agency First"} />
                   </SelectTrigger>
                   <SelectContent>
