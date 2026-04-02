@@ -399,11 +399,9 @@ function CalendarContent() {
       } else if (e.key === 'Escape') {
         setIsActivityModalOpen(false);
         setIsNewActivityOpen(false);
-        // Clear selection when pressing Escape in Day or Week view
-        if (view === 'day' || view === 'week') {
-          setSelectedDate(null);
-          setSelectedTimeSlot(null);
-        }
+        // Clear selection in all views when pressing Escape
+        setSelectedDate(null);
+        setSelectedTimeSlot(null);
       }
     };
     
@@ -891,9 +889,112 @@ function CalendarContent() {
     end: endOfMonth(currentDate),
   });
 
+  // Mobile double-click detection state
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
+  const lastClickTimeRef = useRef<number>(0);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const DOUBLE_CLICK_DELAY = 300; // milliseconds
+  
+  // Mobile double-click detection for time slots
+  const [lastClickedTimeSlot, setLastClickedTimeSlot] = useState<string | null>(null);
+  const lastTimeSlotClickTimeRef = useRef<number>(0);
+  const timeSlotClickTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Calculate padding days for grid alignment
   const startDay = startOfMonth(currentDate).getDay();
   const paddingDays = Array.from({ length: startDay });
+
+  // Handle single/double click detection for mobile
+  const handleDateClick = (date: Date) => {
+    const now = Date.now();
+    
+    // If this is the same date clicked recently, it's a double click
+    if (lastClickedDate && isSameDay(date, lastClickedDate) && (now - lastClickTimeRef.current) < DOUBLE_CLICK_DELAY) {
+      // Double click - open modal
+      setDayActivitiesModalDate(date);
+      setDayActivitiesPage(1);
+      setShowDayActivitiesModal(true);
+      
+      // Clear the timer and state
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+      setLastClickedDate(null);
+      lastClickTimeRef.current = 0;
+    } else {
+      // Single click or click on different date - select the date
+      if (selectedDate && isSameDay(date, selectedDate)) {
+        setSelectedDate(null);
+      } else {
+        setSelectedDate(date);
+      }
+      
+      // Update last clicked info
+      setLastClickedDate(date);
+      lastClickTimeRef.current = now;
+      
+      // Clear previous timer
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
+      
+      // Set timer to reset the double-click state after delay
+      clickTimerRef.current = setTimeout(() => {
+        setLastClickedDate(null);
+        lastClickTimeRef.current = 0;
+        clickTimerRef.current = null;
+      }, DOUBLE_CLICK_DELAY);
+    }
+  };
+
+  // Handle single/double click detection for time slots on mobile
+  const handleTimeSlotClick = (date: Date, time: string) => {
+    // First, handle the single click selection
+    handleSelectTimeSlot(date, time);
+    
+    // Now handle double-click detection for modal opening
+    const now = Date.now();
+    const timeSlotKey = `${date.toISOString()}-${time}`;
+    
+    // If this is the same time slot clicked recently, it's a double click
+    if (lastClickedTimeSlot === timeSlotKey && (now - lastTimeSlotClickTimeRef.current) < DOUBLE_CLICK_DELAY) {
+      // Double click - open modal for time slot activities
+      const dayActivities = (activities || []).filter(a => isSameDay(getEffectiveActivityDate(a), date));
+      const timeSlotActivities = dayActivities.filter(a => {
+        const activityHour = new Date(a.deadlineDate).getHours();
+        const [slotHour] = time.split(':').map(Number);
+        return activityHour === slotHour;
+      });
+      
+      setTimeSlotActivitiesModalData({ date, time, activities: timeSlotActivities });
+      setShowTimeSlotActivitiesModal(true);
+      
+      // Clear the timer and state
+      if (timeSlotClickTimerRef.current) {
+        clearTimeout(timeSlotClickTimerRef.current);
+        timeSlotClickTimerRef.current = null;
+      }
+      setLastClickedTimeSlot(null);
+      lastTimeSlotClickTimeRef.current = 0;
+    } else {
+      // Single click - update last clicked info
+      setLastClickedTimeSlot(timeSlotKey);
+      lastTimeSlotClickTimeRef.current = now;
+      
+      // Clear previous timer
+      if (timeSlotClickTimerRef.current) {
+        clearTimeout(timeSlotClickTimerRef.current);
+      }
+      
+      // Set timer to reset the double-click state after delay
+      timeSlotClickTimerRef.current = setTimeout(() => {
+        setLastClickedTimeSlot(null);
+        lastTimeSlotClickTimeRef.current = 0;
+        timeSlotClickTimerRef.current = null;
+      }, DOUBLE_CLICK_DELAY);
+    }
+  };
 
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
@@ -1473,7 +1574,7 @@ function CalendarContent() {
                 <Plus className="w-4 h-4" />
                 {selectedDate
                   ? isDateHolidayOrWeekend(selectedDate)
-                    ? `${isDateHoliday(selectedDate) ? 'Holiday' : 'Weekend'} - Cannot Add Activity`
+                    ? `${isDateHoliday(selectedDate) ? 'Holiday' : 'Weekend'}`
                     : `Add Activity for ${format(selectedDate, 'MMMM d')}`
                   : 'Select Date'}
               </Button>
@@ -1882,7 +1983,7 @@ function CalendarContent() {
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       {isHolidayOrWeekend
-                        ? `${isHoliday ? 'Holiday' : 'Weekend'} - Cannot Add`
+                        ? `${isHoliday ? 'Holiday' : 'Weekend'}`
                         : 'Add Activity'
                       }
                     </Button>
@@ -2317,7 +2418,7 @@ function CalendarContent() {
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   {timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date))
-                    ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'} - Cannot Add`
+                    ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'}`
                     : 'Add Activity'
                   }
                 </Button>
@@ -2679,40 +2780,30 @@ function CalendarContent() {
           return (
             <div
               key={date.toISOString()}
-              className={cn(
-                "p-2 border-b border-r min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
-                !isLastDayOfMonth && "last:border-r-0",
-                selectedDate &&
-                  isSameDay(date, selectedDate) &&
-                  "ring-2 ring-primary ring-inset bg-primary/5",
-                dropTargetDate &&
-                  isSameDay(date, dropTargetDate) &&
-                  "bg-primary/20 ring-2 ring-primary",
-                dayActivities.length > 0 && multiBorder.borderClass,
-                indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
-              )}
-              style={multiBorder.style}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (selectedDate && isSameDay(date, selectedDate)) {
-                  setSelectedDate(null);
-                } else {
-                  setSelectedDate(date);
-                }
-              }}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                setDayActivitiesModalDate(date);
-                setDayActivitiesPage(1);
-                setShowDayActivitiesModal(true);
-              }}
-              onDragOver={(e) => handleDateDragOver(e, date)}
-              onDragLeave={() => {
-                setDropTargetDate(null);
-                stopAutoScroll();
-              }}
-              onDrop={(e) => handleDateDrop(e, date)}
-            >
+             className={cn(
+                 "p-2 border-b border-r min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                 !isLastDayOfMonth && "last:border-r-0",
+                 selectedDate &&
+                   isSameDay(date, selectedDate) &&
+                   "ring-2 ring-primary ring-inset bg-primary/5",
+                 dropTargetDate &&
+                   isSameDay(date, dropTargetDate) &&
+                   "bg-primary/20 ring-2 ring-primary",
+                 dayActivities.length > 0 && multiBorder.borderClass,
+                 indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+               )}
+               style={multiBorder.style}
+               onClick={(e) => {
+                 e.stopPropagation();
+                 handleDateClick(date);
+               }}
+               onDragOver={(e) => handleDateDragOver(e, date)}
+               onDragLeave={() => {
+                 setDropTargetDate(null);
+                 stopAutoScroll();
+               }}
+               onDrop={(e) => handleDateDrop(e, date)}
+             >
               {/* Date */}
               <div
                 className={cn(
@@ -2835,7 +2926,7 @@ function CalendarContent() {
                   setIsLoadingSubmissions(false);
                 });
             }}
-            onSelectTimeSlot={handleSelectTimeSlot}
+            onSelectTimeSlot={handleTimeSlotClick}
             selectedTimeSlot={selectedTimeSlot}
             onClearSelection={handleClearSelection}
             isToday={isToday}
@@ -2888,7 +2979,7 @@ function CalendarContent() {
                   setIsLoadingSubmissions(false);
                 });
             }}
-            onSelectTimeSlot={handleSelectTimeSlot}
+            onSelectTimeSlot={handleTimeSlotClick}
             selectedTimeSlot={selectedTimeSlot}
             onClearSelection={handleClearSelection}
             isToday={isToday}
@@ -3428,38 +3519,29 @@ function WeekView({
                   .filter(a => isSameDay(getEffectiveActivityDate(a), day) && getActivityHour(a) === hour);
                 
                 return (
-                  <div 
-                    key={`${day.toISOString()}-${hour}`}
-                    data-date={day.toISOString()}
-                    data-time-slot={timeString}
-                    className={cn(
-                      "p-1 border-r last:border-r-0 min-h-[50px] hover:bg-muted/30 cursor-pointer transition-colors",
-                      isToday(day) && "bg-primary/5",
-                      selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
-                      selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
-                      // Drag over visual feedback
-                      dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
-                      dayHourActivities.length > 0 && getMultiStatusBorderColor?.(dayHourActivities)?.borderClass
-                    )}
-                    style={getMultiStatusBorderColor?.(dayHourActivities)?.style}
-                    onClick={() => {
-                      onDateSelect(day);
-                      // Select time slot (highlight) instead of opening modal
-                      onSelectTimeSlot(day, timeString);
-                    }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      onSelectTimeSlot(day, timeString);
-                      // Set selected date and time for the modal
-                      setSelectedDate?.(day);
-                      setActivityTime?.(timeString);
-                      setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
-                      setShowTimeSlotActivitiesModal?.(true);
-                    }}
-                    onDragOver={(e) => onTimeSlotDragOver?.(e, day, timeString)}
-                    onDragLeave={onTimeSlotDragLeave}
-                    onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
-                  >
+                   <div 
+                     key={`${day.toISOString()}-${hour}`}
+                     data-date={day.toISOString()}
+                     data-time-slot={timeString}
+                     className={cn(
+                       "p-1 border-r last:border-r-0 min-h-[50px] hover:bg-muted/30 cursor-pointer transition-colors",
+                       isToday(day) && "bg-primary/5",
+                       selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
+                       selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
+                       // Drag over visual feedback
+                       dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
+                       dayHourActivities.length > 0 && getMultiStatusBorderColor?.(dayHourActivities)?.borderClass
+                     )}
+                     style={getMultiStatusBorderColor?.(dayHourActivities)?.style}
+                     onClick={() => {
+                       onDateSelect(day);
+                       // Select time slot (highlight) instead of opening modal
+                       onSelectTimeSlot(day, timeString);
+                     }}
+                     onDragOver={(e) => onTimeSlotDragOver?.(e, day, timeString)}
+                     onDragLeave={onTimeSlotDragLeave}
+                     onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
+                   >
                     {/* Activities for this specific hour - show max 3 */}
                     {dayHourActivities.slice(0, 3).map(activity => (
                       <div
@@ -3654,30 +3736,22 @@ function DayView({
               <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
-              <div 
-                className={cn(
-                  "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
-                  selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
-                  // Drag over visual feedback
-                  dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
-                  hourActivities.length > 0 && getMultiStatusBorderColor?.(hourActivities)?.borderClass
-                )}
-                style={getMultiStatusBorderColor?.(hourActivities)?.style}
-                data-date={currentDate.toISOString()}
-                data-time-slot={timeString}
-                onClick={() => onSelectTimeSlot(currentDate, timeString)}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  onSelectTimeSlot(currentDate, timeString);
-                  setSelectedDate?.(currentDate);
-                  setActivityTime?.(timeString);
-                  setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
-                  setShowTimeSlotActivitiesModal?.(true);
-                }}
-                onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
-                onDragLeave={onTimeSlotDragLeave}
-                onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
-              >
+               <div 
+                 className={cn(
+                   "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
+                   selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
+                   // Drag over visual feedback
+                   dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
+                   hourActivities.length > 0 && getMultiStatusBorderColor?.(hourActivities)?.borderClass
+                 )}
+                 style={getMultiStatusBorderColor?.(hourActivities)?.style}
+                 data-date={currentDate.toISOString()}
+                 data-time-slot={timeString}
+                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
+                 onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
+                 onDragLeave={onTimeSlotDragLeave}
+                 onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
+               >
                 {/* Activities for this specific hour - show max 3 */}
                 {hourActivities.slice(0, 3).map(activity => (
                   <div
