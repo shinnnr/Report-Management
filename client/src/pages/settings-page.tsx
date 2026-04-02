@@ -549,13 +549,12 @@ function SettingsContent() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Trigger a manual check for overdue activities. This will update all activities that have passed their deadline and send notifications to users.
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => checkDeadlines.mutate()}
                     disabled={checkDeadlines.isPending}
                     className=""
                   >
-                    {checkDeadlines.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Check Deadlines Now
+                    {checkDeadlines.isPending ? "Checking Deadlines..." : "Check Deadlines"}
                   </Button>
                 </div>
               </CardContent>
