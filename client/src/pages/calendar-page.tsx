@@ -1851,6 +1851,11 @@ function CalendarContent() {
             (dayActivitiesPage - 1) * dayActivitiesPerPage,
             dayActivitiesPage * dayActivitiesPerPage
           );
+
+          // Check if the date is a holiday or weekend
+          const isHoliday = isDateHoliday(dayActivitiesModalDate);
+          const isWeekend = isDateWeekend(dayActivitiesModalDate);
+          const isHolidayOrWeekend = isHoliday || isWeekend;
           
           return (
             <Dialog open={showDayActivitiesModal} onOpenChange={(open) => {
@@ -1868,6 +1873,7 @@ function CalendarContent() {
                     </DialogTitle>
                     <Button
                       size="sm"
+                      disabled={isHolidayOrWeekend}
                       onClick={() => {
                         setSelectedDate(dayActivitiesModalDate);
                         setNewActivityFromDayModal(true);
@@ -1875,7 +1881,10 @@ function CalendarContent() {
                       }}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Activity
+                      {isHolidayOrWeekend
+                        ? `${isHoliday ? 'Holiday' : 'Weekend'} - Cannot Add`
+                        : 'Add Activity'
+                      }
                     </Button>
                   </div>
                   <DialogDescription>
@@ -1884,8 +1893,21 @@ function CalendarContent() {
                 </DialogHeader>
                 <ScrollArea className="h-[300px] pr-4">
                   <div className="space-y-2 py-4 px-4">
-                  {paginatedActivities.length === 0 ? (
+                  {paginatedActivities.length === 0 && !isHolidayOrWeekend ? (
                     <p className="text-center text-muted-foreground py-8">No activities for this day</p>
+                  ) : paginatedActivities.length === 0 && isHolidayOrWeekend ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
+                          <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
+                            🏖️ {isHoliday ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            Activities cannot be created on {isHoliday ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     paginatedActivities.map(activity => (
                       <div
@@ -2282,6 +2304,7 @@ function CalendarContent() {
                 </DialogTitle>
                 <Button
                   size="sm"
+                  disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
                   onClick={() => {
                     if (timeSlotActivitiesModalData) {
                       setSelectedDate(timeSlotActivitiesModalData.date);
@@ -2293,7 +2316,10 @@ function CalendarContent() {
                   }}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Activity
+                  {timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date))
+                    ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'} - Cannot Add`
+                    : 'Add Activity'
+                  }
                 </Button>
               </div>
               <DialogDescription>
@@ -2302,8 +2328,21 @@ function CalendarContent() {
             </DialogHeader>
             <ScrollArea className="h-[300px] pr-4">
               <div className="space-y-2 py-4 px-4">
-                {timeSlotActivitiesModalData?.activities.length === 0 ? (
+                {timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && !(isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) ? (
                   <p className="text-center text-muted-foreground py-8">No activities at this time</p>
+                ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
+                        <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
+                          🏖️ {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
+                        </p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Activities cannot be created on {isDateHoliday(timeSlotActivitiesModalData.date) ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   (() => {
                     const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
@@ -2813,21 +2852,7 @@ function CalendarContent() {
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
-            onDragEnd={() => {
-              stopAutoScroll();
-              // Only clear if not showing reschedule confirmation (check rescheduleTargetDate)
-              if (!rescheduleTargetDate) {
-                setDraggedActivity(null);
-                setDropTargetDate(null);
-                setDropTargetTime(null);
-                setIsDraggingOverTimeSlot(false);
-              }
-            }}
-            // Touch handlers
-            onTouchDragStart={handleTouchDragStart}
-            onTouchDragMove={handleTouchDragMove}
-            onTouchDragEnd={handleTouchDragEnd}
-            onDayClick={handleDayClickInWeekView}
+            holidays={holidays}
             // New activity modal handlers
             setIsNewActivityOpen={setIsNewActivityOpen}
             setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
@@ -2899,6 +2924,7 @@ function CalendarContent() {
             setTimeSlotActivitiesModalData={setTimeSlotActivitiesModalData}
             setSelectedDate={setSelectedDate}
             setActivityTime={setActivityTime}
+            holidays={holidays}
           />
         )}
       </div>
@@ -3258,17 +3284,17 @@ function CalendarContent() {
 }
 
 // Week View Component
-function WeekView({ 
-  currentDate, 
-  activities, 
-  onDateSelect, 
+function WeekView({
+  currentDate,
+  activities,
+  onDateSelect,
   selectedDate,
-  onActivityClick, 
+  onActivityClick,
   onSelectTimeSlot,
   selectedTimeSlot,
-  isToday, 
-  isSameDay, 
-  format, 
+  isToday,
+  isSameDay,
+  format,
   getStatusColor,
   onClearSelection,
   // Drag and drop props
@@ -3287,6 +3313,7 @@ function WeekView({
   onDayClick,
   getStatusBorderColor,
   getMultiStatusBorderColor,
+  holidays,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -3322,6 +3349,7 @@ function WeekView({
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   onDayClick?: (date: Date) => void;
+  holidays?: any[];
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -3345,27 +3373,34 @@ function WeekView({
         {/* Week header */}
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
           <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
-          {weekDays.map((day) => (
-          <div 
-            key={day.toISOString()} 
-            className={cn(
-              "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors",
-              isToday(day) && "bg-primary/10"
-            )}
-            onClick={() => onDayClick?.(day)}
-          >
-            <div className={cn(
-              "text-xs font-semibold",
-              isToday(day) ? "text-primary" : "text-muted-foreground"
-            )}>{format(day, 'EEE')}</div>
-            <div className={cn(
-              "text-lg font-semibold",
-              isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto"
-            )}>
-              {format(day, 'd')}
-            </div>
-          </div>
-        ))}
+          {weekDays.map((day) => {
+            const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
+            const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
+
+            return (
+              <div
+                key={day.toISOString()}
+                className={cn(
+                  "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors",
+                  isToday(day) && "bg-primary/10",
+                  isHoliday && "bg-red-50 dark:bg-red-950/20"
+                )}
+                onClick={() => onDayClick?.(day)}
+              >
+                <div className={cn(
+                  "text-xs font-semibold",
+                  isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+                )}>{format(day, 'EEE')}</div>
+                <div className={cn(
+                  "text-lg font-semibold",
+                  isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto",
+                  !isToday(day) && isHoliday && "text-red-600 dark:text-red-400"
+                )}>
+                  {format(day, 'd')}
+                </div>
+              </div>
+            );
+          })}
       </div>
       
       {/* Time slots */}
@@ -3476,15 +3511,15 @@ function WeekView({
 }
 
 // Day View Component
-function DayView({ 
-  currentDate, 
-  activities, 
-  onActivityClick, 
+function DayView({
+  currentDate,
+  activities,
+  onActivityClick,
   onSelectTimeSlot,
   selectedTimeSlot,
-  isToday, 
-  isSameDay, 
-  format, 
+  isToday,
+  isSameDay,
+  format,
   getStatusColor,
   getStatusBorderColor,
   getMultiStatusBorderColor,
@@ -3502,6 +3537,7 @@ function DayView({
   onTouchDragStart,
   onTouchDragMove,
   onTouchDragEnd,
+  holidays,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -3534,6 +3570,7 @@ function DayView({
   onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
+  holidays?: any[];
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -3555,11 +3592,43 @@ function DayView({
     <ScrollArea className="h-[700px] pr-4">
       <div className="h-full">
         {/* Day header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+        <div className={cn(
+          "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
+          (() => {
+            const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+            const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+            return (isHoliday || isWeekend) ? "bg-red-50 dark:bg-red-950/20" : "";
+          })()
+        )}>
           <div className="flex items-center justify-between pl-4">
             <div className="flex flex-col items-center">
-              <div className="text-xs font-bold text-primary uppercase tracking-wider">{format(currentDate, 'EEE')}</div>
-              <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
+              <div className={cn(
+                "text-xs font-bold uppercase tracking-wider",
+                (() => {
+                  const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                  return isHoliday ? "text-red-600 dark:text-red-400" : isToday(currentDate) ? "text-primary" : "text-muted-foreground";
+                })()
+              )}>{format(currentDate, 'EEE')}</div>
+              <div className={cn(
+                "text-4xl font-bold",
+                (() => {
+                  const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                  return isHoliday ? "text-red-600 dark:text-red-400" : "";
+                })()
+              )}>{format(currentDate, 'd')}</div>
+              {(() => {
+                const isHoliday = holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                if (isHoliday) {
+                  const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
+                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">🏖️ {holidayName}</div>;
+                } else if (isWeekend) {
+                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">🏖️ Weekend</div>;
+                }
+                return null;
+              })()}
             </div>
             <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
           </div>
