@@ -273,6 +273,13 @@ function CalendarContent() {
   const [isDeletingHolidayId, setIsDeletingHolidayId] = useState<number | null>(null);
   const [holidayPage, setHolidayPage] = useState(1);
   const holidaysPerPage = 5;
+
+  // Delete Recurring Activities State
+  const [deleteRecurType, setDeleteRecurType] = useState<string>("");
+  const [deleteRecurYear, setDeleteRecurYear] = useState<string>("");
+  const [deleteRecurPreview, setDeleteRecurPreview] = useState<any[]>([]);
+  const [showDeleteRecurConfirm, setShowDeleteRecurConfirm] = useState(false);
+  const [isDeletingRecurring, setIsDeletingRecurring] = useState(false);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -1360,6 +1367,63 @@ function CalendarContent() {
            </DialogFooter>
          </DialogContent>
        </Dialog>
+
+      {/* Delete Recurring Activities Confirmation Dialog */}
+      <Dialog open={showDeleteRecurConfirm} onOpenChange={setShowDeleteRecurConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Recurring Activities</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete all {deleteRecurPreview.length} {deleteRecurType} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} for {deleteRecurYear}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteRecurConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isDeletingRecurring}
+              onClick={async () => {
+                setIsDeletingRecurring(true);
+                setShowDeleteRecurConfirm(false);
+                try {
+                  const deleteResults = await Promise.all(
+                    deleteRecurPreview.map(async (activity) => {
+                      const url = buildUrl(api.activities.delete.path, { id: activity.id });
+                      const response = await fetch(url, { method: api.activities.delete.method });
+                      return { id: activity.id, success: response.ok };
+                    })
+                  );
+                  const failedCount = deleteResults.filter(r => !r.success).length;
+                  queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+                  setDeleteRecurPreview([]);
+                  setDeleteRecurType("");
+                  setDeleteRecurYear("");
+                  if (failedCount === 0) {
+                    toast({
+                      title: "Deleted",
+                      description: `All ${deleteResults.length} ${deleteRecurType} activities for ${deleteRecurYear} have been deleted`,
+                    });
+                  } else {
+                    toast({
+                      title: "Partially Deleted",
+                      description: `${deleteResults.length - failedCount} activities deleted. ${failedCount} failed.`,
+                      variant: "destructive"
+                    });
+                  }
+                } catch (error) {
+                  toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
+                } finally {
+                  setIsDeletingRecurring(false);
+                }
+              }}
+            >
+              {isDeletingRecurring ? 'Deleting...' : 'Delete All'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-8">
         <div className="w-full">
@@ -3512,18 +3576,19 @@ function CalendarContent() {
        </div>
         </div>
 
-        {/* Holiday Management Panel */}
-        <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible mt-8">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              Holiday Management
-            </h3>
-            <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Add New Holiday Panel */}
+        {/* Holiday Management & Recurring Activity Deletion Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Holiday Management Panel - Left Column */}
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                Holiday Management
+              </h3>
+              <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Add New Holiday Form - Top */}
               <div className="border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                   <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
@@ -3644,7 +3709,7 @@ function CalendarContent() {
                 </div>
               </div>
 
-              {/* Existing Holidays Panel */}
+              {/* Existing Holidays List - Below Add Form */}
               <div className="border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                   <span className="w-1 h-4 bg-green-500 rounded-full"></span>
@@ -3726,6 +3791,118 @@ function CalendarContent() {
                   </div>
                 </ScrollArea>
               </div>
+            </div>
+          </div>
+
+          {/* Delete Recurring Activities Panel - Right Column */}
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                Delete Recurring Activities
+              </h3>
+              <p className="text-sm text-muted-foreground">Delete all occurrences of a recurring activity type for a specific year.</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Recurrence Type Selector */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Recurrence Type</Label>
+                <Select value={deleteRecurType} onValueChange={(value) => { setDeleteRecurType(value); setDeleteRecurYear(""); setDeleteRecurPreview([]); }}>
+                  <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                    <SelectValue placeholder="Select recurrence type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="semi-annual">Semi-Annual</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Year Selector */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Year</Label>
+                <Select value={deleteRecurYear} onValueChange={(value) => { setDeleteRecurYear(value); setDeleteRecurPreview([]); }} disabled={!deleteRecurType}>
+                  <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                    <SelectValue placeholder={deleteRecurType ? "Select year" : "Select recurrence type first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                      <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Preview Button */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                disabled={!deleteRecurType || !deleteRecurYear}
+                onClick={() => {
+                  if (!deleteRecurType || !deleteRecurYear) return;
+                  const year = parseInt(deleteRecurYear);
+                  const matched = (activities || []).filter(a => {
+                    if (a.recurrence !== deleteRecurType) return false;
+                    const actDate = new Date(a.deadlineDate);
+                    return actDate.getFullYear() === year;
+                  });
+                  setDeleteRecurPreview(matched);
+                }}
+              >
+                Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurType && deleteRecurYear) ? (() => {
+                  const year = parseInt(deleteRecurYear || "0");
+                  return (activities || []).filter(a => a.recurrence === deleteRecurType && new Date(a.deadlineDate).getFullYear() === year).length;
+                })() : 0})
+              </Button>
+
+              {/* Preview List */}
+              {deleteRecurPreview.length > 0 && (
+                <div className="border rounded-lg p-3 space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
+                  </h4>
+                  <ScrollArea className="h-[200px]">
+                    <div className="space-y-1 pr-4">
+                      {deleteRecurPreview.map((activity: any) => (
+                        <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
+                          <div>
+                            <p className="font-medium truncate max-w-[200px]">{activity.title}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+                          </div>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-xs",
+                            activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                            activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                            activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                            "bg-orange-100 text-orange-700"
+                          )}>
+                            {activity.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {deleteRecurType && deleteRecurYear && deleteRecurPreview.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">
+                  No {deleteRecurType} activities found for {deleteRecurYear}
+                </p>
+              )}
+
+              {/* Delete Button */}
+              <Button
+                variant="destructive"
+                className="w-full gap-2"
+                disabled={deleteRecurPreview.length === 0 || isDeletingRecurring}
+                onClick={() => setShowDeleteRecurConfirm(true)}
+              >
+                <Trash2 className="w-4 h-4" />
+                {isDeletingRecurring ? "Deleting..." : `Delete All ${deleteRecurType ? deleteRecurType.charAt(0).toUpperCase() + deleteRecurType.slice(1) : ''} Activities for ${deleteRecurYear || '...'}`}
+              </Button>
             </div>
           </div>
         </div>
