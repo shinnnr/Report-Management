@@ -1,18 +1,29 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
+import { isSameDay } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  holidays?: { date: Date | string; name: string }[]
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  holidays = [],
   ...props
 }: CalendarProps) {
+  // Create holiday dates for modifiers
+  const holidayDates = holidays?.map(holiday => new Date(holiday.date)) || []
+  const today = new Date()
+
+  // Create combined modifier for dates that are both today and holiday
+  const todayHolidayDates = holidayDates.filter(date => isSameDay(date, today))
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -41,8 +52,8 @@ function Calendar({
         ),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+          "ring-2 ring-primary ring-offset-1 text-primary-foreground hover:bg-primary/10 hover:text-primary-foreground focus:bg-primary/10 focus:text-primary-foreground",
+        day_today: "bg-black text-white",
         day_outside:
           "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
         day_disabled: "text-muted-foreground opacity-50",
@@ -50,6 +61,19 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
+      }}
+      modifiers={{ holiday: holidayDates, todayHoliday: todayHolidayDates }}
+      modifiersStyles={{
+        holiday: {
+          backgroundColor: '#fef2f2',
+          color: '#dc2626',
+          fontWeight: '600'
+        },
+        todayHoliday: {
+          backgroundColor: '#000000',
+          color: '#dc2626',
+          fontWeight: '600'
+        }
       }}
       components={{
         IconLeft: ({ className, ...props }) => (

@@ -1449,14 +1449,15 @@ function CalendarContent() {
                               {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
-                           <PopoverContent className="w-auto p-0" align="start">
-                             <Calendar
-                               mode="single"
-                               selected={holidayDate}
-                               onSelect={setHolidayDate}
-                               initialFocus
-                             />
-                           </PopoverContent>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={holidayDate}
+                                onSelect={setHolidayDate}
+                                initialFocus
+                                holidays={holidays}
+                              />
+                            </PopoverContent>
                         </Popover>
                       </div>
                     </div>
@@ -3547,14 +3548,15 @@ function CalendarContent() {
                           {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                         </Button>
                       </PopoverTrigger>
-                       <PopoverContent className="w-auto p-0" align="start">
-                         <Calendar
-                           mode="single"
-                           selected={holidayDate}
-                           onSelect={setHolidayDate}
-                           initialFocus
-                         />
-                       </PopoverContent>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={holidayDate}
+                            onSelect={setHolidayDate}
+                            initialFocus
+                            holidays={holidays}
+                          />
+                        </PopoverContent>
                     </Popover>
                   </div>
                   <div className="flex gap-2">
