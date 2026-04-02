@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertFolderSchema, insertReportSchema, insertActivitySchema, insertNotificationSchema, users, folders, reports, activities, activityLogs, notifications, ActivityLogWithUser } from './schema';
+import { insertUserSchema, insertFolderSchema, insertReportSchema, insertActivitySchema, insertNotificationSchema, insertHolidaySchema, users, folders, reports, activities, activityLogs, notifications, holidays, ActivityLogWithUser } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -309,6 +309,41 @@ export const api = {
       path: '/api/notifications/:id/read',
       responses: {
         200: z.object({ message: z.string() }),
+      },
+    },
+  },
+  holidays: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/holidays',
+      responses: {
+        200: z.array(z.custom<typeof holidays.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/holidays',
+      input: insertHolidaySchema,
+      responses: {
+        201: z.custom<typeof holidays.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/holidays/:id',
+      input: insertHolidaySchema.partial(),
+      responses: {
+        200: z.custom<typeof holidays.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/holidays/:id',
+      responses: {
+        200: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
       },
     },
   },

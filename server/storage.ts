@@ -1,5 +1,5 @@
-import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions, systemSettings } from "@shared/schema";
-import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
+import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions, systemSettings, holidays } from "@shared/schema";
+import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission, type Holiday, type InsertHoliday, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
 import { format } from "date-fns";
@@ -62,6 +62,13 @@ export interface IStorage {
   getLogs(): Promise<ActivityLog[]>;
   createLog(userId: number, action: string, description: string): Promise<void>;
   deleteAllLogs(): Promise<void>;
+
+  // Holidays
+  getHolidays(): Promise<Holiday[]>;
+  getHoliday(id: number): Promise<Holiday | undefined>;
+  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
+  updateHoliday(id: number, updates: Partial<Holiday>): Promise<Holiday>;
+  deleteHoliday(id: number): Promise<void>;
 
   // System Settings
   getSetting(key: string): Promise<string | null>;
@@ -597,18 +604,40 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
-  // Helper function to adjust date if it falls on weekend (Saturday = 6, Sunday = 0)
-  // If date is on Saturday or Sunday, move to previous Friday
-  private adjustDateForWeekend(date: Date): Date {
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek === 6) { // Saturday
-      // Move to Friday (subtract 1 day)
-      date.setDate(date.getDate() - 1);
-    } else if (dayOfWeek === 0) { // Sunday
-      // Move to Friday (subtract 2 days)
-      date.setDate(date.getDate() - 2);
+  // Helper function to check if a date is a holiday
+  private async isHoliday(date: Date): Promise<boolean> {
+    const holidays = await this.getHolidays();
+    return holidays.some(holiday =>
+      holiday.date.getFullYear() === date.getFullYear() &&
+      holiday.date.getMonth() === date.getMonth() &&
+      holiday.date.getDate() === date.getDate()
+    );
+  }
+
+  // Helper function to adjust date if it falls on weekend or holiday
+  // If date is on Saturday, Sunday, or holiday, move to previous weekday that is not a holiday
+  private async adjustDateForWeekendOrHoliday(date: Date): Promise<Date> {
+    let adjustedDate = new Date(date);
+    let isAdjusted = true;
+
+    while (isAdjusted) {
+      isAdjusted = false;
+      const dayOfWeek = adjustedDate.getDay();
+
+      // Check if it's a weekend
+      if (dayOfWeek === 6) { // Saturday
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+        isAdjusted = true;
+      } else if (dayOfWeek === 0) { // Sunday
+        adjustedDate.setDate(adjustedDate.getDate() - 2);
+        isAdjusted = true;
+      } else if (await this.isHoliday(adjustedDate)) { // Check if it's a holiday
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+        isAdjusted = true;
+      }
     }
-    return date;
+
+    return adjustedDate;
   }
 
   // Generate recurring activities for a specific year
@@ -714,8 +743,8 @@ export class DatabaseStorage implements IStorage {
         
         console.log(`Created deadlineDate: ${deadlineDate}, startDate: ${startDate}`);
         
-        // Adjust for weekends
-        deadlineDate = this.adjustDateForWeekend(deadlineDate);
+        // Adjust for weekends and holidays
+        deadlineDate = await this.adjustDateForWeekendOrHoliday(deadlineDate);
         
         console.log(`After weekend adjustment: ${deadlineDate}`);
         
@@ -1075,6 +1104,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLog(id: number): Promise<void> {
     await db.delete(activityLogs).where(eq(activityLogs.id, id));
+  }
+
+  // Holidays
+  async getHolidays(): Promise<Holiday[]> {
+    return db.select().from(holidays).orderBy(holidays.date);
+  }
+
+  async getHoliday(id: number): Promise<Holiday | undefined> {
+    const [holiday] = await db.select().from(holidays).where(eq(holidays.id, id));
+    return holiday;
+  }
+
+  async createHoliday(insertHoliday: InsertHoliday): Promise<Holiday> {
+    const [holiday] = await db.insert(holidays).values(insertHoliday).returning();
+    return holiday;
+  }
+
+  async updateHoliday(id: number, updates: Partial<Holiday>): Promise<Holiday> {
+    const [holiday] = await db.update(holidays).set(updates).where(eq(holidays.id, id)).returning();
+    return holiday;
+  }
+
+  async deleteHoliday(id: number): Promise<void> {
+    await db.delete(holidays).where(eq(holidays.id, id));
   }
 
   // System Settings

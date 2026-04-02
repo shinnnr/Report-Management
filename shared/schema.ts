@@ -14,6 +14,14 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === HOLIDAYS ===
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  date: timestamp("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === SYSTEM SETTINGS ===
 export const systemSettings = pgTable("system_settings", {
   id: serial("id").primaryKey(),
@@ -190,6 +198,11 @@ export const insertActivitySchema = createInsertSchema(activities)
   });
 export const insertActivitySubmissionSchema = createInsertSchema(activitySubmissions).omit({ id: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export const insertHolidaySchema = createInsertSchema(holidays)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    date: z.string().transform(str => new Date(str)),
+  });
 export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({ id: true, updatedAt: true });
 
 // === TYPES ===
@@ -206,6 +219,8 @@ export type InsertActivitySubmission = z.infer<typeof insertActivitySubmissionSc
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Holiday = typeof holidays.$inferSelect;
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
 export type SystemSetting = typeof systemSettings.$inferSelect;
 export type InsertSystemSetting = z.infer<typeof insertSystemSettingsSchema>;
 

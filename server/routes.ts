@@ -692,10 +692,28 @@ export async function registerRoutes(
   app.post(api.activities.create.path, isAuthenticated, async (req, res) => {
     try {
       const input = api.activities.create.input.parse(req.body);
-      
+
+      // Check if deadline falls on a holiday or weekend
+      const deadlineDate = new Date(input.deadlineDate);
+      const dayOfWeek = deadlineDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+
+      // Check if it's a holiday
+      const holidays = await storage.getHolidays();
+      const isHoliday = holidays.some(holiday =>
+        holiday.date.getFullYear() === deadlineDate.getFullYear() &&
+        holiday.date.getMonth() === deadlineDate.getMonth() &&
+        holiday.date.getDate() === deadlineDate.getDate()
+      );
+
+      if (isHoliday || isWeekend) {
+        return res.status(400).json({
+          message: `Cannot create activities on ${isHoliday ? 'holidays' : 'weekends'}. Activities will be automatically moved to the previous working day.`
+        });
+      }
+
       // Check if deadline is in the past - if so, mark as overdue immediately
       const now = new Date();
-      const deadlineDate = new Date(input.deadlineDate);
       const isOverdue = deadlineDate < now;
       
       // Override userId with authenticated user for security
@@ -805,6 +823,56 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error in manual deadline check:", err);
       res.status(500).json({ message: "Failed to check deadlines" });
+    }
+  });
+
+  // --- Holiday Routes ---
+  app.get(api.holidays.list.path, isAuthenticated, async (req, res) => {
+    const holidays = await storage.getHolidays();
+    res.json(holidays);
+  });
+
+  app.post(api.holidays.create.path, isAuthenticated, async (req, res) => {
+    try {
+      const input = api.holidays.create.input.parse(req.body);
+      const holiday = await storage.createHoliday(input);
+      await storage.createLog((req.user as any).id, "CREATE_HOLIDAY", `Created holiday: ${holiday.name}`);
+      res.status(201).json(holiday);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.patch(api.holidays.update.path, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const updates = api.holidays.update.input.parse(req.body);
+      const holiday = await storage.updateHoliday(id, updates);
+      await storage.createLog((req.user as any).id, "UPDATE_HOLIDAY", `Updated holiday: ${holiday.name}`);
+      res.json(holiday);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete(api.holidays.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const holiday = await storage.getHoliday(id);
+      if (!holiday) {
+        return res.status(404).json({ message: "Holiday not found" });
+      }
+      await storage.deleteHoliday(id);
+      await storage.createLog((req.user as any).id, "DELETE_HOLIDAY", `Deleted holiday: ${holiday.name}`);
+      res.json({ message: "Holiday deleted successfully" });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
     }
   });
 
