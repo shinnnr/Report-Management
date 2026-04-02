@@ -1445,7 +1445,7 @@ function CalendarContent() {
                         <Label className="text-sm font-medium">Date</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className="h-10 w-full justify-start text-left font-normal border-gray-400">
+                             <Button variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
                               {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
@@ -3544,7 +3544,7 @@ function CalendarContent() {
                     <Label className="text-sm font-medium">Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="h-10 w-full justify-start text-left font-normal border-gray-400">
+                         <Button variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
                           {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                         </Button>
                       </PopoverTrigger>
