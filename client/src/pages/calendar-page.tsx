@@ -136,10 +136,62 @@ function CalendarContent() {
 
   // Holidays enabled state - local with polling for sync across users
   const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(true);
+  const { toast } = useToast();
+  const holidaysEnabledSavePendingRef = useRef(false);
+
+  const updateHolidaysEnabled = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'holidays_enabled', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return res.json();
+    },
+    onMutate: (value: boolean) => {
+      holidaysEnabledSavePendingRef.current = true;
+      const previous = holidaysEnabledDataData;
+      setHolidaysEnabled(value);
+      holidaysEnabledDataData = value;
+      return { previous };
+    },
+    onError: (err, _value, context) => {
+      if (context?.previous !== undefined) {
+        setHolidaysEnabled(context.previous);
+        holidaysEnabledDataData = context.previous;
+      }
+      toast({
+        title: "Could not save setting",
+        description: err instanceof Error ? err.message : "Failed to update holidays",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      holidaysEnabledSavePendingRef.current = false;
+    },
+    onSuccess: (_, value) => {
+      setHolidaysEnabled(value);
+      holidaysEnabledDataData = value;
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
+      toast({
+        title: "Setting saved",
+        description: value
+          ? "Holidays are enabled on the calendar."
+          : "Holidays are disabled on the calendar.",
+      });
+    },
+  });
 
   // Poll for holidays enabled setting every 5 seconds for cross-user sync
   useEffect(() => {
     const fetchHolidaysEnabled = async () => {
+      if (holidaysEnabledSavePendingRef.current) return;
       try {
         const res = await fetch('/api/settings/holidays_enabled', { credentials: 'include' });
         if (res.ok) {
@@ -163,27 +215,6 @@ function CalendarContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const updateHolidaysEnabled = useMutation({
-    retry: false,
-    mutationFn: async (value: boolean) => {
-      const res = await fetch(api.settings.set.path, {
-        method: api.settings.set.method,
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify({ key: 'holidays_enabled', value: value.toString() }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        return Promise.reject(new Error(error.message || "Failed to update setting"));
-      }
-      return res.json();
-    },
-    onSuccess: (_, value) => {
-      setHolidaysEnabled(value);
-      holidaysEnabledDataData = value;
-    },
-  });
-
   // Enable real-time polling for settings changes
   useSystemSettingsPolling();
   const canManageHolidays = user?.role === "admin" || allowNonAdminHolidayAdd;
@@ -197,7 +228,6 @@ function CalendarContent() {
   const createHoliday = useCreateHoliday();
   const updateHoliday = useUpdateHoliday();
   const deleteHoliday = useDeleteHoliday();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
 

@@ -240,21 +240,59 @@ export async function registerRoutes(
 
   app.post(api.settings.set.path, isAuthenticated, async (req, res) => {
     try {
-      // Check if user is admin
+      const input = api.settings.set.input.parse(req.body);
       const currentUser = req.user as any;
+
+      // Admins can change any setting; non-admins may only toggle holidays_enabled when that feature is allowed
       if (currentUser.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can update settings" });
+        if (input.key !== 'holidays_enabled') {
+          return res.status(403).json({ message: "Only admins can update settings" });
+        }
+        const allowNonAdminHolidayAdd = await storage.getSetting('allow_non_admin_holiday_add');
+        if (allowNonAdminHolidayAdd === 'false') {
+          return res.status(403).json({ message: "Only admins can update settings" });
+        }
       }
 
-      const input = api.settings.set.input.parse(req.body);
       await storage.setSetting(input.key, input.value);
-      
-      // Log the setting change if it's the role filtering setting
-      if (input.key === 'enable_role_filtering') {
-        const action = input.value === 'true' ? 'ROLE_FILTER_ENABLED' : 'ROLE_FILTER_DISABLED';
-        await storage.createLog(currentUser.id, action, `Role-Based Activity Filtering ${input.value === 'true' ? 'enabled' : 'disabled'}`);
+
+      const on = input.value === 'true';
+      const settingLog = (() => {
+        switch (input.key) {
+          case 'allow_non_admin_file_management':
+            return {
+              action: on ? 'FILE_MANAGEMENT_ENABLED' : 'FILE_MANAGEMENT_DISABLED',
+              description: on ? 'Enabled File Management' : 'Disabled File Management',
+            };
+          case 'allow_non_admin_activity_delete':
+            return {
+              action: on ? 'ACTIVITY_DELETION_ENABLED' : 'ACTIVITY_DELETION_DISABLED',
+              description: on ? 'Enabled Activity Deletion' : 'Disabled Activity Deletion',
+            };
+          case 'allow_non_admin_holiday_add':
+            return {
+              action: on ? 'HOLIDAY_MANAGEMENT_ENABLED' : 'HOLIDAY_MANAGEMENT_DISABLED',
+              description: on ? 'Enabled Holiday Management' : 'Disabled Holiday Management',
+            };
+          case 'holidays_enabled':
+            return {
+              action: on ? 'HOLIDAYS_ENABLED' : 'HOLIDAYS_DISABLED',
+              description: on ? 'Enabled Holidays' : 'Disabled Holidays',
+            };
+          case 'enable_role_filtering':
+            return {
+              action: on ? 'ROLE_FILTER_ENABLED' : 'ROLE_FILTER_DISABLED',
+              description: on ? 'Enabled Role-Based Activity Filtering' : 'Disabled Role-Based Activity Filtering',
+            };
+          default:
+            return null;
+        }
+      })();
+
+      if (settingLog) {
+        await storage.createLog(currentUser.id, settingLog.action, settingLog.description);
       } else {
-        await storage.createLog(currentUser.id, "UPDATE_SETTING", `Updated setting: ${input.key}`);
+        await storage.createLog(currentUser.id, 'UPDATE_SETTING', `Updated setting: ${input.key}`);
       }
       
       res.json({ message: "Setting updated successfully" });

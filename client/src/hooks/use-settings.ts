@@ -233,12 +233,23 @@ export function useSystemSettings() {
       }
       return api.settings.set.responses[200].parse(await res.json());
     },
+    onMutate: async (value: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['settings', 'allow_non_admin_file_management'] });
+      const previous = queryClient.getQueryData<boolean>(['settings', 'allow_non_admin_file_management']);
+      queryClient.setQueryData(['settings', 'allow_non_admin_file_management'], value);
+      return { previous };
+    },
+    onError: (error: Error, _value, context: { previous: boolean | undefined } | undefined) => {
+      if (context) {
+        queryClient.setQueryData(['settings', 'allow_non_admin_file_management'], context.previous);
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_file_management'] });
       toast({ title: "Setting updated", description: "File management permission has been updated." });
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_file_management'] });
     },
   });
 
@@ -257,12 +268,23 @@ export function useSystemSettings() {
       }
       return api.settings.set.responses[200].parse(await res.json());
     },
+    onMutate: async (value: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['settings', 'allow_non_admin_activity_delete'] });
+      const previous = queryClient.getQueryData<boolean>(['settings', 'allow_non_admin_activity_delete']);
+      queryClient.setQueryData(['settings', 'allow_non_admin_activity_delete'], value);
+      return { previous };
+    },
+    onError: (error: Error, _value, context: { previous: boolean | undefined } | undefined) => {
+      if (context) {
+        queryClient.setQueryData(['settings', 'allow_non_admin_activity_delete'], context.previous);
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_activity_delete'] });
       toast({ title: "Setting updated", description: "Activity deletion permission has been updated." });
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_activity_delete'] });
     },
   });
 
@@ -281,14 +303,25 @@ export function useSystemSettings() {
       }
       return api.settings.set.responses[200].parse(await res.json());
     },
+    onMutate: async (value: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['settings', 'allow_non_admin_holiday_add'] });
+      const previous = queryClient.getQueryData<boolean>(['settings', 'allow_non_admin_holiday_add']);
+      queryClient.setQueryData(['settings', 'allow_non_admin_holiday_add'], value);
+      return { previous };
+    },
+    onError: (error: Error, _value, context: { previous: boolean | undefined } | undefined) => {
+      if (context) {
+        queryClient.setQueryData(['settings', 'allow_non_admin_holiday_add'], context.previous);
+      }
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_holiday_add'] });
       // Also invalidate holidays query in case holiday management was disabled
       queryClient.invalidateQueries({ queryKey: [api.holidays.list.path] });
       toast({ title: "Setting updated", description: "Holiday management permission has been updated." });
     },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_holiday_add'] });
     },
   });
 

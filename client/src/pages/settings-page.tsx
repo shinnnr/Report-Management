@@ -588,7 +588,6 @@ function SettingsContent() {
                   <Switch
                     checked={allowNonAdminFileManagement}
                     onCheckedChange={(checked) => updateAllowNonAdminFileManagement.mutate(checked)}
-                    disabled={updateAllowNonAdminFileManagement.isPending}
                   />
                 </div>
 
@@ -602,7 +601,6 @@ function SettingsContent() {
                   <Switch
                     checked={allowNonAdminActivityDelete}
                     onCheckedChange={(checked) => updateAllowNonAdminActivityDelete.mutate(checked)}
-                    disabled={updateAllowNonAdminActivityDelete.isPending}
                   />
                 </div>
 
@@ -616,7 +614,6 @@ function SettingsContent() {
                   <Switch
                     checked={allowNonAdminHolidayAdd}
                     onCheckedChange={(checked) => updateAllowNonAdminHolidayAdd.mutate(checked)}
-                    disabled={updateAllowNonAdminHolidayAdd.isPending}
                   />
                 </div>
               </CardContent>

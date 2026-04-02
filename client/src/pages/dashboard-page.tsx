@@ -2,7 +2,7 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
@@ -39,6 +39,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   return (
@@ -197,6 +198,14 @@ function DashboardContent() {
     };
 
     const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+
+    /** System settings toggles use *_ENABLED / *_DISABLED actions — show on/off icons and styling */
+    const getSettingToggleVisual = (action: string): { Icon: LucideIcon; enabled: boolean } | null => {
+        const u = action.toUpperCase();
+        if (u.endsWith('_ENABLED')) return { Icon: ToggleRight, enabled: true };
+        if (u.endsWith('_DISABLED')) return { Icon: ToggleLeft, enabled: false };
+        return null;
+    };
 
     const getActivityIcon = (action: string) => {
         const lowerAction = action.toLowerCase();
@@ -446,11 +455,26 @@ function DashboardContent() {
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
                   {logs?.slice(0, 10).map((log) => {
-                    const IconComponent = getActivityIcon(log.action);
+                    const toggleVisual = getSettingToggleVisual(log.action);
+                    const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
                     return (
                       <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                          <IconComponent className="w-4 h-4 text-primary" />
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                            toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
+                            toggleVisual?.enabled === false && "bg-muted",
+                            toggleVisual == null && "bg-primary/10"
+                          )}
+                        >
+                          <IconComponent
+                            className={cn(
+                              "w-4 h-4",
+                              toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
+                              toggleVisual?.enabled === false && "text-muted-foreground",
+                              toggleVisual == null && "text-primary"
+                            )}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
@@ -644,7 +668,8 @@ function DashboardContent() {
               logs
                 .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
                 .map((log) => {
-                  const IconComponent = getActivityIcon(log.action);
+                  const toggleVisual = getSettingToggleVisual(log.action);
+                  const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
                   return (
                     <div 
                       key={log.id} 
@@ -661,8 +686,22 @@ function DashboardContent() {
                         }}
                         className="flex-shrink-0"
                       />
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <IconComponent className="w-4 h-4 text-primary" />
+                      <div
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                          toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
+                          toggleVisual?.enabled === false && "bg-muted",
+                          toggleVisual == null && "bg-primary/10"
+                        )}
+                      >
+                        <IconComponent
+                          className={cn(
+                            "w-4 h-4",
+                            toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
+                            toggleVisual?.enabled === false && "text-muted-foreground",
+                            toggleVisual == null && "text-primary"
+                          )}
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-foreground truncate">{log.description}</p>
