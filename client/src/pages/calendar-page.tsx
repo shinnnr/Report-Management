@@ -3241,6 +3241,7 @@ function CalendarContent() {
             onTimeSlotDrop={handleTimeSlotDrop}
             onDayClick={handleDayClickInWeekView}
             holidays={holidays}
+            holidaysEnabled={holidaysEnabledData}
             // New activity modal handlers
             setIsNewActivityOpen={setIsNewActivityOpen}
             setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
@@ -3313,6 +3314,7 @@ function CalendarContent() {
             setSelectedDate={setSelectedDate}
             setActivityTime={setActivityTime}
             holidays={holidays}
+            holidaysEnabled={holidaysEnabledData}
           />
         )}
       </div>
@@ -4059,6 +4061,7 @@ function WeekView({
   getStatusBorderColor,
   getMultiStatusBorderColor,
   holidays,
+  holidaysEnabled,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -4095,6 +4098,7 @@ function WeekView({
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   onDayClick?: (date: Date) => void;
   holidays?: any[];
+  holidaysEnabled?: boolean;
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -4119,7 +4123,7 @@ function WeekView({
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
           <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
           {weekDays.map((day) => {
-            const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
+            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
 
             return (
@@ -4274,6 +4278,7 @@ function DayView({
   onTouchDragMove,
   onTouchDragEnd,
   holidays,
+  holidaysEnabled,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -4307,6 +4312,7 @@ function DayView({
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   holidays?: any[];
+  holidaysEnabled?: boolean;
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -4331,7 +4337,7 @@ function DayView({
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
           (() => {
-            const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
             return (isHoliday || isWeekend) ? "bg-red-50 dark:bg-red-950/20" : "";
           })()
@@ -4341,7 +4347,7 @@ function DayView({
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
                 (() => {
-                  const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : isToday(currentDate) ? "text-primary" : "text-muted-foreground";
                 })()
@@ -4349,13 +4355,13 @@ function DayView({
               <div className={cn(
                 "text-4xl font-bold",
                 (() => {
-                  const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : "";
                 })()
               )}>{format(currentDate, 'd')}</div>
               {(() => {
-                const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                 const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                 if (isHoliday) {
                   const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
