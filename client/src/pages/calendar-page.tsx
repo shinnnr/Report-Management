@@ -3163,7 +3163,7 @@ function CalendarContent() {
               <div className="space-y-4 pr-4">
                 {/* Overdue Section */}
                 {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
-                  <div className="mt-4">
+                  <div className="mt-0">
                     <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4" />
                       Overdue ({activities.filter(a => a.status === 'overdue').length})
@@ -3209,7 +3209,7 @@ function CalendarContent() {
             )}
 
             {/* Upcoming Section */}
-            <div className="mt-4">
+            <div className="mt-0">
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">
                 Coming Up
               </h4>
