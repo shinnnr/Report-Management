@@ -70,11 +70,11 @@ import { Calendar } from "@/components/ui/calendar";
 
 // Helper functions defined outside component for accessibility
 let holidaysData: any[] = [];
-let holidaysEnabledData: boolean = true;
+let holidaysEnabledDataData: boolean = true;
 
 // Helper function to check if a date is a holiday
 const isDateHoliday = (date: Date) => {
-  if (!holidaysEnabledData) return false;
+  if (!holidaysEnabledDataData) return false;
   return holidaysData?.some(holiday =>
     isSameDay(new Date(holiday.date), date)
   ) || false;
@@ -91,7 +91,7 @@ const getEffectiveActivityDate = (activity: any): Date => {
   const deadlineDate = new Date(activity.deadlineDate);
   
   // Check if we should adjust for weekends (always, regardless of holidays setting)
-  const shouldAdjust = isDateWeekend(deadlineDate) || (holidaysEnabledData && isDateHoliday(deadlineDate));
+  const shouldAdjust = isDateWeekend(deadlineDate) || (holidaysEnabledDataData && isDateHoliday(deadlineDate));
   
   if (shouldAdjust) {
     // Move to previous weekday that's not a holiday
@@ -109,7 +109,7 @@ const getEffectiveActivityDate = (activity: any): Date => {
       } else if (dayOfWeek === 0) { // Sunday
         adjustedDate.setDate(adjustedDate.getDate() - 2);
         isAdjusted = true;
-      } else if (holidaysEnabledData && isDateHoliday(adjustedDate)) { // Check if it's a holiday (only when enabled)
+      } else if (holidaysEnabledDataData && isDateHoliday(adjustedDate)) { // Check if it's a holiday (only when enabled)
         adjustedDate.setDate(adjustedDate.getDate() - 1);
         isAdjusted = true;
       }
@@ -135,7 +135,7 @@ function CalendarContent() {
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
 
   // Holidays enabled state - local with polling for sync across users
-  const [holidaysEnabled, setHolidaysEnabled] = useState<boolean>(true);
+  const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(true);
 
   // Poll for holidays enabled setting every 5 seconds for cross-user sync
   useEffect(() => {
@@ -147,7 +147,7 @@ function CalendarContent() {
           const newValue = data.value === 'true';
           setHolidaysEnabled(prev => {
             if (prev !== newValue) {
-              holidaysEnabledData = newValue;
+              holidaysEnabledDataData = newValue;
               return newValue;
             }
             return prev;
@@ -180,7 +180,7 @@ function CalendarContent() {
     },
     onSuccess: (_, value) => {
       setHolidaysEnabled(value);
-      holidaysEnabledData = value;
+      holidaysEnabledDataData = value;
     },
   });
 
@@ -251,8 +251,8 @@ function CalendarContent() {
   // Update global holidays data when holidays change
   useEffect(() => {
     holidaysData = holidays || [];
-    holidaysEnabledData = holidaysEnabled;
-  }, [holidays, holidaysEnabled]);
+    holidaysEnabledDataData = holidaysEnabledData;
+  }, [holidays, holidaysEnabledData]);
 
   // Clear department filter when role-based filtering is enabled for non-admin users
   useEffect(() => {
@@ -515,7 +515,7 @@ function CalendarContent() {
 
   // Helper function to check if a date is a holiday or weekend
   const isDateHolidayOrWeekend = (date: Date) => {
-    return isDateHoliday(date) || isDateWeekend(date);
+    return (holidaysEnabledDataData && isDateHoliday(date)) || isDateWeekend(date);
   };
 
   // Helper to get date indicators
@@ -1571,7 +1571,7 @@ function CalendarContent() {
                   </Label>
                   <Switch
                     id="holidays-enabled-modal"
-                    checked={holidaysEnabled}
+                    checked={holidaysEnabledData}
                     onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
                   />
                 </div>
@@ -1610,7 +1610,7 @@ function CalendarContent() {
                                 onSelect={setHolidayDate}
                                 initialFocus
                                 holidays={holidays}
-                                holidaysEnabled={holidaysEnabled}
+                                holidaysEnabled={holidaysEnabledData}
                               />
                             </PopoverContent>
                         </Popover>
@@ -2211,7 +2211,7 @@ function CalendarContent() {
           // Check if the date is a holiday or weekend
           const isHoliday = isDateHoliday(dayActivitiesModalDate);
           const isWeekend = isDateWeekend(dayActivitiesModalDate);
-          const isHolidayOrWeekend = isHoliday || isWeekend;
+          const isHolidayOrWeekend = isWeekend || (holidaysEnabledData && isHoliday);
           
           return (
             <Dialog open={showDayActivitiesModal} onOpenChange={(open) => {
@@ -2684,7 +2684,7 @@ function CalendarContent() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
+                    disabled={timeSlotActivitiesModalData ? (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) : false}
                     onClick={() => {
                       if (timeSlotActivitiesModalData && !isDateHoliday(timeSlotActivitiesModalData.date)) {
                         setHolidayDate(timeSlotActivitiesModalData.date);
@@ -2700,7 +2700,7 @@ function CalendarContent() {
                   </Button>
                   <Button
                     size="sm"
-                    disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
+                    disabled={timeSlotActivitiesModalData ? (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) : false}
                     onClick={() => {
                       if (timeSlotActivitiesModalData) {
                         setSelectedDate(timeSlotActivitiesModalData.date);
@@ -2712,7 +2712,7 @@ function CalendarContent() {
                     }}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date))
+                    {timeSlotActivitiesModalData && (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date)))
                       ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'}`
                       : 'Add Activity'
                     }
@@ -2725,9 +2725,9 @@ function CalendarContent() {
             </DialogHeader>
             <ScrollArea className="h-[300px] pr-4">
               <div className="space-y-2 py-4 px-4">
-                {timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && !(isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) ? (
+                {timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && !(isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
                   <p className="text-center text-muted-foreground py-8">No activities at this time</p>
-                ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) ? (
+                ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
@@ -3685,12 +3685,9 @@ function CalendarContent() {
                   <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="holidays-enabled-panel" className="text-sm font-medium whitespace-nowrap">
-                    Enable Holidays
-                  </Label>
                   <Switch
                     id="holidays-enabled-panel"
-                    checked={holidaysEnabled}
+                    checked={holidaysEnabledData}
                     onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
                   />
                 </div>
@@ -3730,7 +3727,7 @@ function CalendarContent() {
                             onSelect={setHolidayDate}
                             initialFocus
                             holidays={holidays}
-                            holidaysEnabled={holidaysEnabled}
+                            holidaysEnabled={holidaysEnabledData}
                           />
                         </PopoverContent>
                     </Popover>
@@ -4122,7 +4119,7 @@ function WeekView({
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
           <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
           {weekDays.map((day) => {
-            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
+            const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
 
             return (
@@ -4334,7 +4331,7 @@ function DayView({
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
           (() => {
-            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+            const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
             return (isHoliday || isWeekend) ? "bg-red-50 dark:bg-red-950/20" : "";
           })()
@@ -4344,7 +4341,7 @@ function DayView({
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
                 (() => {
-                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : isToday(currentDate) ? "text-primary" : "text-muted-foreground";
                 })()
@@ -4352,13 +4349,13 @@ function DayView({
               <div className={cn(
                 "text-4xl font-bold",
                 (() => {
-                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                  const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                   return isHoliday ? "text-red-600 dark:text-red-400" : "";
                 })()
               )}>{format(currentDate, 'd')}</div>
               {(() => {
-                const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
+                const isHoliday = holidaysEnabledData && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                 const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                 if (isHoliday) {
                   const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
