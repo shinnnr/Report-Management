@@ -1506,12 +1506,12 @@ function CalendarContent() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Date</Label>
+                        <Label htmlFor="holidayDate" className="text-sm font-medium">Date</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                             <Button variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
+                             <Button id="holidayDate" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
                               {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
-                            </Button>
+                             </Button>
                           </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
@@ -1794,10 +1794,10 @@ function CalendarContent() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Concern Department</Label>
+                      <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" className="h-10 w-full justify-between border-gray-400 font-normal" style={{ borderColor: '#9ca3af' }}>
+                          <Button id="concernDepartment" variant="outline" className="h-10 w-full justify-between border-gray-400 font-normal" style={{ borderColor: '#9ca3af' }}>
                             {concernDepartment.length > 0 ? (
                               <span className="truncate">
                                 {concernDepartment.join(", ")}
@@ -1943,9 +1943,9 @@ function CalendarContent() {
                     
                     {/* Recurrence Section */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">Recurrence</Label>
+                      <Label htmlFor="recurrence" className="text-sm font-medium">Recurrence</Label>
                       <Select value={recurrence} onValueChange={setRecurrence}>
-                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
+                        <SelectTrigger id="recurrence" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                           <SelectValue placeholder="Select recurrence" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1961,11 +1961,11 @@ function CalendarContent() {
                     {/* Recurrence End Date - only show if recurrence is not none */}
                     {recurrence !== 'none' && (
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</Label>
+                        <Label htmlFor="recurrenceEnd" className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</Label>
                         {recurrence === 'yearly' ? (
                           // Yearly: only show year picker
                           <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01-01')}>
-                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
+                            <SelectTrigger id="recurrenceEnd" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end year" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1977,7 +1977,7 @@ function CalendarContent() {
                         ) : (
                           // Monthly, Quarterly, Semi-Annual: show month and year picker
                           <Select value={recurrenceEndDate ? recurrenceEndDate.substring(0, 7) : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01')}>
-                            <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600 text-left">
+                            <SelectTrigger id="recurrenceEnd" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end month and year" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">
@@ -2368,10 +2368,11 @@ function CalendarContent() {
               {/* Submission Date Picker */}
               {(selectedActivity?.status === 'in-progress' || selectedActivity?.status === 'overdue') && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Submission Date</Label>
+                  <Label htmlFor="submissionDate" className="text-sm font-medium">Submission Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        id="submissionDate"
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
@@ -3606,12 +3607,12 @@ function CalendarContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Date</Label>
+                    <Label htmlFor="holidayDatePanel" className="text-sm font-medium">Date</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                         <Button variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
+                         <Button id="holidayDatePanel" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
                           {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
-                        </Button>
+                         </Button>
                       </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
@@ -3806,9 +3807,9 @@ function CalendarContent() {
             <div className="p-6 space-y-4">
               {/* Recurrence Type Selector */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Recurrence Type</Label>
+                <Label htmlFor="deleteRecurType" className="text-sm font-medium">Recurrence Type</Label>
                 <Select value={deleteRecurType} onValueChange={(value) => { setDeleteRecurType(value); setDeleteRecurYear(""); setDeleteRecurPreview([]); }}>
-                  <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                  <SelectTrigger id="deleteRecurType" className="h-10 border border-gray-300 dark:border-gray-600">
                     <SelectValue placeholder="Select recurrence type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -3822,9 +3823,9 @@ function CalendarContent() {
 
               {/* Year Selector */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Year</Label>
+                <Label htmlFor="deleteRecurYear" className="text-sm font-medium">Year</Label>
                 <Select value={deleteRecurYear} onValueChange={(value) => { setDeleteRecurYear(value); setDeleteRecurPreview([]); }} disabled={!deleteRecurType}>
-                  <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                  <SelectTrigger id="deleteRecurYear" className="h-10 border border-gray-300 dark:border-gray-600">
                     <SelectValue placeholder={deleteRecurType ? "Select year" : "Select recurrence type first"} />
                   </SelectTrigger>
                   <SelectContent>
