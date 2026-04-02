@@ -834,6 +834,18 @@ export async function registerRoutes(
 
   app.post(api.holidays.create.path, isAuthenticated, async (req, res) => {
     try {
+      const currentUser = req.user as any;
+
+      // Check if user is admin or holiday management is allowed for non-admins
+      if (currentUser.role !== 'admin') {
+        const allowNonAdminHolidayAdd = await storage.getSetting('allow_non_admin_holiday_add');
+        // Default to true if setting doesn't exist, meaning holiday management is allowed by default
+        const holidayManagementAllowed = allowNonAdminHolidayAdd !== 'false';
+        if (!holidayManagementAllowed) {
+          return res.status(403).json({ message: "Holiday management is disabled for your role" });
+        }
+      }
+
       const input = api.holidays.create.input.parse(req.body);
       const holiday = await storage.createHoliday(input);
       await storage.createLog((req.user as any).id, "CREATE_HOLIDAY", `Created holiday: ${holiday.name}`);
@@ -848,6 +860,18 @@ export async function registerRoutes(
 
   app.patch(api.holidays.update.path, isAuthenticated, async (req, res) => {
     try {
+      const currentUser = req.user as any;
+
+      // Check if user is admin or holiday management is allowed for non-admins
+      if (currentUser.role !== 'admin') {
+        const allowNonAdminHolidayAdd = await storage.getSetting('allow_non_admin_holiday_add');
+        // Default to true if setting doesn't exist, meaning holiday management is allowed by default
+        const holidayManagementAllowed = allowNonAdminHolidayAdd !== 'false';
+        if (!holidayManagementAllowed) {
+          return res.status(403).json({ message: "Holiday management is disabled for your role" });
+        }
+      }
+
       const id = parseInt(req.params.id as string);
       const updates = api.holidays.update.input.parse(req.body);
       const holiday = await storage.updateHoliday(id, updates);
@@ -863,6 +887,18 @@ export async function registerRoutes(
 
   app.delete(api.holidays.delete.path, isAuthenticated, async (req, res) => {
     try {
+      const currentUser = req.user as any;
+
+      // Check if user is admin or holiday management is allowed for non-admins
+      if (currentUser.role !== 'admin') {
+        const allowNonAdminHolidayAdd = await storage.getSetting('allow_non_admin_holiday_add');
+        // Default to true if setting doesn't exist, meaning holiday management is allowed by default
+        const holidayManagementAllowed = allowNonAdminHolidayAdd !== 'false';
+        if (!holidayManagementAllowed) {
+          return res.status(403).json({ message: "Holiday management is disabled for your role" });
+        }
+      }
+
       const id = parseInt(req.params.id as string);
       const holiday = await storage.getHoliday(id);
       if (!holiday) {

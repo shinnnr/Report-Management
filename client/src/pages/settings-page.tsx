@@ -2,7 +2,7 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useSettings, useUserManagement } from "@/hooks/use-settings";
+import { useSettings, useUserManagement, useSystemSettings } from "@/hooks/use-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,6 +42,14 @@ function SettingsContent() {
   const isMobile = useIsMobile();
   const { currentUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
   const { users, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
+  const {
+    allowNonAdminFileManagement,
+    allowNonAdminActivityDelete,
+    allowNonAdminHolidayAdd,
+    updateAllowNonAdminFileManagement,
+    updateAllowNonAdminActivityDelete,
+    updateAllowNonAdminHolidayAdd,
+  } = useSystemSettings();
   const { toast } = useToast();
   const checkDeadlines = useCheckDeadlines();
 
@@ -556,6 +565,59 @@ function SettingsContent() {
                   >
                     {checkDeadlines.isPending ? "Checking Deadlines..." : "Check Deadlines"}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  User Permissions
+                </CardTitle>
+                <CardDescription>Control what non-admin users can do in the system.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-medium">File Management</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow non-admin users to rename, archive, delete, move, and restore folders and files in Drive and Archives pages. If disabled, the 3-dot menu will not be visible.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={allowNonAdminFileManagement}
+                    onCheckedChange={(checked) => updateAllowNonAdminFileManagement.mutate(checked)}
+                    disabled={updateAllowNonAdminFileManagement.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-medium">Activity Deletion</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow non-admin users to delete activities and use the delete all button in the calendar page. If disabled, these buttons will not be shown.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={allowNonAdminActivityDelete}
+                    onCheckedChange={(checked) => updateAllowNonAdminActivityDelete.mutate(checked)}
+                    disabled={updateAllowNonAdminActivityDelete.isPending}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base font-medium">Holiday Management</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow non-admin users to add holidays. If disabled, the Manage Holidays button, modal, and panel will not be visible.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={allowNonAdminHolidayAdd}
+                    onCheckedChange={(checked) => updateAllowNonAdminHolidayAdd.mutate(checked)}
+                    disabled={updateAllowNonAdminHolidayAdd.isPending}
+                  />
                 </div>
               </CardContent>
             </Card>

@@ -5,6 +5,7 @@ import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { useFolders, useCreateFolder, useDeleteFolder, useRenameFolder, useMoveFolder, useUpdateFolder } from "@/hooks/use-folders";
 import { useReports, useCreateReport, useDeleteReport, useMoveReports, useUpdateReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
+import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 import {
   Folder as FolderIcon,
@@ -112,6 +113,11 @@ function DriveContent() {
   const isCompactDesktop = useIsCompactDesktop();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { allowNonAdminFileManagement } = useSystemSettings();
+  const canManageFiles = user?.role === "admin" || allowNonAdminFileManagement;
+
+  // Enable real-time polling for settings changes
+  useSystemSettingsPolling();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -1481,17 +1487,19 @@ function DriveContent() {
                         <FolderIcon className="w-10 h-10 text-secondary flex-shrink-0" />
                         <span className="truncate md:whitespace-normal md:max-w-none">{f.name}</span>
                       </div>
-                      <div className="absolute top-2 right-4 w-8 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                       {canManageFiles && (
+                         <div className="absolute top-2 right-4 w-8 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                             <DropdownMenuContent>
+                               <DropdownMenuItem onClick={() => {setRenameId(f.id); setRenameName(f.name); setIsRenameOpen(true);}}>Rename</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => {setSelectedFolders([f.id]); setSelectedFiles([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
+                               <DropdownMenuItem onClick={() => setArchiveFolderId(f.id)}>Archive</DropdownMenuItem>
+                               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>Delete</DropdownMenuItem>
+                             </DropdownMenuContent>
+                           </DropdownMenu>
+                         </div>
+                       )}
                     </div>
                   ))}
                 </div>
@@ -1843,19 +1851,21 @@ function DriveContent() {
                           {r.fileType ? getFileExtension(r.fileType) : '-'}
                         </td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-right text-muted-foreground align-middle hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="px-4 py-3 text-right align-top">
-                          <div className="w-8 ml-auto mr-0 flex justify-center">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(removeFileExtension(r.fileName)); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setArchiveFileId(r.id);}}>Archive</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </td>
+                         <td className="px-4 py-3 text-right align-top">
+                           {canManageFiles && (
+                             <div className="w-8 ml-auto mr-0 flex justify-center">
+                               <DropdownMenu>
+                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-muted/50 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                 <DropdownMenuContent>
+                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setRenameFileId(r.id); setRenameFileName(removeFileExtension(r.fileName)); setIsRenameFileOpen(true);}}>Rename</DropdownMenuItem>
+                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedFiles([r.id]); setSelectedFolders([]); setIsSelectMode(true); setIsMoveOpen(true);}}>Move</DropdownMenuItem>
+                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setArchiveFileId(r.id);}}>Archive</DropdownMenuItem>
+                                 <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id);}}>Delete</DropdownMenuItem>
+                                 </DropdownMenuContent>
+                               </DropdownMenu>
+                             </div>
+                           )}
+                         </td>
                       </tr>
                     ))}
                   </tbody>

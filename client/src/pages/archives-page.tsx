@@ -5,6 +5,7 @@ import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { useFolders, useUpdateFolder, useDeleteFolder } from "@/hooks/use-folders";
 import { useReports, useUpdateReport, useDeleteReport } from "@/hooks/use-reports";
 import { useAuth } from "@/hooks/use-auth";
+import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
 import {
   Folder as FolderIcon,
@@ -92,6 +93,11 @@ function ArchivesContent() {
   const { openSidebar } = useSidebar();
   const isMobile = useIsMobile();
   const isCompactDesktop = useIsCompactDesktop();
+  const { allowNonAdminFileManagement } = useSystemSettings();
+  const canManageFiles = user?.role === "admin" || allowNonAdminFileManagement;
+
+  // Enable real-time polling for settings changes
+  useSystemSettingsPolling();
   const [location, setLocation] = useLocation();
   const search = useSearch();
 
@@ -752,19 +758,21 @@ function ArchivesContent() {
                         <FolderIcon className="w-10 h-10 text-secondary" />
                         <span className="truncate max-w-[100px] sm:max-w-none">{f.name}</span>
                       </div>
-                      <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleRestoreFolder(f.id)}>
-                              <RotateCcw className="w-4 h-4 mr-2" /> Restore
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                       {canManageFiles && (
+                         <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                             <DropdownMenuContent>
+                               <DropdownMenuItem onClick={() => handleRestoreFolder(f.id)}>
+                                 <RotateCcw className="w-4 h-4 mr-2" /> Restore
+                               </DropdownMenuItem>
+                               <DropdownMenuItem className="text-destructive" onClick={() => setDeleteFolderId(f.id)}>
+                                 <Trash2 className="w-4 h-4 mr-2" /> Delete
+                               </DropdownMenuItem>
+                             </DropdownMenuContent>
+                           </DropdownMenu>
+                         </div>
+                       )}
                     </div>
                   ))}
                 </div>
@@ -949,21 +957,23 @@ function ArchivesContent() {
                         <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.fileType ? getFileExtension(r.fileType) : '-'}</td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-right align-middle hidden lg:table-cell">{(r.fileSize / 1024).toFixed(1)} KB</td>
-                        <td className="px-6 py-3 text-right align-middle">
-                          <div className="flex items-end justify-end h-full">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 mr-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreFile(r.id); }}>
-                                <RotateCcw className="w-4 h-4 mr-2" /> Restore
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id); }}>
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          </div>
-                        </td>
+                         <td className="px-6 py-3 text-right align-middle">
+                           {canManageFiles && (
+                             <div className="flex items-end justify-end h-full">
+                             <DropdownMenu>
+                               <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0 mr-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
+                               <DropdownMenuContent>
+                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreFile(r.id); }}>
+                                   <RotateCcw className="w-4 h-4 mr-2" /> Restore
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteFileId(r.id); }}>
+                                   <Trash2 className="w-4 h-4 mr-2" /> Delete
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                             </div>
+                           )}
+                         </td>
                       </tr>
                     ))}
                     {filteredArchivedReports.length === 0 && (

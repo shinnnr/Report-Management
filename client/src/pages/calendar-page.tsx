@@ -1,48 +1,43 @@
+import { useState, useEffect, useCallback, useRef } from "react";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { format, isSameDay, isSameMonth, eachDayOfInterval, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, startOfWeek, differenceInDays, isPast, isToday } from "date-fns";
+import {
+  Menu,
+  CalendarDays,
+  Calendar as CalendarIcon,
+  Plus,
+  Trash2,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Upload,
+  Download,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ChevronDown,
+  Filter,
+  FolderOpen,
+  Archive,
+  Edit2,
+  MoveHorizontal,
+  Loader2,
+  ArrowLeft,
+  Grid3X3,
+  LayoutList,
+  FileText,
+} from "lucide-react";
 import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity, useUpdateActivity } from "@/hooks/use-activities";
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from "@/hooks/use-holidays";
-import { 
-  startOfMonth, 
-  endOfMonth, 
-  eachDayOfInterval, 
-  format, 
-  isSameMonth, 
-  isToday,
-  isSameDay,
-  addDays,
-  startOfWeek,
-  endOfWeek,
-  addWeeks,
-  addMonths,
-  differenceInDays,
-  isBefore,
-  isAfter,
-  isPast
-} from "date-fns";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Upload, FileText, Clock, CheckCircle, AlertCircle, Menu, X, Grid3X3, LayoutList, CalendarDays, Loader2, ChevronDown, Download } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-settings";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
+import { Link, useLocation, useSearch } from "wouter";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -52,6 +47,25 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 // Helper functions defined outside component for accessibility
 let holidaysData: any[] = [];
@@ -110,6 +124,12 @@ export default function CalendarPage() {
 function CalendarContent() {
   const { user } = useAuth();
   const { openSidebar } = useSidebar();
+  const { allowNonAdminActivityDelete, allowNonAdminHolidayAdd } = useSystemSettings();
+  const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
+
+  // Enable real-time polling for settings changes
+  useSystemSettingsPolling();
+  const canManageHolidays = user?.role === "admin" || allowNonAdminHolidayAdd;
   const isMobile = useIsMobile();
   const { data: activities } = useActivities();
   const createActivity = useCreateActivity();
@@ -1452,6 +1472,7 @@ function CalendarContent() {
         {/* Action buttons - positioned based on screen size */}
         <div className="flex flex-row flex-wrap lg:flex-nowrap gap-1 lg:gap-2 place-items-start">
           {/* Holiday Management Button - first on mobile, third on desktop */}
+          {canManageHolidays && (
            <Dialog open={isHolidayModalOpen} onOpenChange={(open) => {
              setIsHolidayModalOpen(open);
              if (!open) {
@@ -1463,20 +1484,20 @@ function CalendarContent() {
                setIsAddingHoliday(false);
              }
            }}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2 whitespace-nowrap lg:order-3 order-1 w-auto"
-                onClick={() => {
-                  setEditingHoliday(null);
-                  setHolidayName("");
-                  setHolidayDate(selectedDate || undefined);
-                }}
-              >
-                <CalendarDays className="w-4 h-4" />
-                Manage Holidays
-              </Button>
-            </DialogTrigger>
+           <DialogTrigger asChild>
+             <Button
+               variant="outline"
+               className="gap-2 whitespace-nowrap lg:order-3 order-1 w-auto"
+               onClick={() => {
+                 setEditingHoliday(null);
+                 setHolidayName("");
+                 setHolidayDate(selectedDate || undefined);
+               }}
+             >
+               <CalendarDays className="w-4 h-4" />
+               Manage Holidays
+             </Button>
+           </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col">
               <DialogHeader className="shrink-0 pb-4 border-b">
                 <DialogTitle className="text-xl font-semibold flex items-center gap-2">
@@ -1693,10 +1714,11 @@ function CalendarContent() {
                    )}
                 </div>
               </div>
-            </DialogContent>
-          </Dialog>
+             </DialogContent>
+           </Dialog>
+          )}
 
-          {/* Add Activity Button - second on mobile, second on desktop */}
+           {/* Add Activity Button - second on mobile, second on desktop */}
           <Dialog open={isNewActivityOpen} onOpenChange={(open) => {
             setIsNewActivityOpen(open);
             if (!open) {
@@ -2092,7 +2114,7 @@ function CalendarContent() {
         </Dialog>
 
         {/* Delete All Activities Button - spans full width on mobile, first on desktop */}
-        {selectedDate && selectedDateActivities.length > 0 && (
+        {canDeleteActivities && selectedDate && selectedDateActivities.length > 0 && (
           <Button
             variant="destructive"
             onClick={() => setShowDeleteAllConfirm(true)}
@@ -2520,19 +2542,21 @@ function CalendarContent() {
             </div>
 
             <DialogFooter className="flex flex-shrink-0 mt-4">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  setActivityToDelete(selectedActivity);
-                  setShowDeleteConfirm(true);
-                }}
-                disabled={deletingActivityId === selectedActivity?.id}
-                className="gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {deletingActivityId === selectedActivity?.id ? 'Deleting Activity...' : 'Delete Activity'}
-              </Button>
+              {canDeleteActivities && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setActivityToDelete(selectedActivity);
+                    setShowDeleteConfirm(true);
+                  }}
+                  disabled={deletingActivityId === selectedActivity?.id}
+                  className="gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deletingActivityId === selectedActivity?.id ? 'Deleting Activity...' : 'Delete Activity'}
+                </Button>
+              )}
 
               <div className="ml-auto">
                 {selectedActivity?.status === 'pending' && (
@@ -3581,6 +3605,7 @@ function CalendarContent() {
         {/* Holiday Management & Recurring Activity Deletion Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Holiday Management Panel - Left Column */}
+          {canManageHolidays && (
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-2">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -3795,6 +3820,7 @@ function CalendarContent() {
               )}
             </div>
           </div>
+          )}
 
           {/* Delete Recurring Activities Panel - Right Column */}
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-1 lg:self-start">

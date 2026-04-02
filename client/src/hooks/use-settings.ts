@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -175,10 +176,196 @@ export function useUserManagement() {
   };
 }
 
+export function useSystemSettings() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Helper function to get setting value
+  const getSetting = async (key: string): Promise<boolean> => {
+    const res = await fetch(`/api/settings/${key}`, { credentials: 'include' });
+    if (!res.ok) {
+      if (res.status === 404) {
+        return true;
+      }
+      throw new Error("Failed to fetch setting");
+    }
+    const data = await res.json();
+    return data.value === 'true';
+  };
+
+  // Setting queries
+  const allowNonAdminFileManagementQuery = useQuery({
+    queryKey: ['settings', 'allow_non_admin_file_management'],
+    queryFn: () => getSetting('allow_non_admin_file_management'),
+    staleTime: Infinity,
+  });
+
+  const allowNonAdminActivityDeleteQuery = useQuery({
+    queryKey: ['settings', 'allow_non_admin_activity_delete'],
+    queryFn: () => getSetting('allow_non_admin_activity_delete'),
+    staleTime: Infinity,
+  });
+
+  const allowNonAdminHolidayAddQuery = useQuery({
+    queryKey: ['settings', 'allow_non_admin_holiday_add'],
+    queryFn: () => getSetting('allow_non_admin_holiday_add'),
+    staleTime: Infinity,
+  });
+
+  // Current values from queries
+  const allowNonAdminFileManagement = allowNonAdminFileManagementQuery.data ?? true;
+  const allowNonAdminActivityDelete = allowNonAdminActivityDeleteQuery.data ?? true;
+  const allowNonAdminHolidayAdd = allowNonAdminHolidayAddQuery.data ?? true;
+
+  // Convenience mutations for each setting
+  const updateAllowNonAdminFileManagement = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'allow_non_admin_file_management', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return api.settings.set.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_file_management'] });
+      toast({ title: "Setting updated", description: "File management permission has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateAllowNonAdminActivityDelete = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'allow_non_admin_activity_delete', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return api.settings.set.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_activity_delete'] });
+      toast({ title: "Setting updated", description: "Activity deletion permission has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateAllowNonAdminHolidayAdd = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'allow_non_admin_holiday_add', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return api.settings.set.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings', 'allow_non_admin_holiday_add'] });
+      // Also invalidate holidays query in case holiday management was disabled
+      queryClient.invalidateQueries({ queryKey: [api.holidays.list.path] });
+      toast({ title: "Setting updated", description: "Holiday management permission has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return {
+    // Current values
+    allowNonAdminFileManagement,
+    allowNonAdminActivityDelete,
+    allowNonAdminHolidayAdd,
+
+    // Loading states
+    isLoadingAllowNonAdminFileManagement: allowNonAdminFileManagementQuery.isLoading,
+    isLoadingAllowNonAdminActivityDelete: allowNonAdminActivityDeleteQuery.isLoading,
+    isLoadingAllowNonAdminHolidayAdd: allowNonAdminHolidayAddQuery.isLoading,
+
+    // Update mutations
+    updateAllowNonAdminFileManagement,
+    updateAllowNonAdminActivityDelete,
+    updateAllowNonAdminHolidayAdd,
+  };
+}
+
+// Hook to poll for system settings changes and update queries in real-time
+export function useSystemSettingsPolling() {
+  const queryClient = useQueryClient();
+  const lastSettingsRef = useRef<{
+    allowNonAdminFileManagement?: boolean;
+    allowNonAdminActivityDelete?: boolean;
+    allowNonAdminHolidayAdd?: boolean;
+  }>({});
+
+  const { data: currentSettings } = useQuery({
+    queryKey: ['system-settings-polling'],
+    queryFn: async () => {
+      const [fileManagement, activityDelete, holidayAdd] = await Promise.all([
+        fetch(`/api/settings/allow_non_admin_file_management`).then(r => r.ok ? r.json().then(d => d.value === 'true') : true).catch(() => true),
+        fetch(`/api/settings/allow_non_admin_activity_delete`).then(r => r.ok ? r.json().then(d => d.value === 'true') : true).catch(() => true),
+        fetch(`/api/settings/allow_non_admin_holiday_add`).then(r => r.ok ? r.json().then(d => d.value === 'true') : true).catch(() => true),
+      ]);
+
+      return {
+        allowNonAdminFileManagement: fileManagement,
+        allowNonAdminActivityDelete: activityDelete,
+        allowNonAdminHolidayAdd: holidayAdd,
+      };
+    },
+    refetchInterval: 5000, // Poll every 5 seconds
+    refetchIntervalInBackground: true,
+  });
+
+  useEffect(() => {
+    if (currentSettings) {
+      const lastSettings = lastSettingsRef.current;
+
+      // Check if any settings changed
+      const settingsChanged =
+        lastSettings.allowNonAdminFileManagement !== currentSettings.allowNonAdminFileManagement ||
+        lastSettings.allowNonAdminActivityDelete !== currentSettings.allowNonAdminActivityDelete ||
+        lastSettings.allowNonAdminHolidayAdd !== currentSettings.allowNonAdminHolidayAdd;
+
+      if (settingsChanged) {
+        // Invalidate relevant queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['settings'] });
+        queryClient.invalidateQueries({ queryKey: [api.holidays.list.path] });
+
+        // Update last settings
+        lastSettingsRef.current = { ...currentSettings };
+      }
+    }
+  }, [currentSettings, queryClient]);
+
+  return currentSettings;
+}
+
 // Password strength validator
 export function validatePasswordStrength(password: string): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   if (password.length < 8) {
     errors.push("Password must be at least 8 characters long");
   }
@@ -194,7 +381,7 @@ export function validatePasswordStrength(password: string): { isValid: boolean; 
   if (!/[!@#$%^&*(),.?\":{}|<>]/.test(password)) {
     errors.push("Password must contain at least one special character");
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
