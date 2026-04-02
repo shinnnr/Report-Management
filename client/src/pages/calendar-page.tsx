@@ -3828,9 +3828,18 @@ function CalendarContent() {
                     <SelectValue placeholder={deleteRecurType ? "Select year" : "Select recurrence type first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
-                      <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                    ))}
+                    {(() => {
+                      if (!deleteRecurType || !activities) return [];
+                      // Filter activities by recurrence type and extract unique years
+                      const yearsWithActivities = activities
+                        .filter(a => a.recurrence === deleteRecurType)
+                        .map(a => new Date(a.deadlineDate).getFullYear())
+                        .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
+                        .sort((a, b) => b - a); // Sort in descending order (most recent first)
+                      return yearsWithActivities.map(year => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
