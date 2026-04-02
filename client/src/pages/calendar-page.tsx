@@ -269,6 +269,10 @@ function CalendarContent() {
   const [editingHoliday, setEditingHoliday] = useState<any>(null);
   const [holidayToDelete, setHolidayToDelete] = useState<any>(null);
   const [showDeleteHolidayConfirm, setShowDeleteHolidayConfirm] = useState(false);
+  const [isAddingHoliday, setIsAddingHoliday] = useState(false);
+  const [isDeletingHolidayId, setIsDeletingHolidayId] = useState<number | null>(null);
+  const [holidayPage, setHolidayPage] = useState(1);
+  const holidaysPerPage = 5;
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -1309,34 +1313,45 @@ function CalendarContent() {
 
   return (
     <>
-      {/* Delete Holiday Confirmation Dialog */}
-      <Dialog open={showDeleteHolidayConfirm} onOpenChange={setShowDeleteHolidayConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Holiday</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{holidayToDelete?.name}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteHolidayConfirm(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (holidayToDelete) {
-                  await deleteHoliday.mutateAsync(holidayToDelete.id);
-                  setShowDeleteHolidayConfirm(false);
-                  setHolidayToDelete(null);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+       {/* Delete Holiday Confirmation Dialog */}
+       <Dialog open={showDeleteHolidayConfirm} onOpenChange={(open) => {
+         setShowDeleteHolidayConfirm(open);
+         if (!open) {
+           setIsDeletingHolidayId(null);
+         }
+       }}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Delete Holiday</DialogTitle>
+             <DialogDescription>
+               Are you sure you want to delete "{holidayToDelete?.name}"? This action cannot be undone.
+             </DialogDescription>
+           </DialogHeader>
+           <DialogFooter>
+             <Button variant="outline" onClick={() => setShowDeleteHolidayConfirm(false)}>
+               Cancel
+             </Button>
+             <Button
+               variant="destructive"
+               disabled={isDeletingHolidayId === holidayToDelete?.id}
+               onClick={async () => {
+                 if (holidayToDelete) {
+                   setIsDeletingHolidayId(holidayToDelete.id);
+                   try {
+                     await deleteHoliday.mutateAsync(holidayToDelete.id);
+                     setShowDeleteHolidayConfirm(false);
+                     setHolidayToDelete(null);
+                   } finally {
+                     setIsDeletingHolidayId(null);
+                   }
+                 }
+               }}
+             >
+               {isDeletingHolidayId === holidayToDelete?.id ? 'Deleting...' : 'Delete'}
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
 
       <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-8">
         <div className="w-full">
@@ -1364,15 +1379,17 @@ function CalendarContent() {
         {/* Action buttons - positioned based on screen size */}
         <div className="flex flex-row flex-wrap lg:flex-nowrap gap-1 lg:gap-2 place-items-start">
           {/* Holiday Management Button - first on mobile, third on desktop */}
-          <Dialog open={isHolidayModalOpen} onOpenChange={(open) => {
-            setIsHolidayModalOpen(open);
-            if (!open) {
-              // Reset form state
-              setHolidayName("");
-              setHolidayDate(undefined);
-              setEditingHoliday(null);
-            }
-          }}>
+           <Dialog open={isHolidayModalOpen} onOpenChange={(open) => {
+             setIsHolidayModalOpen(open);
+             if (!open) {
+               // Reset form state
+               setHolidayName("");
+               setHolidayDate(undefined);
+               setEditingHoliday(null);
+               setHolidayPage(1);
+               setIsAddingHoliday(false);
+             }
+           }}>
             <DialogTrigger asChild>
               <Button
                 variant="outline"
@@ -1436,97 +1453,172 @@ function CalendarContent() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          if (!holidayName || !holidayDate) return;
+                       <Button
+                         onClick={async () => {
+                           if (!holidayName || !holidayDate) return;
 
-                          try {
-                            if (editingHoliday) {
-                              await updateHoliday.mutateAsync({
-                                id: editingHoliday.id,
-                                data: {
-                                  name: holidayName,
-                                  date: holidayDate
-                                }
-                              });
-                            } else {
-                              await createHoliday.mutateAsync({
-                                name: holidayName,
-                                date: holidayDate
-                              });
-                            }
-                            setHolidayName("");
-                            setHolidayDate(undefined);
-                            setEditingHoliday(null);
-                          } catch (error) {
-                            // Error handled by mutation
-                          }
-                        }}
-                        disabled={!holidayName || !holidayDate}
-                        className="gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        {editingHoliday ? 'Update Holiday' : 'Add Holiday'}
-                      </Button>
-                      {editingHoliday && (
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setHolidayName("");
-                            setHolidayDate(undefined);
-                            setEditingHoliday(null);
-                          }}
-                        >
-                          Cancel Edit
-                        </Button>
-                      )}
-                    </div>
+                           // Check if holiday date already exists (only when adding, not when editing)
+                           if (!editingHoliday) {
+                             const holidayExists = holidays?.some(h => isSameDay(new Date(h.date), holidayDate));
+                             if (holidayExists) {
+                               toast({
+                                 title: "Holiday already exists",
+                                 description: "A holiday is already configured for this date.",
+                                 variant: "destructive"
+                               });
+                               return;
+                             }
+                           } else {
+                             // When editing, check if another holiday has this date
+                             const holidayExists = holidays?.some(h => h.id !== editingHoliday.id && isSameDay(new Date(h.date), holidayDate));
+                             if (holidayExists) {
+                               toast({
+                                 title: "Holiday already exists",
+                                 description: "Another holiday is already configured for this date.",
+                                 variant: "destructive"
+                               });
+                               return;
+                             }
+                           }
+
+                           setIsAddingHoliday(true);
+                           try {
+                             if (editingHoliday) {
+                               await updateHoliday.mutateAsync({
+                                 id: editingHoliday.id,
+                                 data: {
+                                   name: holidayName,
+                                   date: holidayDate
+                                 }
+                               });
+                             } else {
+                               await createHoliday.mutateAsync({
+                                 name: holidayName,
+                                 date: holidayDate
+                               });
+                             }
+                             setHolidayName("");
+                             setHolidayDate(undefined);
+                             setEditingHoliday(null);
+                             setHolidayPage(1);
+                           } catch (error) {
+                             // Error handled by mutation
+                           } finally {
+                             setIsAddingHoliday(false);
+                           }
+                         }}
+                         disabled={!holidayName || !holidayDate || isAddingHoliday}
+                         className="gap-2"
+                       >
+                         {isAddingHoliday ? (
+                           <>
+                             {editingHoliday ? 'Updating...' : 'Adding...'}
+                           </>
+                         ) : (
+                           <>
+                             <Plus className="w-4 h-4" />
+                             {editingHoliday ? 'Update Holiday' : 'Add Holiday'}
+                           </>
+                         )}
+                       </Button>
+                       {editingHoliday && (
+                         <Button
+                           variant="outline"
+                           onClick={() => {
+                             setHolidayName("");
+                             setHolidayDate(undefined);
+                             setEditingHoliday(null);
+                           }}
+                           disabled={isAddingHoliday}
+                         >
+                           Cancel Edit
+                         </Button>
+                       )}
+                     </div>
                   </div>
 
-                  {/* Existing Holidays List */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                      Existing Holidays
-                    </h3>
-                    <div className="space-y-2">
-                      {holidays?.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">No holidays configured</p>
-                      ) : (
-                        holidays?.map((holiday: any) => (
-                          <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <div>
-                              <p className="font-medium">{holiday.name}</p>
-                              <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingHoliday(holiday);
-                                  setHolidayName(holiday.name);
-                                  setHolidayDate(new Date(holiday.date));
-                                }}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setHolidayToDelete(holiday);
-                                  setShowDeleteHolidayConfirm(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
+                   {/* Existing Holidays List */}
+                   <div className="space-y-4">
+                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                       <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                       Existing Holidays
+                     </h3>
+                     <div className="space-y-2">
+                       {holidays?.length === 0 ? (
+                         <p className="text-sm text-muted-foreground text-center py-4">No holidays configured</p>
+                       ) : (() => {
+                         const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
+                         const paginatedHolidays = holidays?.slice(
+                           (holidayPage - 1) * holidaysPerPage,
+                           holidayPage * holidaysPerPage
+                         ) || [];
+
+                         return (
+                           <>
+                             {paginatedHolidays.map((holiday: any) => (
+                               <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                                 <div>
+                                   <p className="font-medium">{holiday.name}</p>
+                                   <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                                 </div>
+                                 <div className="flex gap-2">
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     disabled={isAddingHoliday || isDeletingHolidayId === holiday.id}
+                                     onClick={() => {
+                                       setEditingHoliday(holiday);
+                                       setHolidayName(holiday.name);
+                                       setHolidayDate(new Date(holiday.date));
+                                     }}
+                                   >
+                                     Edit
+                                   </Button>
+                                   <Button
+                                     variant="destructive"
+                                     size="sm"
+                                     disabled={isAddingHoliday || isDeletingHolidayId !== null}
+                                     onClick={() => {
+                                       setHolidayToDelete(holiday);
+                                       setShowDeleteHolidayConfirm(true);
+                                     }}
+                                   >
+                                     <Trash2 className="w-4 h-4" />
+                                   </Button>
+                                 </div>
+                               </div>
+                             ))}
+                             {/* Pagination - only show if more than 5 holidays */}
+                             {(holidays?.length || 0) > holidaysPerPage && (
+                               <div className="flex items-center justify-between pt-4 border-t mt-4">
+                                 <p className="text-sm text-muted-foreground">
+                                   Page {holidayPage} of {totalPages}
+                                 </p>
+                                 <div className="flex gap-2">
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                                     disabled={holidayPage === 1}
+                                   >
+                                     <ChevronLeft className="w-4 h-4" />
+                                   </Button>
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
+                                     disabled={holidayPage === totalPages}
+                                   >
+                                     <ChevronRight className="w-4 h-4" />
+                                   </Button>
+                                 </div>
+                               </div>
+                             )}
+                           </>
+                         );
+                       })()}
+                     </div>
+                   </div>
                 </div>
               </div>
             </DialogContent>
@@ -1972,21 +2064,40 @@ function CalendarContent() {
                     <DialogTitle>
                       Activities for {format(dayActivitiesModalDate, 'MMMM d, yyyy')}
                     </DialogTitle>
-                    <Button
-                      size="sm"
-                      disabled={isHolidayOrWeekend}
-                      onClick={() => {
-                        setSelectedDate(dayActivitiesModalDate);
-                        setNewActivityFromDayModal(true);
-                        setIsNewActivityOpen(true);
-                      }}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      {isHolidayOrWeekend
-                        ? `${isHoliday ? 'Holiday' : 'Weekend'}`
-                        : 'Add Activity'
-                      }
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isHolidayOrWeekend}
+                        onClick={() => {
+                          if (dayActivitiesModalDate && !isDateHoliday(dayActivitiesModalDate)) {
+                            setHolidayDate(dayActivitiesModalDate);
+                            setHolidayName("");
+                            setEditingHoliday(null);
+                            setShowDayActivitiesModal(false);
+                            setIsHolidayModalOpen(true);
+                          }
+                        }}
+                      >
+                        <CalendarDays className="w-4 h-4 mr-2" />
+                        Make Holiday
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={isHolidayOrWeekend}
+                        onClick={() => {
+                          setSelectedDate(dayActivitiesModalDate);
+                          setNewActivityFromDayModal(true);
+                          setIsNewActivityOpen(true);
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {isHolidayOrWeekend
+                          ? `${isHoliday ? 'Holiday' : 'Weekend'}`
+                          : 'Add Activity'
+                        }
+                      </Button>
+                    </div>
                   </div>
                   <DialogDescription>
                     Total: {dayActs.length} {dayActs.length === 1 ? "activity" : "activities"}
@@ -2127,7 +2238,7 @@ function CalendarContent() {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-muted-foreground mb-1">Deadline</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2 flex-col">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm font-medium">
                       {selectedActivity ? format(new Date(selectedActivity.deadlineDate), 'PPP') : ''}
@@ -2403,25 +2514,44 @@ function CalendarContent() {
                 <DialogTitle>
                   Activities at {timeSlotActivitiesModalData?.time}
                 </DialogTitle>
-                <Button
-                  size="sm"
-                  disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
-                  onClick={() => {
-                    if (timeSlotActivitiesModalData) {
-                      setSelectedDate(timeSlotActivitiesModalData.date);
-                      setActivityTime(timeSlotActivitiesModalData.time);
-                      setNewActivityFromDayModal(true);
-                      setShowTimeSlotActivitiesModal(false);
-                      setIsNewActivityOpen(true);
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
+                    onClick={() => {
+                      if (timeSlotActivitiesModalData && !isDateHoliday(timeSlotActivitiesModalData.date)) {
+                        setHolidayDate(timeSlotActivitiesModalData.date);
+                        setHolidayName("");
+                        setEditingHoliday(null);
+                        setShowTimeSlotActivitiesModal(false);
+                        setIsHolidayModalOpen(true);
+                      }
+                    }}
+                  >
+                    <CalendarDays className="w-4 h-4 mr-2" />
+                    Make Holiday
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={timeSlotActivitiesModalData ? (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date)) : false}
+                    onClick={() => {
+                      if (timeSlotActivitiesModalData) {
+                        setSelectedDate(timeSlotActivitiesModalData.date);
+                        setActivityTime(timeSlotActivitiesModalData.time);
+                        setNewActivityFromDayModal(true);
+                        setShowTimeSlotActivitiesModal(false);
+                        setIsNewActivityOpen(true);
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date))
+                      ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'}`
+                      : 'Add Activity'
                     }
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {timeSlotActivitiesModalData && (isDateHoliday(timeSlotActivitiesModalData.date) || isDateWeekend(timeSlotActivitiesModalData.date))
-                    ? `${isDateHoliday(timeSlotActivitiesModalData.date) ? 'Holiday' : 'Weekend'}`
-                    : 'Add Activity'
-                  }
-                </Button>
+                  </Button>
+                </div>
               </div>
               <DialogDescription>
                 {timeSlotActivitiesModalData ? format(timeSlotActivitiesModalData.date, 'MMMM d, yyyy') : ''} - {timeSlotActivitiesModalData?.activities.length} {timeSlotActivitiesModalData?.activities.length === 1 ? 'activity' : 'activities'}
@@ -3337,34 +3467,34 @@ function CalendarContent() {
                       </button>
                     ))}
                   </div>
-                  </ScrollArea>
-                  
-                  {/* Pagination - moved to footer outside ScrollArea */}
-                  {filtered.length > 0 && (
-                    <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
-                      <p className="text-sm text-muted-foreground">
-                        Page {validPage} of {totalPages}
-                      </p>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setAgencyFilterPage(p => Math.max(1, p - 1))}
-                          disabled={agencyFilterPage === 1}
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setAgencyFilterPage(p => Math.min(totalPages, p + 1))}
-                          disabled={agencyFilterPage === totalPages}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                   </ScrollArea>
+                   
+                   {/* Pagination - only show if more than 10 activities */}
+                   {filtered.length > itemsPerPage && (
+                     <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
+                       <p className="text-sm text-muted-foreground">
+                         Page {validPage} of {totalPages}
+                       </p>
+                       <div className="flex gap-1">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setAgencyFilterPage(p => Math.max(1, p - 1))}
+                           disabled={agencyFilterPage === 1}
+                         >
+                           <ChevronLeft className="w-4 h-4" />
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => setAgencyFilterPage(p => Math.min(totalPages, p + 1))}
+                           disabled={agencyFilterPage === totalPages}
+                         >
+                           <ChevronRight className="w-4 h-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   )}
                 </>
               );
             })()}
