@@ -4000,6 +4000,7 @@ function CalendarContent() {
               <Button
                 variant="outline"
                 className="w-full gap-2"
+                style={{ borderColor: '#94a3b8' }}
                 disabled={!deleteRecurType || !deleteRecurYear}
                  onClick={() => {
                    if (!deleteRecurType || !deleteRecurYear) return;
