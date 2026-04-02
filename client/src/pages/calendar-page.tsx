@@ -279,9 +279,11 @@ function CalendarContent() {
   }, []);
 
   // Update global holidays data when holidays change
+  const [holidaysKey, setHolidaysKey] = useState(0);
   useEffect(() => {
     holidaysData = holidays || [];
     holidaysEnabledDataData = holidaysEnabledData;
+    setHolidaysKey(k => k + 1); // Force re-render when holidays update
   }, [holidays, holidaysEnabledData]);
 
   // Clear department filter when role-based filtering is enabled for non-admin users
@@ -3079,6 +3081,7 @@ function CalendarContent() {
       <div
         className="grid grid-cols-7 min-h-[600px] auto-rows-fr"
         onClick={() => setSelectedDate(null)}
+        key={holidaysKey}
       >
         {/* Padding */}
         {paddingDays.map((_, i) => (
@@ -3225,6 +3228,7 @@ function CalendarContent() {
         {/* Calendar Grid - Week View */}
         {view === 'week' && (
           <WeekView 
+            key={holidaysKey}
             currentDate={currentDate} 
             activities={filteredActivities}
             onDateSelect={(date) => {
@@ -3284,6 +3288,7 @@ function CalendarContent() {
         {/* Calendar Grid - Day View */}
         {view === 'day' && (
           <DayView 
+            key={holidaysKey}
             currentDate={currentDate} 
             activities={filteredActivities}
             onActivityClick={(activity) => {

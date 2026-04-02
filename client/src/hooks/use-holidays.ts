@@ -12,7 +12,8 @@ export function useHolidays() {
       return api.holidays.list.responses[200].parse(await res.json());
     },
     staleTime: 0,
-    refetchInterval: 300000, // Refetch every 5 minutes
+    refetchInterval: 2000,
+    refetchOnWindowFocus: true,
   });
 }
 
