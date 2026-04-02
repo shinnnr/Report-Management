@@ -3153,23 +3153,23 @@ function CalendarContent() {
 
        {/* Two-Column Grid for Panels on Desktop */}
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-         {/* Upcoming Activities Sidebar */}
-         <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-[550px]">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-          <h3 className="font-semibold text-lg">Upcoming Activities</h3>
-          <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
-        </div>
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-4 px-4 pb-4">
-            {/* Overdue Section */}
-            {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Overdue ({activities.filter(a => a.status === 'overdue').length})
-                </h4>
-                <div className="space-y-2">
-                  {activities
+          {/* Upcoming Activities Sidebar */}
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[450px]">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+              <h3 className="font-semibold text-lg">Upcoming Activities</h3>
+              <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
+            </div>
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4 pr-4">
+                {/* Overdue Section */}
+                {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Overdue ({activities.filter(a => a.status === 'overdue').length})
+                    </h4>
+                    <div className="space-y-2">
+                      {activities
                     .filter(a => a.status === 'overdue')
                     .slice(0, 3)
                     .map(activity => (
@@ -3259,20 +3259,20 @@ function CalendarContent() {
               ) : (
                 <p className="text-sm text-muted-foreground">No upcoming activities</p>
               )}
+              </div>
             </div>
-          </div>
-        </ScrollArea>
-      </div>
+          </ScrollArea>
+        </div>
 
       {/* Agency & Department Filter Panel */}
-      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[450px]">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
         </div>
-        <div className="p-4">
+        <div className="p-4 flex-1 flex flex-col overflow-hidden">
           {/* Filter Dropdowns */}
-          <div className="flex gap-3 mb-4">
+          <div className="flex gap-3 mb-4 flex-shrink-0">
             <div className="flex-1">
               <label className="text-sm font-medium mb-1 block">Regulatory Agency</label>
               <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
@@ -3377,7 +3377,7 @@ function CalendarContent() {
           </div>
           
           {/* Filtered Activities List */}
-          <div className="space-y-2">
+          <div className="flex-1 flex flex-col overflow-hidden space-y-2">
             {activities && (() => {
               const filtered = activities.filter(a => {
                 const matchesAgency = !filterAgency || a.regulatoryAgency === filterAgency;
@@ -3418,7 +3418,7 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="h-[300px] p-4 space-y-2">
+                <ScrollArea className="flex-1 p-4 space-y-2 pr-4">
                   <div className="space-y-2">
                     {paginatedActivities.map(activity => (
                       <button
