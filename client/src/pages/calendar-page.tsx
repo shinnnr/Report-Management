@@ -384,6 +384,12 @@ function CalendarContent() {
   const [holidayPage, setHolidayPage] = useState(1);
   const holidaysPerPage = 5;
 
+  // Check if holiday fields have changed from original values
+  const hasHolidayChanges = editingHoliday && (
+    holidayName !== editingHoliday.name || 
+    (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
+  );
+
   // Delete Recurring Activities State
   const [deleteRecurType, setDeleteRecurType] = useState<string>("");
   const [deleteRecurYear, setDeleteRecurYear] = useState<string>("");
@@ -1703,7 +1709,7 @@ function CalendarContent() {
                              setIsAddingHoliday(false);
                            }
                          }}
-                         disabled={!holidayName || !holidayDate || isAddingHoliday}
+                          disabled={!holidayName || !holidayDate || isAddingHoliday || (editingHoliday && !hasHolidayChanges)}
                          className="gap-2"
                        >
                          {isAddingHoliday ? (
@@ -3823,7 +3829,7 @@ function CalendarContent() {
                           setIsAddingHoliday(false);
                         }
                       }}
-                      disabled={!holidayName || !holidayDate || isAddingHoliday}
+                      disabled={!holidayName || !holidayDate || isAddingHoliday || (editingHoliday && !hasHolidayChanges)}
                       className="gap-2"
                     >
                       {isAddingHoliday ? (
