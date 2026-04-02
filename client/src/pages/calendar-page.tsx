@@ -1314,12 +1314,14 @@ function CalendarContent() {
   return (
     <>
        {/* Delete Holiday Confirmation Dialog */}
-       <Dialog open={showDeleteHolidayConfirm} onOpenChange={(open) => {
-         setShowDeleteHolidayConfirm(open);
-         if (!open) {
-           setIsDeletingHolidayId(null);
-         }
-       }}>
+        <Dialog open={showDeleteHolidayConfirm} onOpenChange={(open) => {
+          setShowDeleteHolidayConfirm(open);
+          if (!open) {
+            // Only reset states when user manually closes/cancels the modal
+            // Don't reset isDeletingHolidayId - it should persist until deletion completes
+            setHolidayToDelete(null);
+          }
+        }}>
          <DialogContent>
            <DialogHeader>
              <DialogTitle>Delete Holiday</DialogTitle>
@@ -1331,24 +1333,30 @@ function CalendarContent() {
              <Button variant="outline" onClick={() => setShowDeleteHolidayConfirm(false)}>
                Cancel
              </Button>
-             <Button
-               variant="destructive"
-               disabled={isDeletingHolidayId === holidayToDelete?.id}
-               onClick={async () => {
-                 if (holidayToDelete) {
-                   setIsDeletingHolidayId(holidayToDelete.id);
-                   try {
-                     await deleteHoliday.mutateAsync(holidayToDelete.id);
-                     setShowDeleteHolidayConfirm(false);
-                     setHolidayToDelete(null);
-                   } finally {
-                     setIsDeletingHolidayId(null);
-                   }
-                 }
-               }}
-             >
-               {isDeletingHolidayId === holidayToDelete?.id ? 'Deleting...' : 'Delete'}
-             </Button>
+                <Button
+                  variant="destructive"
+                  disabled={isDeletingHolidayId === holidayToDelete?.id}
+                  onClick={async () => {
+                    if (holidayToDelete) {
+                      setIsDeletingHolidayId(holidayToDelete.id);
+                      // Close modal immediately
+                      setShowDeleteHolidayConfirm(false);
+                      const holidayId = holidayToDelete.id;
+                      setHolidayToDelete(null);
+
+                      try {
+                        await deleteHoliday.mutateAsync(holidayId);
+                      } catch (error) {
+                        console.error('Failed to delete holiday:', error);
+                      } finally {
+                        // Reset deleting state after mutation completes (success or error)
+                        setIsDeletingHolidayId(null);
+                      }
+                    }
+                  }}
+                >
+                  {isDeletingHolidayId === holidayToDelete?.id ? 'Deleting...' : 'Delete'}
+                </Button>
            </DialogFooter>
          </DialogContent>
        </Dialog>
@@ -1441,14 +1449,14 @@ function CalendarContent() {
                               {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={holidayDate}
-                              onSelect={setHolidayDate}
-                              initialFocus
-                            />
-                          </PopoverContent>
+                           <PopoverContent className="w-auto p-0" align="start">
+                             <Calendar
+                               mode="single"
+                               selected={holidayDate}
+                               onSelect={setHolidayDate}
+                               initialFocus
+                             />
+                           </PopoverContent>
                         </Popover>
                       </div>
                     </div>
@@ -1531,7 +1539,7 @@ function CalendarContent() {
                            }}
                            disabled={isAddingHoliday}
                          >
-                           Cancel Edit
+                           Cancel
                          </Button>
                        )}
                      </div>
@@ -1562,29 +1570,27 @@ function CalendarContent() {
                                    <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
                                  </div>
                                  <div className="flex gap-2">
-                                   <Button
-                                     variant="outline"
-                                     size="sm"
-                                     disabled={isAddingHoliday || isDeletingHolidayId === holiday.id}
-                                     onClick={() => {
-                                       setEditingHoliday(holiday);
-                                       setHolidayName(holiday.name);
-                                       setHolidayDate(new Date(holiday.date));
-                                     }}
-                                   >
-                                     Edit
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingHoliday(holiday);
+                                        setHolidayName(holiday.name);
+                                        setHolidayDate(new Date(holiday.date));
+                                      }}
+                                    >
+                                      Edit
                                    </Button>
-                                   <Button
-                                     variant="destructive"
-                                     size="sm"
-                                     disabled={isAddingHoliday || isDeletingHolidayId !== null}
-                                     onClick={() => {
-                                       setHolidayToDelete(holiday);
-                                       setShowDeleteHolidayConfirm(true);
-                                     }}
-                                   >
-                                     <Trash2 className="w-4 h-4" />
-                                   </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        setHolidayToDelete(holiday);
+                                        setShowDeleteHolidayConfirm(true);
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
                                  </div>
                                </div>
                              ))}
@@ -3509,7 +3515,6 @@ function CalendarContent() {
         <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible mt-8">
           <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
             <h3 className="font-semibold text-lg flex items-center gap-2">
-              <CalendarDays className="w-5 h-5" />
               Holiday Management
             </h3>
             <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
@@ -3542,14 +3547,14 @@ function CalendarContent() {
                           {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={holidayDate}
-                          onSelect={setHolidayDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
+                       <PopoverContent className="w-auto p-0" align="start">
+                         <Calendar
+                           mode="single"
+                           selected={holidayDate}
+                           onSelect={setHolidayDate}
+                           initialFocus
+                         />
+                       </PopoverContent>
                     </Popover>
                   </div>
                   <div className="flex gap-2">
@@ -3630,7 +3635,7 @@ function CalendarContent() {
                         }}
                         disabled={isAddingHoliday}
                       >
-                        Cancel Edit
+                        Cancel
                       </Button>
                     )}
                   </div>
@@ -3663,29 +3668,27 @@ function CalendarContent() {
                                 <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
                               </div>
                               <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isAddingHoliday || isDeletingHolidayId === holiday.id}
-                                  onClick={() => {
-                                    setEditingHoliday(holiday);
-                                    setHolidayName(holiday.name);
-                                    setHolidayDate(new Date(holiday.date));
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  disabled={isAddingHoliday || isDeletingHolidayId !== null}
-                                  onClick={() => {
-                                    setHolidayToDelete(holiday);
-                                    setShowDeleteHolidayConfirm(true);
-                                  }}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                 <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingHoliday(holiday);
+                                      setHolidayName(holiday.name);
+                                      setHolidayDate(new Date(holiday.date));
+                                    }}
+                                  >
+                                    Edit
+                                 </Button>
+                                 <Button
+                                   variant="destructive"
+                                   size="sm"
+                                   onClick={() => {
+                                     setHolidayToDelete(holiday);
+                                     setShowDeleteHolidayConfirm(true);
+                                   }}
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
                               </div>
                             </div>
                           ))}
