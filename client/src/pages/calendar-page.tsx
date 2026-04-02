@@ -3151,8 +3151,10 @@ function CalendarContent() {
         )}
       </div>
 
-      {/* Upcoming Activities Sidebar */}
-      <div className="mt-8 bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+       {/* Two-Column Grid for Panels on Desktop */}
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+         {/* Upcoming Activities Sidebar */}
+         <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col h-[550px]">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <h3 className="font-semibold text-lg">Upcoming Activities</h3>
           <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
@@ -3495,14 +3497,15 @@ function CalendarContent() {
                        </div>
                      </div>
                    )}
-                </>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-    </>
-  );
+                 </>
+               );
+             })()}
+           </div>
+         </div>
+       </div>
+       </div>
+     </>
+   );
 }
 
 // Week View Component
