@@ -1261,7 +1261,7 @@ function CalendarContent() {
         </div>
         
         {/* Action buttons - positioned based on screen size */}
-        <div className="flex flex-row flex-wrap xl:flex-row gap-1 xl:gap-2 place-items-start">
+        <div className="flex flex-row flex-wrap lg:flex-nowrap gap-1 lg:gap-2 place-items-start">
           {/* Holiday Management Button - first on mobile, third on desktop */}
           <Dialog open={isHolidayModalOpen} onOpenChange={(open) => {
             setIsHolidayModalOpen(open);
