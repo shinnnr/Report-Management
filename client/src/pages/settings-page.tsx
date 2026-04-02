@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -107,47 +106,7 @@ function SettingsContent() {
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const usersPerPage = 10;
 
-  // Role-based filtering setting
-  const [enableRoleFiltering, setEnableRoleFiltering] = useState(true);
 
-  // Fetch the role filtering setting on mount
-  useEffect(() => {
-    const fetchSetting = async () => {
-      try {
-        const res = await fetch('/api/settings/enable_role_filtering', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          // Default to true if not set
-          setEnableRoleFiltering(data.value !== 'false');
-        }
-      } catch (error) {
-        console.error('Error fetching setting:', error);
-      }
-    };
-    if (isAdmin) {
-      fetchSetting();
-    }
-  }, [isAdmin]);
-
-  // Save role filtering setting
-  const saveRoleFilteringSetting = async (enabled: boolean) => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ key: 'enable_role_filtering', value: enabled ? 'true' : 'false' }),
-      });
-      if (res.ok) {
-        toast({ title: 'Setting updated', description: 'Role-based filtering has been updated.' });
-      } else {
-        throw new Error('Failed to update setting');
-      }
-    } catch (error) {
-      console.error('Error saving setting:', error);
-      toast({ title: 'Error', description: 'Failed to update setting', variant: 'destructive' });
-    }
-  };
 
   // Sort users: current logged-in user first
   const sortedUsers = useMemo(() => {
@@ -576,35 +535,6 @@ function SettingsContent() {
         {/* System Tab (Admin Only) - Deadline Management */}
         {isAdmin && (
           <TabsContent value="system" className="space-y-4">
-            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Role-Based Activity Filtering
-                </CardTitle>
-                <CardDescription>Control whether CPS and ETS users see only their assigned activities.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                  <div className="space-y-1">
-                    <Label htmlFor="role-filtering" className="text-base font-medium">
-                      Enable Role-Based Filtering
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      When enabled, CPS users see CITET-CPS and CITET-ETS/CITET-CPS activities. ETS users see CITET-ETS and CITET-ETS/CITET-CPS activities.
-                    </p>
-                  </div>
-                  <Switch
-                    id="role-filtering"
-                    checked={enableRoleFiltering}
-                    onCheckedChange={(checked) => {
-                      setEnableRoleFiltering(checked);
-                      saveRoleFilteringSetting(checked);
-                    }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
             <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
