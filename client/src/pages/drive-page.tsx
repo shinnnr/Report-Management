@@ -860,8 +860,8 @@ function DriveContent() {
               onChange={(e) => setDriveSearchQuery(e.target.value)}
               className="max-w-sm"
             />
-            {/* New Folder and Upload buttons below search bar on compact desktop */}
-            {isCompactDesktop && (
+            {/* New Folder and Upload buttons below search bar on mobile, compact desktop and medium screens */}
+            {(isMobile || isCompactDesktop || window.innerWidth < 1300) && (
               <div className="flex flex-col gap-2 mt-2">
                 <div className="flex gap-2">
                   <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
@@ -948,8 +948,8 @@ function DriveContent() {
                   </Dialog>
                 </div>
 
-                {/* Bulk action buttons in compact desktop select mode */}
-                {(selectedFiles.length > 0 || selectedFolders.length > 0) && (
+                {/* Bulk action buttons in select mode for mobile and smaller screens */}
+                {(selectedFiles.length > 0 || selectedFolders.length > 0) && (isMobile || isCompactDesktop || window.innerWidth < 1300) && (
                   <div className="flex gap-2">
                     <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                       <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
@@ -967,9 +967,9 @@ function DriveContent() {
           </div>
         </div>
 
-        {/* Right side - Bulk actions always visible on non-compact desktop */}
+        {/* Right side - Bulk actions visible on larger screens */}
         <div className="flex flex-wrap items-center gap-3">
-          {(selectedFiles.length > 0 || selectedFolders.length > 0) && !isCompactDesktop && (
+          {(selectedFiles.length > 0 || selectedFolders.length > 0) && !isCompactDesktop && window.innerWidth >= 1300 && (
             <>
               <Button variant="outline" className="gap-2" onClick={() => setIsMoveOpen(true)}>
                 <MoveHorizontal className="w-4 h-4" /> Move ({selectedFiles.length + selectedFolders.length})
@@ -983,8 +983,8 @@ function DriveContent() {
             </>
           )}
 
-          {/* New Folder and Upload buttons - only show when NOT compact desktop */}
-          {!isCompactDesktop && (
+          {/* New Folder and Upload buttons - only show when NOT compact desktop and not medium screens */}
+          {!isCompactDesktop && window.innerWidth >= 1300 && (
             <>
               <Dialog open={isNewFolderOpen} onOpenChange={setIsNewFolderOpen}>
                 <DialogTrigger asChild>
