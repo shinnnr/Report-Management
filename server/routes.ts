@@ -698,7 +698,10 @@ export async function registerRoutes(
       const dayOfWeek = deadlineDate.getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
 
-      // Check if it's a holiday
+      // Check if it's a holiday (only when the holidays feature is enabled)
+      const holidaysEnabledSetting = await storage.getSetting('holidays_enabled');
+      const holidaysEnabled = holidaysEnabledSetting !== 'false';
+
       const holidays = await storage.getHolidays();
       const isHoliday = holidays.some(holiday =>
         holiday.date.getFullYear() === deadlineDate.getFullYear() &&
@@ -706,9 +709,9 @@ export async function registerRoutes(
         holiday.date.getDate() === deadlineDate.getDate()
       );
 
-      if (isHoliday || isWeekend) {
+      if (isWeekend || (holidaysEnabled && isHoliday)) {
         return res.status(400).json({
-          message: `Cannot create activities on ${isHoliday ? 'holidays' : 'weekends'}. Activities will be automatically moved to the previous working day.`
+          message: `Cannot create activities on ${holidaysEnabled && isHoliday ? 'holidays' : 'weekends'}. Activities will be automatically moved to the previous working day.`
         });
       }
 

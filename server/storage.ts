@@ -604,8 +604,10 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
-  // Helper function to check if a date is a holiday
+  // Helper function to check if a date is a holiday (respects holidays_enabled — when disabled, never treat as holiday)
   private async isHoliday(date: Date): Promise<boolean> {
+    const holidaysEnabled = await this.getSetting('holidays_enabled');
+    if (holidaysEnabled === 'false') return false;
     const holidays = await this.getHolidays();
     return holidays.some(holiday =>
       holiday.date.getFullYear() === date.getFullYear() &&
