@@ -3503,10 +3503,230 @@ function CalendarContent() {
            </div>
          </div>
        </div>
-       </div>
-     </>
-   );
-}
+        </div>
+
+        {/* Holiday Management Panel */}
+        <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible mt-8">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <CalendarDays className="w-5 h-5" />
+              Holiday Management
+            </h3>
+            <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Add New Holiday Panel */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                  {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
+                </h4>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="holidayNamePanel" className="text-sm font-medium">Holiday Name</Label>
+                    <Input
+                      id="holidayNamePanel"
+                      value={holidayName}
+                      onChange={(e) => setHolidayName(e.target.value)}
+                      placeholder="New Year's Day"
+                      className="h-10 border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="h-10 w-full justify-start text-left font-normal border-gray-400">
+                          {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={holidayDate}
+                          onSelect={setHolidayDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={async () => {
+                        if (!holidayName || !holidayDate) return;
+
+                        // Check if holiday date already exists (only when adding, not when editing)
+                        if (!editingHoliday) {
+                          const holidayExists = holidays?.some(h => isSameDay(new Date(h.date), holidayDate));
+                          if (holidayExists) {
+                            toast({
+                              title: "Holiday already exists",
+                              description: "A holiday is already configured for this date.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                        } else {
+                          // When editing, check if another holiday has this date
+                          const holidayExists = holidays?.some(h => h.id !== editingHoliday.id && isSameDay(new Date(h.date), holidayDate));
+                          if (holidayExists) {
+                            toast({
+                              title: "Holiday already exists",
+                              description: "Another holiday is already configured for this date.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                        }
+
+                        setIsAddingHoliday(true);
+                        try {
+                          if (editingHoliday) {
+                            await updateHoliday.mutateAsync({
+                              id: editingHoliday.id,
+                              data: {
+                                name: holidayName,
+                                date: holidayDate
+                              }
+                            });
+                          } else {
+                            await createHoliday.mutateAsync({
+                              name: holidayName,
+                              date: holidayDate
+                            });
+                          }
+                          setHolidayName("");
+                          setHolidayDate(undefined);
+                          setEditingHoliday(null);
+                        } catch (error) {
+                          // Error handled by mutation
+                        } finally {
+                          setIsAddingHoliday(false);
+                        }
+                      }}
+                      disabled={!holidayName || !holidayDate || isAddingHoliday}
+                      className="gap-2"
+                    >
+                      {isAddingHoliday ? (
+                        <>
+                          {editingHoliday ? 'Updating...' : 'Adding...'}
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          {editingHoliday ? 'Update Holiday' : 'Add Holiday'}
+                        </>
+                      )}
+                    </Button>
+                    {editingHoliday && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setHolidayName("");
+                          setHolidayDate(undefined);
+                          setEditingHoliday(null);
+                        }}
+                        disabled={isAddingHoliday}
+                      >
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing Holidays Panel */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                  Existing Holidays
+                </h4>
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2 pr-4">
+                    {holidays?.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No holidays configured</p>
+                    ) : (() => {
+                      const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
+                      const paginatedHolidays = holidays?.slice(
+                        (holidayPage - 1) * holidaysPerPage,
+                        holidayPage * holidaysPerPage
+                      ) || [];
+
+                      return (
+                        <>
+                          {paginatedHolidays.map((holiday: any) => (
+                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <p className="font-medium">{holiday.name}</p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isAddingHoliday || isDeletingHolidayId === holiday.id}
+                                  onClick={() => {
+                                    setEditingHoliday(holiday);
+                                    setHolidayName(holiday.name);
+                                    setHolidayDate(new Date(holiday.date));
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={isAddingHoliday || isDeletingHolidayId !== null}
+                                  onClick={() => {
+                                    setHolidayToDelete(holiday);
+                                    setShowDeleteHolidayConfirm(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                          {/* Pagination - only show if more than 5 holidays */}
+                          {(holidays?.length || 0) > holidaysPerPage && (
+                            <div className="flex items-center justify-between pt-4 border-t mt-4">
+                              <p className="text-sm text-muted-foreground">
+                                Page {holidayPage} of {totalPages}
+                              </p>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                                  disabled={holidayPage === 1}
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
+                                  disabled={holidayPage === totalPages}
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
 // Week View Component
 function WeekView({
