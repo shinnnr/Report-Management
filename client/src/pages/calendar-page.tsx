@@ -350,6 +350,7 @@ function CalendarContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [startingActivityId, setStartingActivityId] = useState<number | null>(null);
   const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
+  const [manuallyClosedWhileAdding, setManuallyClosedWhileAdding] = useState(false);
   
   // Day Activities Modal State
   const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
@@ -1126,12 +1127,12 @@ function CalendarContent() {
 
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
-    
+
     // Combine selected date with activity time
     const [hours, minutes] = activityTime.split(':').map(Number);
     const deadlineWithTime = new Date(selectedDate);
     deadlineWithTime.setHours(hours, minutes, 0, 0);
-    
+
     await createActivity.mutateAsync({
       title,
       description,
@@ -1145,8 +1146,8 @@ function CalendarContent() {
       recurrence: recurrence !== 'none' ? recurrence : null,
       recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? new Date(recurrenceEndDate) : null,
     });
-    setIsNewActivityOpen(false);
-    setSelectedDate(null);
+
+    // Reset form state
     setTitle("");
     setDescription("");
     setActivityTime("23:59");
@@ -1156,6 +1157,9 @@ function CalendarContent() {
     setRecurrenceEndDate("");
     setReportDetails("");
     setRemarks("");
+
+    // Reset the flag
+    setManuallyClosedWhileAdding(false);
   };
 
   const getStatusColor = (status: string | null) => {
@@ -1829,6 +1833,11 @@ function CalendarContent() {
           <Dialog open={isNewActivityOpen} onOpenChange={(open) => {
             setIsNewActivityOpen(open);
             if (!open) {
+              // If adding is in progress, reset the mutation to cancel it
+              if (createActivity.isPending) {
+                createActivity.reset();
+                setManuallyClosedWhileAdding(true);
+              }
               // Reset form state
               setTitle("");
               setDescription("");
