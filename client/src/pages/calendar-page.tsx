@@ -3732,10 +3732,10 @@ function CalendarContent() {
         </div>
 
         {/* Holiday Management & Recurring Activity Deletion Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          {/* Holiday Management Panel - Left Column */}
+        <div className="flex flex-col gap-8 mt-8">
+          {/* Holiday Management Panel */}
           {canManageHolidays && (
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-2">
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <div className="flex items-center justify-between">
                 <div>
@@ -3754,8 +3754,8 @@ function CalendarContent() {
               </div>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Add New Holiday Form - Top */}
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Add New Holiday Form - Left Column */}
               <div className="border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                   <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
@@ -3877,13 +3877,13 @@ function CalendarContent() {
                 </div>
               </div>
 
-              {/* Existing Holidays List - Below Add Form */}
-              {holidays && holidays.length > 0 && (
-                <div className="border rounded-lg p-4">
+              {/* Edit Existing Holiday - Right Column */}
+              <div className="border rounded-lg p-4">
                   <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                     <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                    Existing Holidays
+                    EXISTING HOLIDAYS
                   </h4>
+                {holidays && holidays.length > 0 ? (
                   <ScrollArea className="h-[300px]">
                     <div className="space-y-2 pr-4">
                       {(() => {
@@ -3957,14 +3957,18 @@ function CalendarContent() {
                       })()}
                     </div>
                   </ScrollArea>
-                </div>
-              )}
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No holidays configured yet
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           )}
 
-          {/* Delete Recurring Activities Panel - Right Column */}
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible lg:col-span-1 lg:self-start">
+          {/* Delete Recurring Activities Panel */}
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 Delete Recurring Activities

@@ -27,6 +27,7 @@ export function useCreateHoliday() {
       const res = await fetch(api.holidays.create.path, {
         method: api.holidays.create.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -56,6 +57,7 @@ export function useUpdateHoliday() {
       const res = await fetch(url, {
         method: api.holidays.update.method,
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -82,7 +84,10 @@ export function useDeleteHoliday() {
     retry: false,
     mutationFn: async (id: number) => {
       const url = api.holidays.delete.path.replace(':id', id.toString());
-      const res = await fetch(url, { method: api.holidays.delete.method });
+      const res = await fetch(url, {
+        method: api.holidays.delete.method,
+        credentials: 'include'
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         return Promise.reject(new Error(data.message || "Failed to delete holiday"));
