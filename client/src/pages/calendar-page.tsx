@@ -4637,9 +4637,24 @@ function CalendarContent() {
                                 return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
                               }
 
-                              // Generate future years (current year + next 5 years)
-                              const currentYear = new Date().getFullYear();
-                              const futureYears = Array.from({ length: 6 }, (_, i) => currentYear + i);
+                              const selectedTemplateActivities = (activities || []).filter(a =>
+                                a.title &&
+                                addRecurTitles.includes(a.title) &&
+                                a.recurrence &&
+                                addRecurTypes.includes(a.recurrence)
+                              );
+                              const selectedYears = selectedTemplateActivities
+                                .map(a => new Date(a.deadlineDate).getFullYear());
+                              const baseYear = selectedYears.length > 0
+                                ? Math.min(...selectedYears)
+                                : new Date().getFullYear();
+                              const excludedYears = new Set(selectedYears);
+                              const futureYears = Array.from({ length: 5 }, (_, i) => baseYear + i + 1)
+                                .filter(year => !excludedYears.has(year));
+
+                              if (futureYears.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No available years for the selected activities</p>;
+                              }
 
                               return futureYears.map(year => (
                                 <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
@@ -4730,7 +4745,7 @@ function CalendarContent() {
                           {addRecurPreview.length} {addRecurPreview.length === 1 ? 'activity' : 'activities'} will be created
                         </h5>
                         <div className="space-y-1">
-                          {addRecurPreview.slice(0, 10).map((activity: any, index: number) => (
+                          {addRecurPreview.map((activity: any, index: number) => (
                             <div key={index} className="flex items-center justify-between p-2 border rounded-md text-sm">
                               <div>
                                 <p className="font-medium truncate max-w-[150px]">{activity.title}</p>
@@ -4741,11 +4756,6 @@ function CalendarContent() {
                               </span>
                             </div>
                           ))}
-                          {addRecurPreview.length > 10 && (
-                            <p className="text-xs text-muted-foreground text-center py-2">
-                              ...and {addRecurPreview.length - 10} more activities
-                            </p>
-                          )}
                         </div>
                       </>
                     ) : (
