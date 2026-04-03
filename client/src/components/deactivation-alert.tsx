@@ -93,16 +93,6 @@ export function DeactivationAlert() {
     }
   }, [currentUser, refetchUser]);
 
-  // Also refetch periodically to detect deactivations
-  useEffect(() => {
-    if (currentUser && !logoutMutation.isPending && !logoutMutation.isSuccess && !hasLoggedOutRef.current && !isLoggedOut) {
-      const interval = setInterval(() => {
-        refetchUser();
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [currentUser, refetchUser, logoutMutation.isPending, logoutMutation.isSuccess, isLoggedOut]);
-
   // Countdown timer - only triggers when modal opens/closes or logout status changes
   useEffect(() => {
     // Clear any existing interval when modal opens

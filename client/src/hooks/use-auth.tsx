@@ -41,6 +41,7 @@ function setStoredUser(user: User | null) {
 
 export function useUser() {
   const queryClient = useQueryClient();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
 
   return useQuery({
     queryKey: [api.auth.me.path],
@@ -82,7 +83,7 @@ export function useUser() {
     retry: false,
     staleTime: 30000,
     refetchInterval: (data) => {
-      if (!data || isLoggedOut) return false;
+      if (!data || isLoggedOut || isLoginPage) return false;
       return 5000;
     },
   });
