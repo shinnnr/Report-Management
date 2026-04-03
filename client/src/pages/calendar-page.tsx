@@ -683,7 +683,7 @@ function CalendarContent() {
         // Auto-switch to month view when navigating from notification
         setView('month');
         // Clear the URL parameter without adding to browser history
-        window.history.replaceState({}, '', '/calendar');
+        setLocation('/calendar', { replace: true });
       }
     }
   }, [activities, setLocation]);
@@ -1991,350 +1991,91 @@ function CalendarContent() {
                 </div>
               </div>
 
-              {/* Delete Recurring Activities - Right Column */}
+              {/* Existing Holidays - Right Column */}
               <div className="border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
-                  <span className="w-1 h-4 bg-red-500 rounded-full"></span>
-                  Delete Recurring Activities
+                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                  EXISTING HOLIDAYS
                 </h4>
-                <div className="space-y-4">
-                  {/* Recurrence Type Selector */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Recurrence Type</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                        >
-                          {deleteRecurTypes.length === 0
-                            ? "Select recurrence types"
-                            : `${deleteRecurTypes.length} selected`}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="start">
-                        <div className="p-2">
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {[
-                              { value: "monthly", label: "Monthly" },
-                              { value: "quarterly", label: "Quarterly" },
-                              { value: "semi-annual", label: "Semi-Annual" },
-                              { value: "yearly", label: "Yearly" }
-                            ].map(type => (
-                              <div key={type.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                <Checkbox
-                                  id={`recurrence-${type.value}`}
-                                  checked={deleteRecurTypes.includes(type.value)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setDeleteRecurTypes(prev => [...prev, type.value]);
-                                    } else {
-                                      setDeleteRecurTypes(prev => prev.filter(t => t !== type.value));
-                                    }
-                                    setDeleteRecurTitles([]);
-                                    setDeleteRecurYears([]);
-                                    setDeleteRecurPreview([]);
-                                  }}
-                                />
-                                <Label
-                                  htmlFor={`recurrence-${type.value}`}
-                                  className="text-sm font-normal cursor-pointer flex-1"
-                                >
-                                  {type.label}
-                                </Label>
+                {holidays && holidays.length > 0 ? (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2 pr-4">
+                      {(() => {
+                        const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
+                        const paginatedHolidays = holidays?.slice(
+                          (holidayPage - 1) * holidaysPerPage,
+                          holidayPage * holidaysPerPage
+                        ) || [];
+
+                        return (
+                          <>
+                            {paginatedHolidays.map((holiday: any) => (
+                              <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                                <div>
+                                  <p className="font-medium">{holiday.name}</p>
+                                  <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingHoliday(holiday);
+                                      setHolidayName(holiday.name);
+                                      setHolidayDate(new Date(holiday.date));
+                                    }}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setHolidayToDelete(holiday);
+                                      setShowDeleteHolidayConfirm(true);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                             ))}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Activity Selector */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Activity</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                        >
-                          {deleteRecurTitles.length === 0
-                            ? "Select activities"
-                            : `${deleteRecurTitles.length} selected`}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="start">
-                        <div className="p-2">
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {(() => {
-                              if (deleteRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                              // Filter activities by selected recurrence types and extract unique titles
-                              const titlesWithRecurrence = activities
-                                .filter(a => a.recurrence && deleteRecurTypes.includes(a.recurrence))
-                                .map(a => a.title)
-                                .filter((title): title is string => title !== null && title !== undefined)
-                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
-                                .sort(); // Sort alphabetically
-
-                              if (titlesWithRecurrence.length === 0) {
-                                return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
-                              }
-
-                              return titlesWithRecurrence.map(title => (
-                                <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                  <Checkbox
-                                    id={`activity-${title}`}
-                                    checked={deleteRecurTitles.includes(title)}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setDeleteRecurTitles(prev => [...prev, title]);
-                                      } else {
-                                        setDeleteRecurTitles(prev => prev.filter(t => t !== title));
-                                      }
-                                      setDeleteRecurYears([]);
-                                      setDeleteRecurPreview([]);
-                                    }}
-                                  />
-                                  <Label
-                                    htmlFor={`activity-${title}`}
-                                    className="text-sm font-normal cursor-pointer flex-1"
+                            {(holidays?.length || 0) > holidaysPerPage && (
+                              <div className="flex items-center justify-between pt-4 border-t mt-4">
+                                <p className="text-sm text-muted-foreground">
+                                  Page {holidayPage} of {totalPages}
+                                </p>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                                    disabled={holidayPage === 1}
                                   >
-                                    {title}
-                                  </Label>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Year Selector */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Year</p>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                        >
-                          {deleteRecurYears.length === 0
-                            ? "Select years"
-                            : `${deleteRecurYears.length} selected`}
-                          <ChevronDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80 p-0" align="start">
-                        <div className="p-2">
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {(() => {
-                              if (deleteRecurTypes.length === 0 && deleteRecurTitles.length === 0) {
-                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type and activity first</p>;
-                              }
-                              if (deleteRecurTypes.length === 0) {
-                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                              }
-                              if (deleteRecurTitles.length === 0) {
-                                return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
-                              }
-                              if (!activities) return <p className="text-sm text-muted-foreground p-2">No activities available</p>;
-
-                              // Filter activities by selected recurrence types and titles, then extract unique years
-                              const yearsWithActivities = activities
-                                .filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title))
-                                .map(a => new Date(a.deadlineDate).getFullYear())
-                                .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
-                                .sort((a, b) => b - a); // Sort in descending order (most recent first)
-
-                              if (yearsWithActivities.length === 0) {
-                                return <p className="text-sm text-muted-foreground p-2">No years found</p>;
-                              }
-
-                              return yearsWithActivities.map(year => (
-                                <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                  <Checkbox
-                                    id={`year-${year}`}
-                                    checked={deleteRecurYears.includes(String(year))}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        setDeleteRecurYears(prev => [...prev, String(year)]);
-                                      } else {
-                                        setDeleteRecurYears(prev => prev.filter(y => y !== String(year)));
-                                      }
-                                      setDeleteRecurPreview([]);
-                                    }}
-                                  />
-                                  <Label
-                                    htmlFor={`year-${year}`}
-                                    className="text-sm font-normal cursor-pointer flex-1"
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={holidayPage === totalPages}
                                   >
-                                    {year}
-                                  </Label>
+                                    <ChevronRight className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                              ));
-                            })()}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Preview Button */}
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    style={{ borderColor: '#94a3b8' }}
-                    disabled={deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0}
-                     onClick={() => {
-                       if (deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0) return;
-                       const years = deleteRecurYears.map(y => parseInt(y));
-                        const matched = (activities || []).filter(a => {
-                          if (!a.recurrence || !a.title || !deleteRecurTypes.includes(a.recurrence) || !deleteRecurTitles.includes(a.title)) return false;
-                          const actDate = new Date(a.deadlineDate);
-                          return years.includes(actDate.getFullYear());
-                        });
-                       setDeleteRecurPreview(matched);
-                     }}
-                  >
-                    Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0) ? (() => {
-                      const years = deleteRecurYears.map(y => parseInt(y || "0"));
-                      return (activities || []).filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title) && years.includes(new Date(a.deadlineDate).getFullYear())).length;
-                    })() : 0})
-                  </Button>
-
-                  {/* Preview List */}
-                  <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
-                    {deleteRecurPreview.length > 0 ? (
-                      <>
-                        <h5 className="text-sm font-medium text-muted-foreground">
-                          {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
-                        </h5>
-                        <div className="space-y-1">
-                          {deleteRecurPreview.map((activity: any) => (
-                            <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
-                              <div>
-                                <p className="font-medium truncate max-w-[150px]">{activity.title}</p>
-                                <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
                               </div>
-                              <span className={cn(
-                                "px-2 py-0.5 rounded-full text-xs",
-                                activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
-                                activity.status === 'overdue' ? "bg-red-100 text-red-700" :
-                                activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
-                                "bg-orange-100 text-orange-700"
-                              )}>
-                                {activity.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        {deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0
-                          ? "Click 'Preview Activities' to see matching activities"
-                          : "Select recurrence types, activities, and years to preview"}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Delete Button */}
-                  <Button
-                    variant="destructive"
-                    className="gap-2 w-full"
-                    disabled={deleteRecurPreview.length === 0}
-                    onClick={() => setShowDeleteRecurConfirm(true)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete All
-                  </Button>
-                </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No holidays configured yet
+                  </p>
+                )}
               </div>
-
-                   {/* Existing Holidays List */}
-                   {holidays && holidays.length > 0 && (
-                     <div className="space-y-4">
-                       <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                         <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                         Existing Holidays
-                       </h3>
-                       <div className="space-y-2">
-                         {(() => {
-                           const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
-                           const paginatedHolidays = holidays?.slice(
-                             (holidayPage - 1) * holidaysPerPage,
-                             holidayPage * holidaysPerPage
-                           ) || [];
-
-                           return (
-                             <>
-                               {paginatedHolidays.map((holiday: any) => (
-                                 <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                                   <div>
-                                     <p className="font-medium">{holiday.name}</p>
-                                     <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
-                                   </div>
-                                   <div className="flex gap-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setEditingHoliday(holiday);
-                                          setHolidayName(holiday.name);
-                                          setHolidayDate(new Date(holiday.date));
-                                        }}
-                                      >
-                                        Edit
-                                     </Button>
-                                      <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => {
-                                          setHolidayToDelete(holiday);
-                                          setShowDeleteHolidayConfirm(true);
-                                        }}
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                   </div>
-                                 </div>
-                               ))}
-                               {/* Pagination - only show if more than 5 holidays */}
-                               {(holidays?.length || 0) > holidaysPerPage && (
-                                 <div className="flex items-center justify-between pt-4 border-t mt-4">
-                                   <p className="text-sm text-muted-foreground">
-                                     Page {holidayPage} of {totalPages}
-                                   </p>
-                                   <div className="flex gap-2">
-                                     <Button
-                                       variant="outline"
-                                       size="sm"
-                                       onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                                       disabled={holidayPage === 1}
-                                     >
-                                       <ChevronLeft className="w-4 h-4" />
-                                     </Button>
-                                     <Button
-                                       variant="outline"
-                                       size="sm"
-                                       onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
-                                       disabled={holidayPage === totalPages}
-                                     >
-                                       <ChevronRight className="w-4 h-4" />
-                                     </Button>
-                                   </div>
-                                 </div>
-                               )}
-                             </>
-                           );
-                         })()}
-                       </div>
-                     </div>
-                   )}
                 </div>
               </div>
              </DialogContent>
