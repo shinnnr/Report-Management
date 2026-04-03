@@ -2,8 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type InsertFolder } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useFolders(parentId: number | null | 'all' = null, status: string = 'active', refetchInterval?: number) {
+  const { user, isLoggedOut, isSessionDeactivated } = useAuth();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+
   return useQuery({
     queryKey: [api.folders.list.path, parentId, status],
     queryFn: async () => {
@@ -17,18 +21,20 @@ export function useFolders(parentId: number | null | 'all' = null, status: strin
 
       const url = `${api.folders.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
+      if (res.status === 401) return [];
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         throw new Error(`Failed to fetch folders: ${res.status} - ${errorText}`);
       }
       return api.folders.list.responses[200].parse(await res.json());
     },
+    enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
-    refetchInterval: refetchInterval,
-    retry: 3, // Retry up to 3 times on failure
+    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? refetchInterval : false,
+    retry: false,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }

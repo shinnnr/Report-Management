@@ -8,7 +8,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { LogOut, AlertTriangle } from "lucide-react";
-import { useLogoutMutation, useUser, useAuth } from "@/hooks/use-auth";
+import { useLogoutMutation, useAuth } from "@/hooks/use-auth";
 
 const COUNTDOWN_SECONDS = 5;
 
@@ -19,16 +19,12 @@ function useDeactivationKey() {
 }
 
 export function DeactivationAlert() {
-  const [deactivationKey, forceDeactivationUpdate] = useDeactivationKey();
   const [isOpen, setIsOpen] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
   const [message, setMessage] = useState("Your account has been deactivated by the administrator.");
-  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const logoutMutation = useLogoutMutation();
-  const { data: currentUser, refetch: refetchUser } = useUser();
-  const { user, isLoggedOut } = useAuth();
+  const { user, isLoggedOut, refetchUser } = useAuth();
   const hasLoggedOutRef = useRef(false);
-  const lastProcessedTimestampRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Close modal when logout is successful
@@ -43,10 +39,10 @@ export function DeactivationAlert() {
   
   // Close modal when user is not authenticated (e.g., on page reload)
   useEffect(() => {
-    if (!currentUser && isOpen) {
+    if (!user && isOpen) {
       setIsOpen(false);
     }
-  }, [currentUser, isOpen]);
+  }, [user, isOpen]);
   
   // Handle showing the deactivation modal
   const showDeactivationModal = useCallback((deactivateMessage: string) => {
@@ -56,7 +52,6 @@ export function DeactivationAlert() {
     setCountdown(COUNTDOWN_SECONDS);
     setIsOpen(true);
     setMessage(deactivateMessage);
-    setCurrentTimestamp(Date.now());
   }, [logoutMutation.isPending]);
 
   // Listen for deactivation events via custom event
@@ -82,16 +77,14 @@ export function DeactivationAlert() {
   // When user logs in (after being logged out), check if they were reactivated but then deactivated again
   // Also refetch to detect if still active after login
   useEffect(() => {
-    if (currentUser && hasLoggedOutRef.current) {
+    if (user && hasLoggedOutRef.current) {
       // User logged back in after being logged out
       hasLoggedOutRef.current = false;
-      setCurrentTimestamp(null);
-      lastProcessedTimestampRef.current = null;
       
       // Refetch immediately to check deactivation status after login
       refetchUser();
     }
-  }, [currentUser, refetchUser]);
+  }, [user, refetchUser]);
 
   // Countdown timer - only triggers when modal opens/closes or logout status changes
   useEffect(() => {

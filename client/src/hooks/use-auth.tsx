@@ -13,6 +13,7 @@ type AuthContextType = {
   logoutMutation: ReturnType<typeof useLogoutMutation>;
   refetchUser: () => void;
   isLoggedOut: boolean;
+  isSessionDeactivated: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -20,6 +21,7 @@ const AUTH_STORAGE_KEY = "authUser";
 
 // Global flag to track logout state
 let isLoggedOut = false;
+let isSessionDeactivated = false;
 
 function getStoredUser(): User | null {
   try {
@@ -42,15 +44,43 @@ function setStoredUser(user: User | null) {
 export function useUser() {
   const queryClient = useQueryClient();
   const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+  const storedUser = getStoredUser();
 
   return useQuery({
     queryKey: [api.auth.me.path],
     queryFn: async () => {
       try {
         const res = await fetch(api.auth.me.path, { credentials: "include" });
+        const data = await res.json().catch(() => ({}));
+
+        if (data?.deactivated) {
+          isSessionDeactivated = true;
+          await queryClient.cancelQueries({ queryKey: [api.notifications.list.path] });
+          await queryClient.cancelQueries({ queryKey: [api.folders.list.path] });
+          await queryClient.cancelQueries({ queryKey: [api.reports.list.path] });
+          await queryClient.cancelQueries({ queryKey: [api.reports.count.path] });
+          await queryClient.cancelQueries({ queryKey: [api.activities.list.path] });
+          const sessionTimestamp = localStorage.getItem("userSessionTimestamp");
+          const deactivationData = {
+            message: data.message || "Your account has been deactivated by the administrator.",
+            timestamp: Date.now(),
+            sessionTimestamp: sessionTimestamp,
+          };
+          localStorage.setItem("userDeactivated", JSON.stringify(deactivationData));
+          window.dispatchEvent(new CustomEvent("user-deactivated", { detail: deactivationData.message }));
+          const cachedUser =
+            queryClient.getQueryData<User | null>([api.auth.me.path]) ?? getStoredUser();
+          return cachedUser ?? null;
+        }
+
         if (res.status === 401) {
-          const data = await res.json().catch(() => ({}));
           if (data.deactivated) {
+            isSessionDeactivated = true;
+            await queryClient.cancelQueries({ queryKey: [api.notifications.list.path] });
+            await queryClient.cancelQueries({ queryKey: [api.folders.list.path] });
+            await queryClient.cancelQueries({ queryKey: [api.reports.list.path] });
+            await queryClient.cancelQueries({ queryKey: [api.reports.count.path] });
+            await queryClient.cancelQueries({ queryKey: [api.activities.list.path] });
             const sessionTimestamp = localStorage.getItem("userSessionTimestamp");
             const deactivationData = {
               message: data.message || "Your account has been deactivated by the administrator.",
@@ -69,7 +99,8 @@ export function useUser() {
         if (!res.ok) {
           throw new Error("Failed to fetch user");
         }
-        const parsedUser = api.auth.me.responses[200].parse(await res.json());
+        const parsedUser = api.auth.me.responses[200].parse(data);
+        isSessionDeactivated = false;
         setStoredUser(parsedUser);
         return parsedUser;
       } catch (e) {
@@ -79,11 +110,12 @@ export function useUser() {
         throw e;
       }
     },
-    initialData: () => getStoredUser(),
+    initialData: () => storedUser,
+    enabled: !!storedUser && !isLoggedOut,
     retry: false,
     staleTime: 30000,
     refetchInterval: (data) => {
-      if (!data || isLoggedOut || isLoginPage) return false;
+      if (!data || isLoggedOut || isLoginPage || isSessionDeactivated) return false;
       return 5000;
     },
   });
@@ -114,11 +146,16 @@ export function useLoginMutation() {
         }
         throw new Error("Login failed");
       }
-      return api.auth.login.responses[200].parse(await res.json());
+      const data = await res.json();
+      if (data?.deactivated) {
+        throw new Error(data.message || "Your account has been deactivated. Please contact the administrator.");
+      }
+      return api.auth.login.responses[200].parse(data);
     },
     onSuccess: (user) => {
       // Reset logout flag on successful login
       isLoggedOut = false;
+      isSessionDeactivated = false;
 
       queryClient.setQueryData([api.auth.me.path], user);
       setStoredUser(user);
@@ -145,6 +182,10 @@ export function useLogoutMutation() {
 
   return useMutation({
     retry: false,
+    onMutate: async () => {
+      isLoggedOut = true;
+      await queryClient.cancelQueries();
+    },
     mutationFn: async () => {
       const res = await fetch(api.auth.logout.path, {
         method: api.auth.logout.method,
@@ -152,9 +193,13 @@ export function useLogoutMutation() {
       });
       if (!res.ok) throw new Error("Logout failed");
     },
+    onError: () => {
+      isLoggedOut = false;
+    },
     onSuccess: () => {
       // Set global logout flag to prevent further polling
       isLoggedOut = true;
+      isSessionDeactivated = false;
 
       // Clear deactivation flags from localStorage
       localStorage.removeItem("userDeactivated");
@@ -185,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logoutMutation,
         refetchUser: () => refetch(),
         isLoggedOut,
+        isSessionDeactivated,
       }}
     >
       {children}

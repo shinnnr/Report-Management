@@ -193,7 +193,12 @@ export async function registerRoutes(
   app.post(api.auth.login.path, (req, res, next) => {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info.message });
+      if (!user) {
+        if (info?.message && info.message.includes("deactivated")) {
+          return res.json({ message: info.message, deactivated: true });
+        }
+        return res.status(401).json({ message: info.message });
+      }
       req.logIn(user, async (err) => {
         if (err) return next(err);
         await storage.createLog(user.id, "LOGIN", "User logged in");
@@ -220,7 +225,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "User not found" });
       }
       if (freshUser.status !== 'active') {
-        return res.status(401).json({ 
+        return res.json({ 
           message: "Your account has been deactivated by the administrator.",
           deactivated: true 
         });

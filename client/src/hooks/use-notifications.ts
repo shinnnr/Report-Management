@@ -1,17 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useNotifications() {
+  const { user, isLoggedOut, isSessionDeactivated } = useAuth();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+
   return useQuery({
     queryKey: [api.notifications.list.path],
     queryFn: async () => {
       const res = await fetch(api.notifications.list.path, { credentials: 'include' });
+      if (res.status === 401) return [];
       if (!res.ok) throw new Error("Failed to fetch notifications");
       return api.notifications.list.responses[200].parse(await res.json());
     },
+    enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
     staleTime: 0,
-    refetchInterval: 5000, // Poll every 5 seconds for new notifications
+    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? 5000 : false,
+    retry: false,
   });
 }
 

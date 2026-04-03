@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
-import { Redirect } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +38,7 @@ import neecoBanner from "@/assets/neeco_banner.png";
 export default function AuthPage() {
   const { user, loginMutation } = useAuth();
   const { theme, resetTheme } = useTheme();
+  const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [showDeactivatedModal, setShowDeactivatedModal] = useState(false);
@@ -67,8 +68,14 @@ export default function AuthPage() {
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      setLocation("/dashboard", { replace: true });
+    }
+  }, [user, setLocation]);
+
   if (user) {
-    return <Redirect to="/dashboard" />;
+    return null;
   }
 
   function onSubmit(values: z.infer<typeof loginSchema>) {

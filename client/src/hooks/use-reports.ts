@@ -2,8 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type InsertReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useReports(folderId?: number | "root", status: string = 'active', refetchInterval?: number) {
+  const { user, isLoggedOut, isSessionDeactivated } = useAuth();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+
   return useQuery({
     queryKey: [api.reports.list.path, folderId, status],
     queryFn: async () => {
@@ -13,23 +17,28 @@ export function useReports(folderId?: number | "root", status: string = 'active'
 
       const url = `${api.reports.list.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
+      if (res.status === 401) return [];
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         throw new Error(`Failed to fetch reports: ${res.status} - ${errorText}`);
       }
       return api.reports.list.responses[200].parse(await res.json());
     },
+    enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: false, // Don't refetch on mount if cached
     refetchOnWindowFocus: false,
-    refetchInterval: refetchInterval,
-    retry: 3, // Retry up to 3 times on failure
+    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? refetchInterval : false,
+    retry: false,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 
 export function useReportsCount(folderId?: number | "root", status: string = 'active') {
+  const { user, isLoggedOut, isSessionDeactivated } = useAuth();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+
   return useQuery({
     queryKey: [api.reports.count.path, folderId, status],
     queryFn: async () => {
@@ -39,6 +48,7 @@ export function useReportsCount(folderId?: number | "root", status: string = 'ac
 
       const url = `${api.reports.count.path}?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
+      if (res.status === 401) return 0;
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         throw new Error(`Failed to fetch reports count: ${res.status} - ${errorText}`);
@@ -46,12 +56,13 @@ export function useReportsCount(folderId?: number | "root", status: string = 'ac
       const data = api.reports.count.responses[200].parse(await res.json());
       return data.count;
     },
+    enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: false,
-    refetchInterval: 5000, // Poll every 5 seconds to stay in sync across sessions
-    retry: 3,
+    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? 5000 : false,
+    retry: false,
   });
 }
 
