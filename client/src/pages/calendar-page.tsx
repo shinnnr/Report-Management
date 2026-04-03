@@ -611,6 +611,13 @@ function CalendarContent() {
     setConcernDepartment([]);
   }, [regulatoryAgency]);
 
+  useEffect(() => {
+    if (!canDeleteActivities) {
+      setSelectedDayActivityIds([]);
+      setSelectedTimeSlotActivityIds([]);
+    }
+  }, [canDeleteActivities]);
+
   const handleRecurrenceChange = (value: string) => {
     setRecurrence(value);
     setRecurrenceEndDate("");
@@ -2730,12 +2737,14 @@ function CalendarContent() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <Checkbox
-                              checked={selectedDayActivityIds.includes(activity.id)}
-                              onCheckedChange={() => toggleDayActivitySelection(activity.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0"
-                            />
+                            {canDeleteActivities && (
+                              <Checkbox
+                                checked={selectedDayActivityIds.includes(activity.id)}
+                                onCheckedChange={() => toggleDayActivitySelection(activity.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0"
+                              />
+                            )}
                             <span className="font-medium truncate">{activity.title}</span>
                           </div>
                           <span className={cn(
@@ -3228,12 +3237,14 @@ function CalendarContent() {
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <Checkbox
-                                  checked={selectedTimeSlotActivityIds.includes(activity.id)}
-                                  onCheckedChange={() => toggleTimeSlotActivitySelection(activity.id)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="shrink-0"
-                                />
+                                {canDeleteActivities && (
+                                  <Checkbox
+                                    checked={selectedTimeSlotActivityIds.includes(activity.id)}
+                                    onCheckedChange={() => toggleTimeSlotActivitySelection(activity.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="shrink-0"
+                                  />
+                                )}
                                 <span className="font-medium truncate">{activity.title}</span>
                               </div>
                               <span className={cn(
