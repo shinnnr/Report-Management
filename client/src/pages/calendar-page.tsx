@@ -542,7 +542,6 @@ function CalendarContent() {
   const [dayActivitiesModalDate, setDayActivitiesModalDate] = useState<Date | null>(null);
   const [dayActivitiesPage, setDayActivitiesPage] = useState(1);
   const [selectedDayActivityIds, setSelectedDayActivityIds] = useState<number[]>([]);
-  const [activityFromDayModal, setActivityFromDayModal] = useState(false);
   const [newActivityReturnModal, setNewActivityReturnModal] = useState<null | 'day' | 'time'>(null);
   const [holidayReturnModal, setHolidayReturnModal] = useState<null | 'day' | 'time'>(null);
   const dayActivitiesPerPage = 10;
@@ -2712,7 +2711,6 @@ function CalendarContent() {
                           setSelectedActivity(activity);
                           // Only reset if clicking a different activity
                           setStartingActivityId(current => current === activity.id ? current : null);
-                          setActivityFromDayModal(true);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
                           setActivitySubmissions([]);
@@ -2788,7 +2786,7 @@ function CalendarContent() {
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="ml-auto flex items-center gap-4 justify-end self-end sm:self-auto">
                     {canDeleteActivities && (
                       <>
                         <span className={cn(
@@ -2829,12 +2827,6 @@ function CalendarContent() {
             setSelectedFiles([]);
             setSelectedActivity(null);
             setIsLoadingSubmissions(false);
-            // Keep startingActivityId when closing modal - it persists for the same activity
-            // Reopen day activities modal if it was opened from there
-            if (activityFromDayModal && dayActivitiesModalDate) {
-              setShowDayActivitiesModal(true);
-              setActivityFromDayModal(false);
-            }
           }
         }}>
           <DialogContent className="max-h-[90vh] overflow-hidden flex flex-col">
@@ -3215,10 +3207,8 @@ function CalendarContent() {
                               getStatusBorderColor(activity.status)
                             )}
                             onClick={() => {
-                              setShowTimeSlotActivitiesModal(false);
                               setSelectedActivity(activity);
                               setStartingActivityId(current => current === activity.id ? current : null);
-                              setActivityFromDayModal(true);
                               setIsActivityModalOpen(true);
                               // Clear previous submissions and show loading
                               setActivitySubmissions([]);
@@ -3272,7 +3262,7 @@ function CalendarContent() {
             {timeSlotActivitiesModalData && (() => {
               const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
               return (
-                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t bg-muted/10">
+                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-2 p-4 border-t bg-muted/10">
                   <div className="flex items-center gap-2">
                     {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && (
                       <>
@@ -3300,7 +3290,7 @@ function CalendarContent() {
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex w-full sm:w-auto items-center justify-end gap-4 sm:ml-auto">
                     {canDeleteActivities && (
                       <>
                         <span className={cn(
@@ -3554,13 +3544,10 @@ function CalendarContent() {
   <>
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
           <div
             key={day}
-            className={cn(
-              "py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20",
-              (index === 0 || index === 6) && "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300"
-            )}
+            className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20"
           >
             {day}
           </div>
@@ -5164,7 +5151,6 @@ function WeekView({
                 className={cn(
                   "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors select-none",
                   isToday(day) && "bg-primary/10",
-                  isWeekend && "bg-amber-50 dark:bg-amber-950/20",
                   isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
                 onMouseDown={(e) => e.preventDefault()}
@@ -5172,13 +5158,12 @@ function WeekView({
               >
                 <div className={cn(
                   "text-xs font-semibold",
-                  isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : isWeekend ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"
+                  isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
                 )}>{format(day, 'EEE')}</div>
                 <div className={cn(
                   "text-lg font-semibold",
                   isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto",
-                  !isToday(day) && isHoliday && "text-red-600 dark:text-red-400",
-                  !isToday(day) && !isHoliday && isWeekend && "text-amber-700 dark:text-amber-300"
+                  !isToday(day) && isHoliday && "text-red-600 dark:text-red-400"
                 )}>
                   {format(day, 'd')}
                 </div>
@@ -5373,47 +5358,14 @@ function DayView({
         {/* Day header */}
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
-          (() => {
-            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
-            const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-            if (isHoliday) return "bg-red-50 dark:bg-red-950/20";
-            if (isWeekend) return "bg-amber-50 dark:bg-amber-950/20";
-            return "";
-          })()
         )}>
           <div className="flex items-center justify-between pl-4">
             <div className="flex flex-col items-center">
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
-                (() => {
-                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
-                  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-                  if (isHoliday) return "text-red-600 dark:text-red-400";
-                  if (isWeekend) return "text-amber-700 dark:text-amber-300";
-                  return isToday(currentDate) ? "text-primary" : "text-muted-foreground";
-                })()
+                isToday(currentDate) ? "text-primary" : "text-muted-foreground"
               )}>{format(currentDate, 'EEE')}</div>
-              <div className={cn(
-                "text-4xl font-bold",
-                (() => {
-                  const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
-                  const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-                  if (isHoliday) return "text-red-600 dark:text-red-400";
-                  if (isWeekend) return "text-amber-700 dark:text-amber-300";
-                  return "";
-                })()
-              )}>{format(currentDate, 'd')}</div>
-              {(() => {
-                const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
-                const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-                if (isHoliday) {
-                  const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
-                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">{holidayName}</div>;
-                } else if (isWeekend) {
-                  return <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">Weekend</div>;
-                }
-                return null;
-              })()}
+              <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
             </div>
             <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
           </div>
