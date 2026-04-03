@@ -1852,7 +1852,7 @@ function CalendarContent() {
                 <div className="space-y-4">
                   {/* Recurrence Type Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <p className="text-sm font-medium">Recurrence Type</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -1905,7 +1905,7 @@ function CalendarContent() {
 
                   {/* Activity Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Activity</Label>
+                    <p className="text-sm font-medium">Activity</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -1967,7 +1967,7 @@ function CalendarContent() {
 
                   {/* Year Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Year</Label>
+                    <p className="text-sm font-medium">Year</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4348,7 +4348,7 @@ function CalendarContent() {
                 <div className="space-y-4">
                   {/* Recurrence Type Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <p className="text-sm font-medium">Recurrence Type</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4401,7 +4401,7 @@ function CalendarContent() {
 
                   {/* Activity Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Activity</Label>
+                    <p className="text-sm font-medium">Activity</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4463,7 +4463,7 @@ function CalendarContent() {
 
                   {/* Year Selector - Future years only */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Year</Label>
+                    <p className="text-sm font-medium">Year</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4679,7 +4679,7 @@ function CalendarContent() {
                 <div className="space-y-4">
                   {/* Recurrence Type Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <p className="text-sm font-medium">Recurrence Type</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4732,7 +4732,7 @@ function CalendarContent() {
 
                   {/* Activity Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Activity</Label>
+                    <p className="text-sm font-medium">Activity</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -4794,7 +4794,7 @@ function CalendarContent() {
 
                   {/* Year Selector */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Year</Label>
+                    <p className="text-sm font-medium">Year</p>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
