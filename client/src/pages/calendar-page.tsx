@@ -1387,17 +1387,6 @@ function CalendarContent() {
         : `Created ${createdActivitiesCount} activities`,
     });
 
-    // Reset form state
-    setTitle("");
-    setDescription("");
-    setActivityTime("23:59");
-    setRegulatoryAgency("");
-    setConcernDepartment([]);
-    setRecurrence("none");
-    setRecurrenceEndDate("");
-    setReportDetails("");
-    setRemarks("");
-
     // Reset the flag
     setManuallyClosedWhileAdding(false);
   };
@@ -1595,7 +1584,7 @@ function CalendarContent() {
       if (failedCount === 0) {
         toast({
           title: "Deleted",
-          description: `Deleted ${successCount} selected ${successCount === 1 ? 'activity' : 'activities'}`,
+          description: successCount === 1 ? "Activity removed" : "Activities removed",
         });
       } else {
         toast({
@@ -3347,12 +3336,10 @@ function CalendarContent() {
 
         {/* Delete Confirmation Modal */}
         <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
-          if (!confirmDeletingActivityId && !confirmDeletingSelectionType) {
-            setShowDeleteConfirm(open);
-            if (!open) {
-              setActivityToDelete(null);
-              setDeleteSelectionContext(null);
-            }
+          setShowDeleteConfirm(open);
+          if (!open) {
+            setActivityToDelete(null);
+            setDeleteSelectionContext(null);
           }
         }}>
           <DialogContent>
@@ -3372,7 +3359,6 @@ function CalendarContent() {
                   setActivityToDelete(null);
                   setDeleteSelectionContext(null);
                 }}
-                disabled={confirmDeletingActivityId === activityToDelete?.id || confirmDeletingSelectionType !== null}
               >
                 Cancel
               </Button>
