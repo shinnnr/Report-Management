@@ -583,14 +583,17 @@ function DashboardContent() {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                                <span className="text-xs text-muted-foreground shrink-0">
+                                <span className="hidden sm:block text-xs text-muted-foreground shrink-0">
                                   {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
                                 </span>
                               </div>
-                              <div className="ml-4 mt-1">
+                              <div className="mt-1 flex flex-col gap-1 sm:ml-4">
                                 <p className="text-xs text-muted-foreground truncate max-w-[150px]">
                                   {log.userFullName || 'Unknown'}
                                 </p>
+                                <span className="text-xs text-muted-foreground sm:hidden">
+                                  {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                                </span>
                               </div>
                             </div>
                           </div>
