@@ -603,6 +603,11 @@ function CalendarContent() {
   useEffect(() => {
     setConcernDepartment([]);
   }, [regulatoryAgency]);
+
+  const handleRecurrenceChange = (value: string) => {
+    setRecurrence(value);
+    setRecurrenceEndDate("");
+  };
   
   const [reportDetails, setReportDetails] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -2377,7 +2382,7 @@ function CalendarContent() {
                     {/* Recurrence Section */}
                     <div className="space-y-2">
                       <div className="text-sm font-medium">Recurrence</div>
-                      <Select value={recurrence} onValueChange={setRecurrence}>
+                      <Select value={recurrence} onValueChange={handleRecurrenceChange}>
                         <SelectTrigger id="recurrence" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                           <SelectValue placeholder="Select recurrence" />
                         </SelectTrigger>
@@ -2397,12 +2402,12 @@ function CalendarContent() {
                         <div className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</div>
                         {recurrence === 'yearly' ? (
                           // Yearly: only show year picker
-                          <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01-01')}>
+                          <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-12-31')}>
                             <SelectTrigger id="recurrenceEnd" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end year" />
                             </SelectTrigger>
                             <SelectContent>
-                              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                              {Array.from({ length: 10 }, (_, i) => ((selectedDate || new Date()).getFullYear() + 1) + i).map(year => (
                                 <SelectItem key={year} value={String(year)}>{year}</SelectItem>
                               ))}
                             </SelectContent>

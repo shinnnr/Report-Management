@@ -771,9 +771,12 @@ export class DatabaseStorage implements IStorage {
           const endYear = endDate.getFullYear();
           const deadlineMonth = deadlineDate.getMonth();
           const endMonth = endDate.getMonth();
-          
-          // Compare year and month - skip if deadline is after (greater than) the end date
-          if (deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth)) {
+
+          const exceedsRecurrenceRange = activity.recurrence === 'yearly'
+            ? deadlineYear > endYear
+            : deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth);
+
+          if (exceedsRecurrenceRange) {
             continue;
           }
         }
