@@ -4225,11 +4225,11 @@ function CalendarContent() {
               <Button
                 variant="destructive"
                 className="gap-2"
-                disabled={deleteRecurPreview.length === 0 || isDeletingRecurring}
+                disabled={deleteRecurPreview.length === 0}
                 onClick={() => setShowDeleteRecurConfirm(true)}
               >
                 <Trash2 className="w-4 h-4" />
-                {isDeletingRecurring ? "Deleting..." : "Delete All"}
+                Delete All
               </Button>
             </div>
           </div>
