@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type InsertActivity } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 type CreateActivityInput = {
   data: InsertActivity;
@@ -9,15 +10,21 @@ type CreateActivityInput = {
 };
 
 export function useActivities() {
+  const { user, isLoggedOut, isSessionDeactivated } = useAuth();
+  const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+
   return useQuery({
     queryKey: [api.activities.list.path],
     queryFn: async () => {
-      const res = await fetch(api.activities.list.path);
+      const res = await fetch(api.activities.list.path, { credentials: "include" });
+      if (res.status === 401) return [];
       if (!res.ok) throw new Error("Failed to fetch activities");
       return api.activities.list.responses[200].parse(await res.json());
     },
+    enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
     staleTime: 0, // Always fetch fresh data
-    refetchInterval: 5000, // Poll every 5 seconds to check for new activities
+    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? 5000 : false,
+    retry: false,
   });
 }
 
