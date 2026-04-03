@@ -393,6 +393,7 @@ function CalendarContent() {
 
   // Delete Recurring Activities State
   const [deleteRecurType, setDeleteRecurType] = useState<string>("");
+  const [deleteRecurTitles, setDeleteRecurTitles] = useState<string[]>([]);
   const [deleteRecurYear, setDeleteRecurYear] = useState<string>("");
   const [deleteRecurPreview, setDeleteRecurPreview] = useState<any[]>([]);
   const [showDeleteRecurConfirm, setShowDeleteRecurConfirm] = useState(false);
@@ -1495,7 +1496,7 @@ function CalendarContent() {
           <DialogHeader>
             <DialogTitle>Delete Recurring Activities</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete all occurrences of a recurring activity type for a specific year? This action cannot be undone.
+              Are you sure you want to delete all occurrences of the selected {deleteRecurType} activities for {deleteRecurYear}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1520,13 +1521,14 @@ function CalendarContent() {
                   queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
                   setDeleteRecurPreview([]);
                   setDeleteRecurType("");
+                  setDeleteRecurTitles([]);
                   setDeleteRecurYear("");
-                  if (failedCount === 0) {
-                     toast({
-                       title: "Deleted",
-                       description: `All ${deleteResults.length} ${deleteRecurType} activities for ${deleteRecurYear} have been deleted`,
-                     });
-                  } else {
+                   if (failedCount === 0) {
+                      toast({
+                        title: "Deleted",
+                        description: `All ${deleteResults.length} ${deleteRecurType} activities for ${deleteRecurYear} have been deleted`,
+                      });
+                   } else {
                     toast({
                       title: "Partially Deleted",
                        description: `${deleteResults.length - failedCount} activities deleted. ${failedCount} failed.`,
@@ -3073,10 +3075,10 @@ function CalendarContent() {
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
+                  </SelectContent>
+                </Select>
+              </div>
+
           {/* Activity counts */}
           <div className="text-sm text-muted-foreground md:w-auto md:flex-none">
             {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
@@ -3974,7 +3976,7 @@ function CalendarContent() {
               {/* Recurrence Type Selector */}
               <div className="space-y-2">
                 <Label htmlFor="deleteRecurType" className="text-sm font-medium">Recurrence Type</Label>
-                <Select value={deleteRecurType} onValueChange={(value) => { setDeleteRecurType(value); setDeleteRecurYear(""); setDeleteRecurPreview([]); }}>
+                <Select value={deleteRecurType} onValueChange={(value) => { setDeleteRecurType(value); setDeleteRecurTitles([]); setDeleteRecurYear(""); setDeleteRecurPreview([]); }}>
                   <SelectTrigger id="deleteRecurType" className="h-10 border border-gray-300 dark:border-gray-600">
                     <SelectValue placeholder="Select recurrence type" />
                   </SelectTrigger>
@@ -3987,19 +3989,80 @@ function CalendarContent() {
                 </Select>
               </div>
 
+              {/* Activity Selector */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Activity</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600"
+                    >
+                      {deleteRecurTitles.length === 0
+                        ? "Select activities"
+                        : `${deleteRecurTitles.length} selected`}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-2">
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {(() => {
+                          if (!deleteRecurType || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                          // Filter activities by recurrence type and extract unique titles
+                          const titlesWithRecurrence = activities
+                            .filter(a => a.recurrence === deleteRecurType)
+                            .map(a => a.title)
+                            .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
+                            .sort(); // Sort alphabetically
+
+                          if (titlesWithRecurrence.length === 0) {
+                            return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
+                          }
+
+                          return titlesWithRecurrence.map(title => (
+                            <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                              <Checkbox
+                                id={`activity-${title}`}
+                                checked={deleteRecurTitles.includes(title)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setDeleteRecurTitles(prev => [...prev, title]);
+                                  } else {
+                                    setDeleteRecurTitles(prev => prev.filter(t => t !== title));
+                                  }
+                                  setDeleteRecurYear("");
+                                  setDeleteRecurPreview([]);
+                                }}
+                              />
+                              <Label
+                                htmlFor={`activity-${title}`}
+                                className="text-sm font-normal cursor-pointer flex-1"
+                              >
+                                {title}
+                              </Label>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               {/* Year Selector */}
               <div className="space-y-2">
                 <Label htmlFor="deleteRecurYear" className="text-sm font-medium">Year</Label>
-                <Select value={deleteRecurYear} onValueChange={(value) => { setDeleteRecurYear(value); setDeleteRecurPreview([]); }} disabled={!deleteRecurType}>
+                <Select value={deleteRecurYear} onValueChange={(value) => { setDeleteRecurYear(value); setDeleteRecurPreview([]); }}>
                   <SelectTrigger id="deleteRecurYear" className="h-10 border border-gray-300 dark:border-gray-600">
-                    <SelectValue placeholder={deleteRecurType ? "Select year" : "Select recurrence type first"} />
+                    <SelectValue placeholder="Select year" />
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
-                      if (!deleteRecurType || !activities) return [];
-                      // Filter activities by recurrence type and extract unique years
+                      if (!deleteRecurType || deleteRecurTitles.length === 0 || !activities) return [];
+                      // Filter activities by recurrence type and selected titles, then extract unique years
                       const yearsWithActivities = activities
-                        .filter(a => a.recurrence === deleteRecurType)
+                        .filter(a => a.recurrence === deleteRecurType && deleteRecurTitles.includes(a.title))
                         .map(a => new Date(a.deadlineDate).getFullYear())
                         .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
                         .sort((a, b) => b - a); // Sort in descending order (most recent first)
@@ -4014,71 +4077,75 @@ function CalendarContent() {
               {/* Preview Button */}
               <Button
                 variant="outline"
-                className="w-full gap-2"
+                className="gap-2"
                 style={{ borderColor: '#94a3b8' }}
-                disabled={!deleteRecurType || !deleteRecurYear}
+                disabled={!deleteRecurType || deleteRecurTitles.length === 0 || !deleteRecurYear}
                  onClick={() => {
-                   if (!deleteRecurType || !deleteRecurYear) return;
+                   if (!deleteRecurType || deleteRecurTitles.length === 0 || !deleteRecurYear) return;
                    const year = parseInt(deleteRecurYear);
                    const matched = (activities || []).filter(a => {
-                     if (a.recurrence !== deleteRecurType) return false;
+                     if (a.recurrence !== deleteRecurType || !deleteRecurTitles.includes(a.title)) return false;
                      const actDate = new Date(a.deadlineDate);
                      return actDate.getFullYear() === year;
                    });
                    setDeleteRecurPreview(matched);
                  }}
               >
-                Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurType && deleteRecurYear) ? (() => {
+                Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurType && deleteRecurTitles.length > 0 && deleteRecurYear) ? (() => {
                   const year = parseInt(deleteRecurYear || "0");
-                  return (activities || []).filter(a => a.recurrence === deleteRecurType && new Date(a.deadlineDate).getFullYear() === year).length;
+                  return (activities || []).filter(a => a.recurrence === deleteRecurType && deleteRecurTitles.includes(a.title) && new Date(a.deadlineDate).getFullYear() === year).length;
                 })() : 0})
               </Button>
 
               {/* Preview List */}
-              {deleteRecurPreview.length > 0 && (
-                <div className="border rounded-lg p-3 space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">
-                    {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
-                  </h4>
-                  <ScrollArea className="h-[200px]">
-                    <div className="space-y-1 pr-4">
-                      {deleteRecurPreview.map((activity: any) => (
-                        <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
-                          <div>
-                            <p className="font-medium truncate max-w-[200px]">{activity.title}</p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+              <div className="border rounded-lg p-3 space-y-2">
+                {deleteRecurPreview.length > 0 ? (
+                  <>
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
+                    </h4>
+                    <ScrollArea className="h-[200px]">
+                      <div className="space-y-1 pr-4">
+                        {deleteRecurPreview.map((activity: any) => (
+                          <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
+                            <div>
+                              <p className="font-medium truncate max-w-[200px]">{activity.title}</p>
+                              <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-xs",
+                              activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                              activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                              activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                              "bg-orange-100 text-orange-700"
+                            )}>
+                              {activity.status}
+                            </span>
                           </div>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-xs",
-                            activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
-                            activity.status === 'overdue' ? "bg-red-100 text-red-700" :
-                            activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
-                            "bg-orange-100 text-orange-700"
-                          )}>
-                            {activity.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {deleteRecurType && deleteRecurTitles.length > 0 && deleteRecurYear
+                      ? "Click 'Preview Activities' to see matching activities"
+                      : "Select recurrence type, activities, and year to preview"}
+                  </p>
+                )}
+              </div>
 
-              {deleteRecurType && deleteRecurYear && deleteRecurPreview.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">
-                  No {deleteRecurType} activities found for {deleteRecurYear}
-                </p>
-              )}
+
 
               {/* Delete Button */}
               <Button
                 variant="destructive"
-                className="w-full gap-2"
+                className="gap-2"
                 disabled={deleteRecurPreview.length === 0 || isDeletingRecurring}
                 onClick={() => setShowDeleteRecurConfirm(true)}
               >
                 <Trash2 className="w-4 h-4" />
-                {isDeletingRecurring ? "Deleting..." : `Delete All ${deleteRecurType ? deleteRecurType.charAt(0).toUpperCase() + deleteRecurType.slice(1) : ''} Activities for ${deleteRecurYear || '...'}`}
+                {isDeletingRecurring ? "Deleting..." : "Delete All"}
               </Button>
             </div>
           </div>
