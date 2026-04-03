@@ -577,29 +577,15 @@ export class DatabaseStorage implements IStorage {
         ? new Date(activity.recurrenceEndDate).getFullYear() 
         : currentYear + 5; // Default to 5 years if no end date
       
-      // Debug logging
-      console.log(`Creating recurring activity:`, {
-        recurrence: activity.recurrence,
-        currentYear,
-        deadlineYear,
-        endYear,
-        originalDeadline: activity.deadlineDate,
-        recurrenceEndDate: activity.recurrenceEndDate,
-        startDate: activity.startDate,
-        activityId: activity.id
-      });
-      
       // Start generating from the deadline year (not current year)
       // This handles cases where activity is created in a earlier year than its deadline
       const startYear = Math.max(currentYear, deadlineYear);
-      
-      console.log(`Generating for years: ${startYear} to ${endYear}`);
-      
-      // Generate for startYear and future years up to endYear
-      for (let year = startYear; year <= endYear; year++) {
-        console.log(`Calling generateRecurringActivitiesForYear(${year}) for activity ${activity.id}`);
-        await this.generateRecurringActivitiesForYear(year, activity.id);
-      }
+
+      await Promise.all(
+        Array.from({ length: endYear - startYear + 1 }, (_, index) => startYear + index).map((year) =>
+          this.generateRecurringActivitiesForYear(year, activity.id)
+        )
+      );
     }
     
     return activity;
@@ -667,31 +653,46 @@ export class DatabaseStorage implements IStorage {
       );
     }
     
-    const newActivities: Activity[] = [];
+    const newActivitiesToInsert: InsertActivity[] = [];
+    const holidaysEnabled = await this.getSetting('holidays_enabled') !== 'false';
+    const holidayList = holidaysEnabled ? await this.getHolidays() : [];
+    const now = new Date();
+
+    const isHolidayDate = (date: Date) =>
+      holidayList.some((holiday) =>
+        holiday.date.getFullYear() === date.getFullYear() &&
+        holiday.date.getMonth() === date.getMonth() &&
+        holiday.date.getDate() === date.getDate()
+      );
+
+    const adjustDateForWeekendOrHolidaySync = (date: Date): Date => {
+      let adjustedDate = new Date(date);
+      let isAdjusted = true;
+
+      while (isAdjusted) {
+        isAdjusted = false;
+        const dayOfWeek = adjustedDate.getDay();
+
+        if (dayOfWeek === 6) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+          isAdjusted = true;
+        } else if (dayOfWeek === 0) {
+          adjustedDate.setDate(adjustedDate.getDate() - 2);
+          isAdjusted = true;
+        } else if (holidaysEnabled && isHolidayDate(adjustedDate)) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+          isAdjusted = true;
+        }
+      }
+
+      return adjustedDate;
+    };
     
     for (const activity of recurringActivities) {
       const startDate = new Date(activity.startDate);
       const originalDeadline = new Date(activity.deadlineDate);
       const endDate = activity.recurrenceEndDate ? new Date(activity.recurrenceEndDate) : null;
-      
-      // Determine the recurrence interval in months
-      let recurrenceInterval: number;
-      switch (activity.recurrence) {
-        case 'monthly':
-          recurrenceInterval = 1;
-          break;
-        case 'quarterly':
-          recurrenceInterval = 3;
-          break;
-        case 'semi-annual':
-          recurrenceInterval = 6;
-          break;
-        case 'yearly':
-          recurrenceInterval = 12;
-          break;
-        default:
-          continue;
-      }
+      if (!activity.recurrence) continue;
       
       // Calculate deadlines for this specific year
       // For monthly: deadlines in months 0-11 of the year
@@ -719,15 +720,22 @@ export class DatabaseStorage implements IStorage {
         // Monthly: all 12 months
         targetMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
       }
+
+      const existingActivities = await db.select({
+        deadlineDate: activities.deadlineDate,
+      }).from(activities).where(
+        and(
+          eq(activities.title, activity.title),
+          isNull(activities.recurrence)
+        )
+      );
+      const existingDeadlineTimes = new Set(existingActivities.map((existing) => new Date(existing.deadlineDate).getTime()));
       
       for (const month of targetMonths) {
-        console.log(`Processing year=${year}, month=${month}, targetMonths=${targetMonths.join(',')}`);
-        
         // Skip if this deadline is exactly the same as the original deadline
         const originalDeadlineYear = originalDeadline.getFullYear();
         const originalDeadlineMonth = originalDeadline.getMonth();
         if (year === originalDeadlineYear && month === originalDeadlineMonth) {
-          console.log(`Skipping: same as original deadline (${year}, ${month})`);
           continue;
         }
         
@@ -740,22 +748,16 @@ export class DatabaseStorage implements IStorage {
         const maxDayInMonth = new Date(year, month + 1, 0).getDate();
         if (originalDay > maxDayInMonth) {
           deadlineDate = new Date(year, month, maxDayInMonth);
-          console.log(`Adjusted invalid date from day ${originalDay} to max day ${maxDayInMonth} for month ${month}`);
         }
-        
-        console.log(`Created deadlineDate: ${deadlineDate}, startDate: ${startDate}`);
-        
+
         // Adjust for weekends and holidays
-        deadlineDate = await this.adjustDateForWeekendOrHoliday(deadlineDate);
-        
-        console.log(`After weekend adjustment: ${deadlineDate}`);
+        deadlineDate = adjustDateForWeekendOrHolidaySync(deadlineDate);
         
         // Skip if deadline is before the activity start date
         // Compare using year/month/day only, not time
         const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
         const deadlineOnly = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), deadlineDate.getDate());
         if (deadlineOnly < startDateOnly) {
-          console.log(`Skipping: deadline ${deadlineDate} < startDate ${startDate}`);
           continue;
         }
         
@@ -768,35 +770,22 @@ export class DatabaseStorage implements IStorage {
           
           // Compare year and month - skip if deadline is after (greater than) the end date
           if (deadlineYear > endYear || (deadlineYear === endYear && deadlineMonth > endMonth)) {
-            console.log(`Skipping: deadline ${deadlineDate} is after end date ${endDate}`);
             continue;
           }
         }
-        
-        // Check if an activity already exists for this deadline date
-        // We check based on title to handle different master activities
-        const existingActivity = await db.select().from(activities).where(
-          and(
-            eq(activities.deadlineDate, deadlineDate),
-            eq(activities.title, activity.title),
-            isNull(activities.recurrence)
-          )
-        ).then(results => results[0]);
-        
-        // If there's an existing activity with the same title, skip creating a duplicate
-        if (existingActivity) {
-          console.log(`Skipping: activity with title "${activity.title}" already exists for deadline ${deadlineDate} (status: ${existingActivity.status})`);
+
+        if (existingDeadlineTimes.has(deadlineDate.getTime())) {
           continue;
         }
-        
-        // Create the recurring activity for this deadline
-        const newActivity = await this.createActivity({
-            userId: activity.userId,
-            title: activity.title,
-            description: activity.description,
-            startDate: new Date(year, month, 1),
-            deadlineDate: deadlineDate,
-            status: 'pending',
+
+        existingDeadlineTimes.add(deadlineDate.getTime());
+        newActivitiesToInsert.push({
+          userId: activity.userId,
+          title: activity.title,
+          description: activity.description,
+          startDate: new Date(year, month, 1),
+          deadlineDate: deadlineDate,
+          status: deadlineDate < now ? 'overdue' : 'pending',
           regulatoryAgency: activity.regulatoryAgency,
           concernDepartment: activity.concernDepartment,
           reportDetails: activity.reportDetails,
@@ -804,19 +793,14 @@ export class DatabaseStorage implements IStorage {
           recurrence: activity.recurrence, // Keep for filtering in Delete Recurring Activities
           recurrenceEndDate: null, // Set to null to prevent re-generation (null fails the check at line 572)
         });
-        
-        // If the deadline has already passed, mark as overdue
-        const now = new Date();
-        if (deadlineDate < now) {
-          await this.updateActivity(newActivity.id, { status: 'overdue' });
-          newActivity.status = 'overdue';
-        }
-        
-        newActivities.push(newActivity);
       }
     }
-    
-    return newActivities;
+
+    if (newActivitiesToInsert.length === 0) {
+      return [];
+    }
+
+    return db.insert(activities).values(newActivitiesToInsert).returning();
   }
 
   async updateActivity(id: number, updates: Partial<Activity>): Promise<Activity> {

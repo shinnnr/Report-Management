@@ -36,6 +36,7 @@ import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-setting
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
+import { type InsertActivity } from "@shared/schema";
 import { Link, useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import {
@@ -86,6 +87,25 @@ const isDateWeekend = (date: Date) => {
   return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
 };
 
+// Helper function to move a date to the previous working day while preserving time
+const adjustToPreviousWorkingDay = (date: Date): Date => {
+  const adjustedDate = new Date(date);
+
+  while (isDateWeekend(adjustedDate) || isDateHoliday(adjustedDate)) {
+    adjustedDate.setDate(adjustedDate.getDate() - 1);
+  }
+
+  return adjustedDate;
+};
+
+const buildRecurringDeadlineForMonth = (year: number, month: number, originalDate: Date): Date => {
+  const maxDayInMonth = new Date(year, month + 1, 0).getDate();
+  const clampedDay = Math.min(originalDate.getDate(), maxDayInMonth);
+  const deadlineDate = new Date(year, month, clampedDay);
+  deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+  return adjustToPreviousWorkingDay(deadlineDate);
+};
+
 // Helper function to generate recurring activities for a specific year based on an original activity
 const generateRecurringActivitiesForYear = (originalActivity: any, year: number): any[] => {
   const activities: any[] = [];
@@ -100,13 +120,9 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
     case 'monthly':
       // Create 12 activities, one for each month
       for (let month = 0; month < 12; month++) {
-        const deadlineDate = new Date(year, month, originalDate.getDate());
-        // Adjust time to match original
-        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-
         activities.push({
           ...originalActivity,
-          deadlineDate,
+          deadlineDate: buildRecurringDeadlineForMonth(year, month, originalDate),
           startDate: new Date(year, month, 1), // Start of the month
           id: undefined, // Will be assigned by backend
         });
@@ -117,12 +133,9 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
       // Create 4 activities, one for each quarter
       const quarters = [0, 3, 6, 9]; // January, April, July, October
       quarters.forEach(month => {
-        const deadlineDate = new Date(year, month, originalDate.getDate());
-        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-
         activities.push({
           ...originalActivity,
-          deadlineDate,
+          deadlineDate: buildRecurringDeadlineForMonth(year, month, originalDate),
           startDate: new Date(year, month, 1),
           id: undefined,
         });
@@ -133,12 +146,9 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
       // Create 2 activities, one for each half of the year
       const halves = [0, 6]; // January, July
       halves.forEach(month => {
-        const deadlineDate = new Date(year, month, originalDate.getDate());
-        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-
         activities.push({
           ...originalActivity,
-          deadlineDate,
+          deadlineDate: buildRecurringDeadlineForMonth(year, month, originalDate),
           startDate: new Date(year, month, 1),
           id: undefined,
         });
@@ -147,12 +157,9 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
 
     case 'yearly':
       // Create 1 activity for the year
-      const deadlineDate = new Date(year, originalDate.getMonth(), originalDate.getDate());
-      deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-
       activities.push({
         ...originalActivity,
-        deadlineDate,
+        deadlineDate: buildRecurringDeadlineForMonth(year, originalDate.getMonth(), originalDate),
         startDate: new Date(year, 0, 1), // Start of the year
         id: undefined,
       });
@@ -175,6 +182,86 @@ const getActivitiesCountForYear = (originalActivity: any, year: number): number 
     case 'yearly': return 1;
     default: return 0;
   }
+};
+
+const getTargetMonthsForRecurrence = (recurrence: string | null | undefined, originalMonth: number): number[] => {
+  switch (recurrence) {
+    case 'yearly':
+      return [originalMonth];
+    case 'semi-annual':
+      return [originalMonth, (originalMonth + 6) % 12];
+    case 'quarterly':
+      return [originalMonth, (originalMonth + 3) % 12, (originalMonth + 6) % 12, (originalMonth + 9) % 12];
+    case 'monthly':
+      return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    default:
+      return [];
+  }
+};
+
+const getCreatedActivitiesCount = (
+  startDate: Date,
+  deadlineDate: Date,
+  recurrence: string,
+  recurrenceEndDate?: Date | null,
+): number => {
+  if (!recurrence || recurrence === 'none' || !recurrenceEndDate) {
+    return 1;
+  }
+
+  const originalDay = deadlineDate.getDate();
+  const originalMonth = deadlineDate.getMonth();
+  const originalDeadlineYear = deadlineDate.getFullYear();
+  const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const endYear = recurrenceEndDate.getFullYear();
+  const endMonth = recurrenceEndDate.getMonth();
+  const currentYear = new Date().getFullYear();
+  const startYear = Math.max(currentYear, originalDeadlineYear);
+  const targetMonths = getTargetMonthsForRecurrence(recurrence, originalMonth);
+
+  let count = 1;
+
+  for (let year = startYear; year <= endYear; year++) {
+    for (const month of targetMonths) {
+      if (year === originalDeadlineYear && month === originalMonth) {
+        continue;
+      }
+
+      const maxDayInMonth = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(originalDay, maxDayInMonth);
+      const generatedDeadline = adjustToPreviousWorkingDay(new Date(year, month, day));
+      const generatedDateOnly = new Date(
+        generatedDeadline.getFullYear(),
+        generatedDeadline.getMonth(),
+        generatedDeadline.getDate(),
+      );
+
+      if (generatedDateOnly < startDateOnly) {
+        continue;
+      }
+
+      if (
+        generatedDeadline.getFullYear() > endYear ||
+        (generatedDeadline.getFullYear() === endYear && generatedDeadline.getMonth() > endMonth)
+      ) {
+        continue;
+      }
+
+      count++;
+    }
+  }
+
+  return count;
+};
+
+const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+
+  return chunks;
 };
 
 // Helper function to get the effective display date for an activity (adjusted for holidays/weekends)
@@ -1231,19 +1318,45 @@ function CalendarContent() {
     const [hours, minutes] = activityTime.split(':').map(Number);
     const deadlineWithTime = new Date(selectedDate);
     deadlineWithTime.setHours(hours, minutes, 0, 0);
+    const adjustedDeadline = adjustToPreviousWorkingDay(deadlineWithTime);
+    const recurrenceEndDateValue =
+      recurrence !== 'none' && recurrenceEndDate ? new Date(recurrenceEndDate) : null;
+    const createdActivitiesCount = getCreatedActivitiesCount(
+      selectedDate,
+      adjustedDeadline,
+      recurrence,
+      recurrenceEndDateValue,
+    );
+
+    if (adjustedDeadline.getTime() !== deadlineWithTime.getTime()) {
+      toast({
+        title: "Date adjusted",
+        description: `Activity date was moved to ${format(adjustedDeadline, 'MMMM d, yyyy')} because the selected date falls on a weekend or holiday.`,
+      });
+    }
 
     await createActivity.mutateAsync({
-      title,
-      description,
-      startDate: selectedDate,
-      deadlineDate: deadlineWithTime,
-      status: 'pending',
-      regulatoryAgency: regulatoryAgency || null,
-      concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
-      reportDetails: reportDetails || null,
-      remarks: remarks || null,
-      recurrence: recurrence !== 'none' ? recurrence : null,
-      recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? new Date(recurrenceEndDate) : null,
+      data: {
+        title,
+        description,
+        startDate: selectedDate,
+        deadlineDate: adjustedDeadline,
+        status: 'pending',
+        regulatoryAgency: regulatoryAgency || null,
+        concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
+        reportDetails: reportDetails || null,
+        remarks: remarks || null,
+        recurrence: recurrence !== 'none' ? recurrence : null,
+        recurrenceEndDate: recurrenceEndDateValue,
+      },
+      suppressSuccessToast: true,
+    });
+
+    toast({
+      title: "Success",
+      description: createdActivitiesCount === 1
+        ? "Activity created"
+        : `Created ${createdActivitiesCount} activities`,
     });
 
     // Reset form state
@@ -1259,6 +1372,41 @@ function CalendarContent() {
 
     // Reset the flag
     setManuallyClosedWhileAdding(false);
+  };
+
+  const createActivitiesFast = async (activitiesToCreate: InsertActivity[]) => {
+    const errors: string[] = [];
+
+    for (const activityBatch of chunkArray(activitiesToCreate, 10)) {
+      const results = await Promise.allSettled(
+        activityBatch.map(async (activity) => {
+          const response = await fetch(api.activities.create.path, {
+            method: api.activities.create.method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(activity),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: "Failed to create activity" }));
+            throw new Error(errorData?.message || "Failed to create activity");
+          }
+
+          return api.activities.create.responses[201].parse(await response.json());
+        })
+      );
+
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          errors.push(result.reason instanceof Error ? result.reason.message : "Failed to create activity");
+        }
+      });
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors[0]);
+    }
+
+    await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
   };
 
   const getStatusColor = (status: string | null) => {
@@ -1738,7 +1886,7 @@ function CalendarContent() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="holidayDate" className="text-sm font-medium">Date</Label>
+                      <div className="text-sm font-medium">Date</div>
                         <Popover>
                           <PopoverTrigger asChild>
                              <Button id="holidayDate" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
@@ -2282,7 +2430,7 @@ function CalendarContent() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="regulatoryAgency" className="text-sm font-medium">Regulatory Agency</Label>
+                      <div className="text-sm font-medium">Regulatory Agency</div>
                       <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
                         <SelectTrigger id="regulatoryAgency" className="h-10 border border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Select agency" />
@@ -2297,7 +2445,7 @@ function CalendarContent() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
+                      <div className="text-sm font-medium">Concern Department</div>
                       {!regulatoryAgency ? (
                         <div className="h-10 border border-gray-300 dark:border-gray-600 rounded-md flex items-center px-3">
                           <span className="text-muted-foreground text-sm">Select a regulatory agency first</span>
@@ -2452,7 +2600,7 @@ function CalendarContent() {
                     
                     {/* Recurrence Section */}
                     <div className="space-y-2">
-                      <Label htmlFor="recurrence" className="text-sm font-medium">Recurrence</Label>
+                      <div className="text-sm font-medium">Recurrence</div>
                       <Select value={recurrence} onValueChange={setRecurrence}>
                         <SelectTrigger id="recurrence" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                           <SelectValue placeholder="Select recurrence" />
@@ -2470,7 +2618,7 @@ function CalendarContent() {
                     {/* Recurrence End Date - only show if recurrence is not none */}
                     {recurrence !== 'none' && (
                       <div className="space-y-2">
-                        <Label htmlFor="recurrenceEnd" className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</Label>
+                        <div className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</div>
                         {recurrence === 'yearly' ? (
                           // Yearly: only show year picker
                           <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01-01')}>
@@ -3861,7 +4009,7 @@ function CalendarContent() {
           {/* Filter Dropdowns */}
           <div className="flex gap-3 mb-4 flex-shrink-0 px-4 pt-4">
             <div className="flex-1">
-              <label htmlFor="filterAgency" className="text-sm font-medium mb-1 block">Regulatory Agency</label>
+              <div className="text-sm font-medium mb-1 block">Regulatory Agency</div>
               <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
                 <SelectTrigger id="filterAgency" className="w-full">
                   <SelectValue placeholder="All Agencies" />
@@ -3879,7 +4027,7 @@ function CalendarContent() {
             {enableRoleFiltering && user?.role !== 'admin' ? (
               // When role-based filtering is enabled and user is not admin, show auto-filtered department
               <div className="flex-1">
-                <label htmlFor="filterDepartmentDisabled" className="text-sm font-medium mb-1 block">Concern Department</label>
+                <div className="text-sm font-medium mb-1 block">Concern Department</div>
                 <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={true}>
                   <SelectTrigger id="filterDepartmentDisabled" className="w-full">
                     <SelectValue placeholder="Auto-filtered" />
@@ -3911,7 +4059,7 @@ function CalendarContent() {
               </div>
             ) : (
               <div className="flex-1">
-                <label htmlFor="filterDepartmentEnabled" className="text-sm font-medium mb-1 block">Concern Department</label>
+                <div className="text-sm font-medium mb-1 block">Concern Department</div>
                 <Select value={filterDepartment || 'all'} onValueChange={(value) => setFilterDepartment(value === 'all' ? '' : value)} disabled={!filterAgency}>
                   <SelectTrigger id="filterDepartmentEnabled" className="w-full">
                     <SelectValue placeholder={filterAgency ? "All Departments" : "Select Agency First"} />
@@ -4134,7 +4282,7 @@ function CalendarContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="holidayDatePanel" className="text-sm font-medium">Date</Label>
+                    <div className="text-sm font-medium">Date</div>
                     <Popover>
                       <PopoverTrigger asChild>
                          <Button id="holidayDatePanel" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
@@ -4618,22 +4766,27 @@ function CalendarContent() {
 
                       setIsAddingRecurring(true);
                       try {
-                        // Create all the activities
-                        for (const activity of addRecurPreview) {
-                          await createActivity.mutateAsync({
-                            title: activity.title,
-                            description: activity.description,
-                            startDate: activity.startDate,
-                            deadlineDate: activity.deadlineDate,
-                            status: 'pending',
-                            regulatoryAgency: activity.regulatoryAgency || null,
-                            concernDepartment: activity.concernDepartment || null,
-                            reportDetails: activity.reportDetails || null,
-                            remarks: activity.remarks || null,
-                            recurrence: activity.recurrence || null,
-                            recurrenceEndDate: activity.recurrenceEndDate || null,
-                          });
-                        }
+                        const adjustedActivitiesCount = addRecurPreview.filter(activity => {
+                          const originalDeadline = new Date(activity.deadlineDate);
+                          const adjustedDeadline = adjustToPreviousWorkingDay(originalDeadline);
+                          return adjustedDeadline.getTime() !== originalDeadline.getTime();
+                        }).length;
+
+                        const activitiesToCreate: InsertActivity[] = addRecurPreview.map((activity) => ({
+                          title: activity.title,
+                          description: activity.description,
+                          startDate: activity.startDate,
+                          deadlineDate: adjustToPreviousWorkingDay(new Date(activity.deadlineDate)),
+                          status: 'pending',
+                          regulatoryAgency: activity.regulatoryAgency || null,
+                          concernDepartment: activity.concernDepartment || null,
+                          reportDetails: activity.reportDetails || null,
+                          remarks: activity.remarks || null,
+                          recurrence: activity.recurrence || null,
+                          recurrenceEndDate: null,
+                        }));
+
+                        await createActivitiesFast(activitiesToCreate);
 
                         // Clear form
                         setAddRecurTypes([]);
@@ -4645,6 +4798,13 @@ function CalendarContent() {
                           title: "Success",
                           description: `Created ${addRecurPreview.length} recurring activities`,
                         });
+
+                        if (adjustedActivitiesCount > 0) {
+                          toast({
+                            title: "Dates adjusted",
+                            description: `${adjustedActivitiesCount} recurring ${adjustedActivitiesCount === 1 ? 'activity was' : 'activities were'} moved to the previous working day because they fell on a weekend or holiday.`,
+                          });
+                        }
                       } catch (error) {
                         console.error('Failed to create recurring activities:', error);
                         toast({

@@ -3,6 +3,11 @@ import { api, buildUrl } from "@shared/routes";
 import { type InsertActivity } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
+type CreateActivityInput = {
+  data: InsertActivity;
+  suppressSuccessToast?: boolean;
+};
+
 export function useActivities() {
   return useQuery({
     queryKey: [api.activities.list.path],
@@ -22,8 +27,7 @@ export function useCreateActivity() {
 
   return useMutation({
     retry: false,
-    mutationFn: async (data: InsertActivity) => {
-      console.log("[Activity] Creating with data:", JSON.stringify(data, null, 2));
+    mutationFn: async ({ data }: CreateActivityInput) => {
       const res = await fetch(api.activities.create.path, {
         method: api.activities.create.method,
         headers: { "Content-Type": "application/json" },
@@ -31,15 +35,16 @@ export function useCreateActivity() {
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ message: "No response body" }));
-        console.error("[Activity] Creation failed:", res.status, errorData);
         const msg = errorData?.message ?? String(errorData?.message ?? "Failed to create activity");
         return Promise.reject(new Error(msg));
       }
       return api.activities.create.responses[201].parse(await res.json());
     },
-    onSuccess: () => {
+    onSuccess: (_createdActivity, variables) => {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-      toast({ title: "Success", description: "Activity created" });
+      if (!variables.suppressSuccessToast) {
+        toast({ title: "Success", description: "Activity created" });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
