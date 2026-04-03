@@ -563,12 +563,19 @@ function CalendarContent() {
   const [isDeletingHolidayId, setIsDeletingHolidayId] = useState<number | null>(null);
   const [holidayPage, setHolidayPage] = useState(1);
   const holidaysPerPage = 5;
+  const holidayModalFormRef = useRef<HTMLDivElement | null>(null);
 
   // Check if holiday fields have changed from original values
   const hasHolidayChanges = editingHoliday && (
     holidayName !== editingHoliday.name || 
     (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
   );
+
+  const scrollHolidayModalToForm = () => {
+    requestAnimationFrame(() => {
+      holidayModalFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   // Delete Recurring Activities State
   const [deleteRecurTypes, setDeleteRecurTypes] = useState<string[]>([]);
@@ -1879,7 +1886,7 @@ function CalendarContent() {
               <div className="h-[400px] overflow-y-auto py-4 px-6 pb-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                 <div className="space-y-6">
                   {/* Add/Edit Holiday Form */}
-                  <div className="space-y-4">
+                  <div ref={holidayModalFormRef} className="space-y-4">
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                       <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
                       {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
@@ -2033,6 +2040,7 @@ function CalendarContent() {
                                       setEditingHoliday(holiday);
                                       setHolidayName(holiday.name);
                                       setHolidayDate(new Date(holiday.date));
+                                      scrollHolidayModalToForm();
                                     }}
                                   >
                                     Edit
