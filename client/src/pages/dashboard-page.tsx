@@ -82,6 +82,8 @@ function DashboardContent() {
     const deleteAllLogsMutation = useDeleteAllLogs();
     const deleteLogMutation = useDeleteLog();
     const notificationRef = useRef<HTMLDivElement>(null);
+    const rightColumnRef = useRef<HTMLDivElement>(null);
+    const [priorityPanelHeight, setPriorityPanelHeight] = useState<number | null>(null);
 
     // Close notifications when clicking outside
     useEffect(() => {
@@ -93,6 +95,37 @@ function DashboardContent() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const updatePriorityPanelHeight = () => {
+            if (typeof window === "undefined") return;
+
+            if (window.innerWidth < 1024) {
+                setPriorityPanelHeight(null);
+                return;
+            }
+
+            const measuredHeight = rightColumnRef.current?.getBoundingClientRect().height ?? null;
+            setPriorityPanelHeight(measuredHeight);
+        };
+
+        updatePriorityPanelHeight();
+
+        const resizeObserver = typeof ResizeObserver !== "undefined" && rightColumnRef.current
+            ? new ResizeObserver(() => updatePriorityPanelHeight())
+            : null;
+
+        if (resizeObserver && rightColumnRef.current) {
+            resizeObserver.observe(rightColumnRef.current);
+        }
+
+        window.addEventListener("resize", updatePriorityPanelHeight);
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", updatePriorityPanelHeight);
+        };
+    }, [isAdmin, activities, reports]);
 
     const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
     const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
@@ -444,11 +477,14 @@ function DashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Main Activity Panel */}
         <div className="lg:col-span-2">
-          <div className="space-y-6">
-            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
+          <div>
+            <Card
+              className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden flex flex-col"
+              style={priorityPanelHeight ? { height: `${priorityPanelHeight}px` } : undefined}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -458,7 +494,7 @@ function DashboardContent() {
                   Focus on overdue work first, then your nearest upcoming deadlines.
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 flex flex-1 flex-col overflow-hidden">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl border bg-muted/30 p-4">
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -478,7 +514,7 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <ScrollArea className="h-[280px] pr-4">
+                <ScrollArea className="flex-1 min-h-0 pr-4">
                   <div className="space-y-3">
                     {priorityActivities.length > 0 ? (
                       priorityActivities.map((activity) => (
@@ -521,99 +557,11 @@ function DashboardContent() {
                 </Button>
               </CardContent>
             </Card>
-
-            {isAdmin && (
-              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-primary" />
-                    Recent System Activity
-                  </CardTitle>
-                  <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                    <button
-                      onClick={() => setShowViewAllLogs(true)}
-                      className="p-1 hover:bg-primary/20 rounded"
-                      title="View all logs"
-                    >
-                      <Eye className="h-4 w-4 text-primary" />
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteLogsConfirm(true)}
-                      className="p-1 hover:bg-destructive/20 rounded"
-                      title="Delete all logs"
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[400px] pr-4">
-                    <div className="space-y-4">
-                      {logs?.slice(0, 10).map((log) => {
-                        const toggleVisual = getSettingToggleVisual(log.action);
-                        const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
-                        return (
-                          <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
-                            <div
-                              className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                                toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
-                                toggleVisual?.enabled === false && "bg-muted",
-                                toggleVisual == null && "bg-primary/10"
-                              )}
-                            >
-                              <IconComponent
-                                className={cn(
-                                  "w-4 h-4",
-                                  toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
-                                  toggleVisual?.enabled === false && "text-muted-foreground",
-                                  toggleVisual == null && "text-primary"
-                                )}
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{log.description}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <span className="hidden sm:block text-xs text-muted-foreground shrink-0">
-                                  {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
-                                </span>
-                              </div>
-                              <div className="mt-1 flex flex-col gap-1 sm:ml-4">
-                                <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                                  {log.userFullName || 'Unknown'}
-                                </p>
-                                <span className="text-xs text-muted-foreground sm:hidden">
-                                  {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {!logs?.length && (
-                        <div className="text-center py-10 text-muted-foreground">
-                          No recent system activity found.
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
 
         {/* Quick Actions / Info */}
-        <div className="space-y-6">
+        <div ref={rightColumnRef} className="space-y-6">
           <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -711,6 +659,96 @@ function DashboardContent() {
           )}
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="mt-8">
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-primary" />
+                Recent System Activity
+              </CardTitle>
+              <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <button
+                  onClick={() => setShowViewAllLogs(true)}
+                  className="p-1 hover:bg-primary/20 rounded"
+                  title="View all logs"
+                >
+                  <Eye className="h-4 w-4 text-primary" />
+                </button>
+                <button
+                  onClick={() => setShowDeleteLogsConfirm(true)}
+                  className="p-1 hover:bg-destructive/20 rounded"
+                  title="Delete all logs"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-4">
+                  {logs?.slice(0, 10).map((log) => {
+                    const toggleVisual = getSettingToggleVisual(log.action);
+                    const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
+                    return (
+                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
+                        <div
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                            toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
+                            toggleVisual?.enabled === false && "bg-muted",
+                            toggleVisual == null && "bg-primary/10"
+                          )}
+                        >
+                          <IconComponent
+                            className={cn(
+                              "w-4 h-4",
+                              toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
+                              toggleVisual?.enabled === false && "text-muted-foreground",
+                              toggleVisual == null && "text-primary"
+                            )}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{log.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span className="hidden sm:block text-xs text-muted-foreground shrink-0">
+                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-col gap-1 sm:ml-4">
+                            <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                              {log.userFullName || 'Unknown'}
+                            </p>
+                            <span className="text-xs text-muted-foreground sm:hidden">
+                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!logs?.length && (
+                    <div className="text-center py-10 text-muted-foreground">
+                      No recent system activity found.
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Floating Hover Tooltip */}
       {hoverState?.visible && (
