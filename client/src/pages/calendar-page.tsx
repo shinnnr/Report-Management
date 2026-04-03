@@ -1925,7 +1925,12 @@ function CalendarContent() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="concernDepartment" className="text-sm font-medium">Concern Department</Label>
-                      <Popover>
+                      {!regulatoryAgency ? (
+                        <div className="h-10 border border-gray-300 dark:border-gray-600 rounded-md flex items-center px-3">
+                          <span className="text-muted-foreground text-sm">Select a regulatory agency first</span>
+                        </div>
+                      ) : (
+                        <Popover>
                         <PopoverTrigger asChild>
                           <Button id="concernDepartment" variant="outline" className="h-10 w-full justify-between border-gray-400 font-normal" style={{ borderColor: '#9ca3af' }}>
                             {concernDepartment.length > 0 ? (
@@ -1944,7 +1949,7 @@ function CalendarContent() {
                             {regulatoryAgency === 'ERC' && (
                               <>
                                 <div className="text-xs font-medium text-muted-foreground px-2 py-1">ERC Departments</div>
-                                {["FSD-CACD", "ISD-MSD", "CITET-ETS", "ISD-CWDC", "TSD-DNOD", "TSD-DAMD"].map((dept) => (
+                                {["FSD-GAD", "FSD-CACD", "ISD-MSD", "CITET-ETS", "ISD-CWDC", "TSD-DNOD", "TSD-DAMD"].map((dept) => (
                                   <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
                                     <Checkbox
                                       checked={concernDepartment.includes(dept)}
@@ -2069,6 +2074,7 @@ function CalendarContent() {
                           </div>
                         </PopoverContent>
                       </Popover>
+                      )}
                     </div>
                     
                     {/* Recurrence Section */}
