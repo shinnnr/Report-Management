@@ -2308,8 +2308,8 @@ function CalendarContent() {
                             id="concernDepartment"
                             variant="outline"
                             disabled={!regulatoryAgency}
-                            className="h-10 w-full justify-between border-gray-400 font-normal disabled:cursor-not-allowed disabled:opacity-100"
-                            style={{ borderColor: '#9ca3af' }}
+                            className="h-10 w-full justify-between border border-gray-300 dark:border-gray-600 bg-background hover:bg-background text-foreground font-normal disabled:cursor-not-allowed disabled:opacity-100"
+                            style={{ borderColor: 'rgb(209 213 219)' }}
                           >
                             {concernDepartment.length > 0 ? (
                               <span className="truncate">
