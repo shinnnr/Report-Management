@@ -4477,6 +4477,7 @@ function CalendarContent() {
           )}
 
           {/* Manage Recurring Activities Panel */}
+          {canDeleteActivities && (
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -4646,11 +4647,9 @@ function CalendarContent() {
                               const selectedYears = selectedTemplateActivities
                                 .map(a => new Date(a.deadlineDate).getFullYear());
                               const baseYear = selectedYears.length > 0
-                                ? Math.min(...selectedYears)
+                                ? Math.max(...selectedYears)
                                 : new Date().getFullYear();
-                              const excludedYears = new Set(selectedYears);
-                              const futureYears = Array.from({ length: 5 }, (_, i) => baseYear + i + 1)
-                                .filter(year => !excludedYears.has(year));
+                              const futureYears = Array.from({ length: 5 }, (_, i) => baseYear + i + 1);
 
                               if (futureYears.length === 0) {
                                 return <p className="text-sm text-muted-foreground p-2">No available years for the selected activities</p>;
@@ -5104,6 +5103,7 @@ function CalendarContent() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </>
     );
