@@ -687,6 +687,21 @@ export class DatabaseStorage implements IStorage {
 
       return adjustedDate;
     };
+
+    const buildRecurringDeadline = (year: number, month: number, day: number, originalDeadline: Date): Date => {
+      const maxDayInMonth = new Date(year, month + 1, 0).getDate();
+      const clampedDay = Math.min(day, maxDayInMonth);
+      const deadlineDate = new Date(year, month, clampedDay);
+
+      deadlineDate.setHours(
+        originalDeadline.getHours(),
+        originalDeadline.getMinutes(),
+        originalDeadline.getSeconds(),
+        originalDeadline.getMilliseconds()
+      );
+
+      return adjustDateForWeekendOrHolidaySync(deadlineDate);
+    };
     
     for (const activity of recurringActivities) {
       const startDate = new Date(activity.startDate);
@@ -739,19 +754,8 @@ export class DatabaseStorage implements IStorage {
           continue;
         }
         
-        // Skip if this deadline is before the start date
-        let deadlineDate = new Date(year, month, originalDay);
-        
-        // Handle invalid dates: if the day exceeds the month's max days,
-        // JavaScript auto-rolls to next month. We need to adjust to the last day of the month.
-        // For example, Jan 31 in February becomes March 2/3, so we adjust to Feb 28/29.
-        const maxDayInMonth = new Date(year, month + 1, 0).getDate();
-        if (originalDay > maxDayInMonth) {
-          deadlineDate = new Date(year, month, maxDayInMonth);
-        }
-
-        // Adjust for weekends and holidays
-        deadlineDate = adjustDateForWeekendOrHolidaySync(deadlineDate);
+        // Build the recurring deadline while preserving the original time.
+        let deadlineDate = buildRecurringDeadline(year, month, originalDay, originalDeadline);
         
         // Skip if deadline is before the activity start date
         // Compare using year/month/day only, not time
