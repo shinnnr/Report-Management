@@ -535,7 +535,8 @@ function CalendarContent() {
   const [dayActivitiesModalDate, setDayActivitiesModalDate] = useState<Date | null>(null);
   const [dayActivitiesPage, setDayActivitiesPage] = useState(1);
   const [activityFromDayModal, setActivityFromDayModal] = useState(false);
-  const [newActivityFromDayModal, setNewActivityFromDayModal] = useState(false);
+  const [newActivityReturnModal, setNewActivityReturnModal] = useState<null | 'day' | 'time'>(null);
+  const [holidayReturnModal, setHolidayReturnModal] = useState<null | 'day' | 'time'>(null);
   const dayActivitiesPerPage = 10;
 
   // Form State
@@ -1824,14 +1825,20 @@ function CalendarContent() {
            <Dialog open={isHolidayModalOpen} onOpenChange={(open) => {
              setIsHolidayModalOpen(open);
              if (!open) {
-               // Reset form state
-               setHolidayName("");
-               setHolidayDate(undefined);
-               setEditingHoliday(null);
-               setHolidayPage(1);
-               setIsAddingHoliday(false);
-             }
-           }}>
+                // Reset form state
+                setHolidayName("");
+                setHolidayDate(undefined);
+                setEditingHoliday(null);
+                setHolidayPage(1);
+                setIsAddingHoliday(false);
+                if (holidayReturnModal === 'day' && dayActivitiesModalDate) {
+                  setShowDayActivitiesModal(true);
+                } else if (holidayReturnModal === 'time' && timeSlotActivitiesModalData) {
+                  setShowTimeSlotActivitiesModal(true);
+                }
+                setHolidayReturnModal(null);
+              }
+            }}>
            <DialogTrigger asChild>
              <Button
                variant="outline"
@@ -1846,7 +1853,10 @@ function CalendarContent() {
                Manage Holidays
              </Button>
            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col">
+             <DialogContent
+               className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col"
+               onCloseAutoFocus={(event) => event.preventDefault()}
+             >
               <DialogHeader className="shrink-0 pb-4 border-b">
                 <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" />
@@ -2101,6 +2111,12 @@ function CalendarContent() {
               setRecurrenceEndDate("");
               setReportDetails("");
               setRemarks("");
+              if (newActivityReturnModal === 'day' && dayActivitiesModalDate) {
+                setShowDayActivitiesModal(true);
+              } else if (newActivityReturnModal === 'time' && timeSlotActivitiesModalData) {
+                setShowTimeSlotActivitiesModal(true);
+              }
+              setNewActivityReturnModal(null);
             }
           }}>
             <DialogTrigger asChild>
@@ -2134,7 +2150,10 @@ function CalendarContent() {
                   : 'Select Date'}
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col">
+          <DialogContent
+            className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
             <DialogHeader className="shrink-0 pb-4 border-b">
               <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                 New Activity
@@ -2542,9 +2561,11 @@ function CalendarContent() {
                         disabled={isHolidayOrWeekend}
                         onClick={() => {
                           if (dayActivitiesModalDate && !isDateHoliday(dayActivitiesModalDate)) {
+                            setHolidayReturnModal('day');
                             setHolidayDate(dayActivitiesModalDate);
                             setHolidayName("");
                             setEditingHoliday(null);
+                            setShowDayActivitiesModal(false);
                             setIsHolidayModalOpen(true);
                           }
                         }}
@@ -2556,8 +2577,9 @@ function CalendarContent() {
                         size="sm"
                         disabled={isHolidayOrWeekend}
                         onClick={() => {
+                          setNewActivityReturnModal('day');
                           setSelectedDate(dayActivitiesModalDate);
-                          setNewActivityFromDayModal(true);
+                          setShowDayActivitiesModal(false);
                           setIsNewActivityOpen(true);
                         }}
                       >
@@ -2994,9 +3016,11 @@ function CalendarContent() {
                     disabled={timeSlotActivitiesModalData ? (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) : false}
                     onClick={() => {
                       if (timeSlotActivitiesModalData && !isDateHoliday(timeSlotActivitiesModalData.date)) {
+                        setHolidayReturnModal('time');
                         setHolidayDate(timeSlotActivitiesModalData.date);
                         setHolidayName("");
                         setEditingHoliday(null);
+                        setShowTimeSlotActivitiesModal(false);
                         setIsHolidayModalOpen(true);
                       }
                     }}
@@ -3009,9 +3033,9 @@ function CalendarContent() {
                     disabled={timeSlotActivitiesModalData ? (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) : false}
                     onClick={() => {
                       if (timeSlotActivitiesModalData) {
+                        setNewActivityReturnModal('time');
                         setSelectedDate(timeSlotActivitiesModalData.date);
                         setActivityTime(timeSlotActivitiesModalData.time);
-                        setNewActivityFromDayModal(true);
                         setShowTimeSlotActivitiesModal(false);
                         setIsNewActivityOpen(true);
                       }
