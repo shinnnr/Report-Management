@@ -2641,8 +2641,9 @@ function CalendarContent() {
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
                 <DialogHeader className="shrink-0 pb-2">
                   <div className="flex items-center justify-between pr-8">
-                    <DialogTitle>
-                      Activities for {format(dayActivitiesModalDate, 'MMMM d, yyyy')}
+                    <DialogTitle className="leading-tight">
+                      <span className="block">Activities for</span>
+                      <span className="block">{format(dayActivitiesModalDate, 'MMMM d, yyyy')}</span>
                     </DialogTitle>
                     <div className="flex gap-2">
                       <Button
@@ -2654,7 +2655,6 @@ function CalendarContent() {
                             setHolidayDate(dayActivitiesModalDate);
                             setHolidayName("");
                             setEditingHoliday(null);
-                            setShowDayActivitiesModal(false);
                             setIsHolidayModalOpen(true);
                           }
                         }}
@@ -3107,7 +3107,6 @@ function CalendarContent() {
                         setHolidayDate(timeSlotActivitiesModalData.date);
                         setHolidayName("");
                         setEditingHoliday(null);
-                        setShowTimeSlotActivitiesModal(false);
                         setIsHolidayModalOpen(true);
                       }
                     }}
