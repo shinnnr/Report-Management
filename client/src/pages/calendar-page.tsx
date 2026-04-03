@@ -3554,10 +3554,13 @@ function CalendarContent() {
   <>
       {/* Header */}
       <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
           <div
             key={day}
-            className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20"
+            className={cn(
+              "py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20",
+              (index === 0 || index === 6) && "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300"
+            )}
           >
             {day}
           </div>
@@ -5161,6 +5164,7 @@ function WeekView({
                 className={cn(
                   "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors select-none",
                   isToday(day) && "bg-primary/10",
+                  isWeekend && "bg-amber-50 dark:bg-amber-950/20",
                   isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
                 onMouseDown={(e) => e.preventDefault()}
@@ -5168,12 +5172,13 @@ function WeekView({
               >
                 <div className={cn(
                   "text-xs font-semibold",
-                  isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+                  isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : isWeekend ? "text-amber-700 dark:text-amber-300" : "text-muted-foreground"
                 )}>{format(day, 'EEE')}</div>
                 <div className={cn(
                   "text-lg font-semibold",
                   isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto",
-                  !isToday(day) && isHoliday && "text-red-600 dark:text-red-400"
+                  !isToday(day) && isHoliday && "text-red-600 dark:text-red-400",
+                  !isToday(day) && !isHoliday && isWeekend && "text-amber-700 dark:text-amber-300"
                 )}>
                   {format(day, 'd')}
                 </div>
@@ -5211,7 +5216,7 @@ function WeekView({
                      data-date={day.toISOString()}
                      data-time-slot={timeString}
                      className={cn(
-                       "h-[72px] overflow-hidden border-r last:border-r-0 p-1 hover:bg-muted/30 cursor-pointer transition-colors select-none",
+                       "h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
                        isToday(day) && "bg-primary/5",
                        selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
                        selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
@@ -5371,7 +5376,9 @@ function DayView({
           (() => {
             const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-            return (isHoliday || isWeekend) ? "bg-red-50 dark:bg-red-950/20" : "";
+            if (isHoliday) return "bg-red-50 dark:bg-red-950/20";
+            if (isWeekend) return "bg-amber-50 dark:bg-amber-950/20";
+            return "";
           })()
         )}>
           <div className="flex items-center justify-between pl-4">
@@ -5381,7 +5388,9 @@ function DayView({
                 (() => {
                   const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-                  return isHoliday ? "text-red-600 dark:text-red-400" : isToday(currentDate) ? "text-primary" : "text-muted-foreground";
+                  if (isHoliday) return "text-red-600 dark:text-red-400";
+                  if (isWeekend) return "text-amber-700 dark:text-amber-300";
+                  return isToday(currentDate) ? "text-primary" : "text-muted-foreground";
                 })()
               )}>{format(currentDate, 'EEE')}</div>
               <div className={cn(
@@ -5389,7 +5398,9 @@ function DayView({
                 (() => {
                   const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), currentDate));
                   const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
-                  return isHoliday ? "text-red-600 dark:text-red-400" : "";
+                  if (isHoliday) return "text-red-600 dark:text-red-400";
+                  if (isWeekend) return "text-amber-700 dark:text-amber-300";
+                  return "";
                 })()
               )}>{format(currentDate, 'd')}</div>
               {(() => {
@@ -5399,7 +5410,7 @@ function DayView({
                   const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
                   return <div className="text-xs text-red-600 dark:text-red-400 mt-1">{holidayName}</div>;
                 } else if (isWeekend) {
-                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">Weekend</div>;
+                  return <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">Weekend</div>;
                 }
                 return null;
               })()}
@@ -5429,7 +5440,7 @@ function DayView({
               </div>
                <div 
                  className={cn(
-                   "h-[88px] overflow-hidden p-1 hover:bg-muted/30 transition-colors cursor-pointer select-none",
+                   "h-[88px] overflow-hidden p-1 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
                    selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
                    // Drag over visual feedback
                    dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
