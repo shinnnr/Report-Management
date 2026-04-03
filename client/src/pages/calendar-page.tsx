@@ -264,6 +264,13 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
   return chunks;
 };
 
+const MONTH_VIEW_VISIBLE_ACTIVITIES = 2;
+const TIME_SLOT_VISIBLE_ACTIVITIES = 2;
+
+const getCalendarDisplayDate = (activity: any): Date => {
+  return new Date(activity.deadlineDate);
+};
+
 // Helper function to get the effective display date for an activity (adjusted for holidays/weekends)
 const getEffectiveActivityDate = (activity: any): Date => {
   const deadlineDate = new Date(activity.deadlineDate);
@@ -514,7 +521,7 @@ function CalendarContent() {
 
   // Calculate activities in current month
   const activitiesInCurrentMonth = filteredActivities.filter(a =>
-    isSameMonth(getEffectiveActivityDate(a), currentDate)
+    isSameMonth(getCalendarDisplayDate(a), currentDate)
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
@@ -754,7 +761,7 @@ function CalendarContent() {
   // Helper to get date indicators
   const getDateIndicators = (date: Date) => {
     const dayActivities = filteredActivities.filter(a =>
-      isSameDay(getEffectiveActivityDate(a), date)
+      isSameDay(getCalendarDisplayDate(a), date)
     );
     return {
       hasOverdue: dayActivities.some(a => a.status === 'overdue'),
@@ -1292,7 +1299,7 @@ function CalendarContent() {
     // If this is the same time slot clicked recently, it's a double click
     if (lastClickedTimeSlot === timeSlotKey && (now - lastTimeSlotClickTimeRef.current) < DOUBLE_CLICK_DELAY) {
       // Double click - open modal for time slot activities
-      const dayActivities = (activities || []).filter(a => isSameDay(getEffectiveActivityDate(a), date));
+      const dayActivities = (activities || []).filter(a => isSameDay(getCalendarDisplayDate(a), date));
       const timeSlotActivities = dayActivities.filter(a => {
         const activityHour = new Date(a.deadlineDate).getHours();
         const [slotHour] = time.split(':').map(Number);
@@ -1482,7 +1489,7 @@ function CalendarContent() {
 
   // Get activities for selected date
   const selectedDateActivities = selectedDate
-    ? activities?.filter(a => isSameDay(getEffectiveActivityDate(a), selectedDate)) || []
+    ? activities?.filter(a => isSameDay(getCalendarDisplayDate(a), selectedDate)) || []
     : [];
 
   const handleDeleteAllByDate = async () => {
@@ -2534,7 +2541,7 @@ function CalendarContent() {
         {/* Day Activities Modal */}
         {dayActivitiesModalDate && (() => {
           const dayActs = (activities || []).filter(a =>
-            isSameDay(getEffectiveActivityDate(a), dayActivitiesModalDate)
+            isSameDay(getCalendarDisplayDate(a), dayActivitiesModalDate)
           );
           const totalPages = Math.ceil(dayActs.length / dayActivitiesPerPage);
           const paginatedActivities = dayActs.slice(
@@ -3386,7 +3393,7 @@ function CalendarContent() {
 
       {/* Grid */}
       <div
-        className="grid grid-cols-7 min-h-[600px] auto-rows-fr"
+        className="grid grid-cols-7 min-h-[600px] auto-rows-fr select-none"
         onClick={() => setSelectedDate(null)}
         key={holidaysKey}
       >
@@ -3401,7 +3408,7 @@ function CalendarContent() {
         {/* Days */}
         {daysInMonth.map((date) => {
           const dayActivities = filteredActivities.filter(a =>
-            isSameDay(getEffectiveActivityDate(a), date)
+            isSameDay(getCalendarDisplayDate(a), date)
           );
 
           const indicators = getDateIndicators(date);
@@ -3417,7 +3424,7 @@ function CalendarContent() {
             <div
               key={date.toISOString()}
              className={cn(
-                 "p-2 border-b border-r min-h-[100px] transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative",
+                 "h-[132px] overflow-hidden border-b border-r px-2 py-2 transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative flex flex-col select-none",
                  !isLastDayOfMonth && "last:border-r-0",
                  selectedDate &&
                    isSameDay(date, selectedDate) &&
@@ -3429,6 +3436,7 @@ function CalendarContent() {
                  indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
                )}
                style={multiBorder.style}
+               onMouseDown={(e) => e.preventDefault()}
                onClick={(e) => {
                  e.stopPropagation();
                  handleDateClick(date);
@@ -3454,36 +3462,9 @@ function CalendarContent() {
                 {format(date, 'd')}
               </div>
 
-              {/* Dots */}
-              {indicators.hasActivities && (
-                <div className="flex gap-1 mb-1 flex-wrap">
-                  {dayActivities.slice(0, 3).map((activity) => (
-                    <span
-                      key={activity.id}
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        activity.status === 'completed' ||
-                        activity.status === 'late'
-                          ? "bg-green-500"
-                          : activity.status === 'overdue'
-                          ? "bg-red-500"
-                          : activity.status === 'in-progress'
-                          ? "bg-blue-500"
-                          : "bg-orange-500"
-                      )}
-                    />
-                  ))}
-                  {indicators.activityCount > 3 && (
-                    <span className="text-xs text-muted-foreground">
-                      +{indicators.activityCount - 3}
-                    </span>
-                  )}
-                </div>
-              )}
-
               {/* Activities */}
-              <div className="space-y-1">
-                {dayActivities.slice(0, 3).map((activity) => (
+              <div className="mt-1 flex-1 overflow-hidden">
+                {dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES).map((activity) => (
                   <div
                     key={activity.id}
                     draggable
@@ -3512,7 +3493,7 @@ function CalendarContent() {
                         });
                     }}
                     className={cn(
-                      "text-xs p-1.5 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
+                      "mb-1 h-6 text-xs px-1.5 py-1 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
                       getStatusColor(activity.status),
                       getStatusBorderColor?.(activity.status),
                       selectedActivity?.id === activity.id &&
@@ -3524,6 +3505,21 @@ function CalendarContent() {
                     {activity.title}
                   </div>
                 ))}
+                {dayActivities.length > MONTH_VIEW_VISIBLE_ACTIVITIES && (
+                  <button
+                    type="button"
+                    className="block h-5 select-none text-xs text-muted-foreground font-medium hover:text-primary transition-colors"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDayActivitiesModalDate(date);
+                      setDayActivitiesPage(1);
+                      setShowDayActivitiesModal(true);
+                    }}
+                  >
+                    +{dayActivities.length - MONTH_VIEW_VISIBLE_ACTIVITIES} more
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -4993,10 +4989,11 @@ function WeekView({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors",
+                  "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors select-none",
                   isToday(day) && "bg-primary/10",
                   isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onDayClick?.(day)}
               >
                 <div className={cn(
@@ -5017,7 +5014,7 @@ function WeekView({
       
       {/* Time slots */}
       <div 
-        className="relative cursor-default"
+        className="relative cursor-default select-none"
         onClick={(e) => {
           // Check if clicking directly on the container (not on a child element)
           if (e.target === e.currentTarget) {
@@ -5036,7 +5033,7 @@ function WeekView({
               {weekDays.map((day) => {
                 // Filter activities for this specific day AND hour
                 const dayHourActivities = activities
-                  .filter(a => isSameDay(getEffectiveActivityDate(a), day) && getActivityHour(a) === hour);
+                  .filter(a => isSameDay(getCalendarDisplayDate(a), day) && getActivityHour(a) === hour);
                 
                 return (
                    <div 
@@ -5044,7 +5041,7 @@ function WeekView({
                      data-date={day.toISOString()}
                      data-time-slot={timeString}
                      className={cn(
-                       "p-1 border-r last:border-r-0 min-h-[50px] hover:bg-muted/30 cursor-pointer transition-colors",
+                       "h-[72px] overflow-hidden border-r last:border-r-0 p-1 hover:bg-muted/30 cursor-pointer transition-colors select-none",
                        isToday(day) && "bg-primary/5",
                        selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
                        selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
@@ -5053,6 +5050,7 @@ function WeekView({
                        dayHourActivities.length > 0 && getMultiStatusBorderColor?.(dayHourActivities)?.borderClass
                      )}
                      style={getMultiStatusBorderColor?.(dayHourActivities)?.style}
+                     onMouseDown={(e) => e.preventDefault()}
                      onClick={() => {
                        onDateSelect(day);
                        // Select time slot (highlight) instead of opening modal
@@ -5062,8 +5060,8 @@ function WeekView({
                      onDragLeave={onTimeSlotDragLeave}
                      onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
                    >
-                    {/* Activities for this specific hour - show max 3 */}
-                    {dayHourActivities.slice(0, 3).map(activity => (
+                    {/* Activities for this specific hour - show max 2 */}
+                    {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                       <div
                         key={activity.id}
                         draggable
@@ -5087,10 +5085,11 @@ function WeekView({
                         {activity.title}
                       </div>
                     ))}
-                    {/* Show +X more if there are more than 3 activities */}
-                    {dayHourActivities.length > 3 && (
+                    {/* Show +X more if there are more than 2 activities */}
+                    {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
                       <div 
-                        className="text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
+                        className="select-none text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={(e) => {
                           e.stopPropagation();
                           // Open a modal showing all activities for this time slot
@@ -5098,7 +5097,7 @@ function WeekView({
                           setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
                         }}
                       >
-                        +{dayHourActivities.length - 3} more
+                        +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
                       </div>
                     )}
                   </div>
@@ -5184,7 +5183,7 @@ function DayView({
   setActivityTime?: (time: string) => void;
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  const dayActivities = activities.filter(a => isSameDay(getEffectiveActivityDate(a), currentDate));
+  const dayActivities = activities.filter(a => isSameDay(getCalendarDisplayDate(a), currentDate));
 
   // Helper to get activity's scheduled hour (default to 23 if no time)
   const getActivityHour = (activity: any): number => {
@@ -5241,7 +5240,7 @@ function DayView({
       
       {/* Time slots */}
       <div 
-        className="relative cursor-default"
+        className="relative cursor-default select-none"
         onClick={(e) => {
           // Check if clicking directly on the container (not on a child element)
           if (e.target === e.currentTarget) {
@@ -5260,7 +5259,7 @@ function DayView({
               </div>
                <div 
                  className={cn(
-                   "p-1 min-h-[80px] hover:bg-muted/30 transition-colors cursor-pointer",
+                   "h-[88px] overflow-hidden p-1 hover:bg-muted/30 transition-colors cursor-pointer select-none",
                    selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
                    // Drag over visual feedback
                    dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
@@ -5269,13 +5268,14 @@ function DayView({
                  style={getMultiStatusBorderColor?.(hourActivities)?.style}
                  data-date={currentDate.toISOString()}
                  data-time-slot={timeString}
+                 onMouseDown={(e) => e.preventDefault()}
                  onClick={() => onSelectTimeSlot(currentDate, timeString)}
                  onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
                  onDragLeave={onTimeSlotDragLeave}
                  onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
                >
-                {/* Activities for this specific hour - show max 3 */}
-                {hourActivities.slice(0, 3).map(activity => (
+                {/* Activities for this specific hour - show max 2 */}
+                {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                   <div
                     key={activity.id}
                     draggable
@@ -5302,17 +5302,18 @@ function DayView({
                     )}
                   </div>
                 ))}
-                {/* Show +X more if there are more than 3 activities */}
-                {hourActivities.length > 3 && (
+                {/* Show +X more if there are more than 2 activities */}
+                {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
                   <div 
-                    className="text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
+                    className="select-none text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowTimeSlotActivitiesModal?.(true);
                       setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
                     }}
                   >
-                    +{hourActivities.length - 3} more
+                    +{hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
                   </div>
                 )}
               </div>
