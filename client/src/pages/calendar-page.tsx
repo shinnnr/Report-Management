@@ -93,13 +93,16 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
 
   if (!recurrence) return activities;
 
+  // Ensure deadlineDate is a Date object
+  const originalDate = new Date(originalActivity.deadlineDate);
+
   switch (recurrence) {
     case 'monthly':
       // Create 12 activities, one for each month
       for (let month = 0; month < 12; month++) {
-        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
+        const deadlineDate = new Date(year, month, originalDate.getDate());
         // Adjust time to match original
-        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
 
         activities.push({
           ...originalActivity,
@@ -114,8 +117,8 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
       // Create 4 activities, one for each quarter
       const quarters = [0, 3, 6, 9]; // January, April, July, October
       quarters.forEach(month => {
-        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
-        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+        const deadlineDate = new Date(year, month, originalDate.getDate());
+        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
 
         activities.push({
           ...originalActivity,
@@ -130,8 +133,8 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
       // Create 2 activities, one for each half of the year
       const halves = [0, 6]; // January, July
       halves.forEach(month => {
-        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
-        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+        const deadlineDate = new Date(year, month, originalDate.getDate());
+        deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
 
         activities.push({
           ...originalActivity,
@@ -144,8 +147,8 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
 
     case 'yearly':
       // Create 1 activity for the year
-      const deadlineDate = new Date(year, originalActivity.deadlineDate.getMonth(), originalActivity.deadlineDate.getDate());
-      deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+      const deadlineDate = new Date(year, originalDate.getMonth(), originalDate.getDate());
+      deadlineDate.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
 
       activities.push({
         ...originalActivity,
@@ -4609,7 +4612,7 @@ function CalendarContent() {
 
                   {/* Add Button */}
                   <Button
-                    className="gap-2 w-full"
+                    className="gap-2"
                     disabled={addRecurPreview.length === 0 || isAddingRecurring}
                     onClick={async () => {
                       if (addRecurPreview.length === 0) return;
@@ -4921,7 +4924,7 @@ function CalendarContent() {
                   {/* Delete Button */}
                   <Button
                     variant="destructive"
-                    className="gap-2 w-full"
+                    className="gap-2"
                     disabled={deleteRecurPreview.length === 0}
                     onClick={() => setShowDeleteRecurConfirm(true)}
                   >
