@@ -788,8 +788,8 @@ function SettingsContent() {
                               : "hover:bg-muted/50"
                           }`}
                           onClick={() => {
-                            // Only open dialog for mobile users who are active
-                            if (isMobile && user.status === "active") {
+                            // Open dialog for mobile users regardless of status
+                            if (isMobile) {
                               setSelectedUserForDialog(user);
                               setIsUserDialogOpen(true);
                             }
