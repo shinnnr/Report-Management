@@ -45,54 +45,43 @@ export function useUser() {
   return useQuery({
     queryKey: [api.auth.me.path],
     queryFn: async () => {
-      const res = await fetch(api.auth.me.path, { credentials: "include" });
-      if (res.status === 401) {
-        // Check if user was deactivated
-        const data = await res.json().catch(() => ({}));
-        if (data.deactivated) {
-          // Get current session timestamp from localStorage
-          const sessionTimestamp = localStorage.getItem("userSessionTimestamp");
-
-          // Store deactivation with both session and current timestamps
-          const deactivationData = {
-            message: data.message || "Your account has been deactivated by the administrator.",
-            timestamp: Date.now(),
-            sessionTimestamp: sessionTimestamp,
-          };
-          localStorage.setItem("userDeactivated", JSON.stringify(deactivationData));
-
-          // Dispatch custom event for deactivation - but keep user logged in
-          window.dispatchEvent(new CustomEvent("user-deactivated", { detail: deactivationData.message }));
-
-          // Return cached user data instead to stay logged in
-          const cachedUser =
-            queryClient.getQueryData<User | null>([api.auth.me.path]) ?? getStoredUser();
-          return cachedUser ?? null;
+      try {
+        const res = await fetch(api.auth.me.path, { credentials: "include" });
+        if (res.status === 401) {
+          const data = await res.json().catch(() => ({}));
+          if (data.deactivated) {
+            const sessionTimestamp = localStorage.getItem("userSessionTimestamp");
+            const deactivationData = {
+              message: data.message || "Your account has been deactivated by the administrator.",
+              timestamp: Date.now(),
+              sessionTimestamp: sessionTimestamp,
+            };
+            localStorage.setItem("userDeactivated", JSON.stringify(deactivationData));
+            window.dispatchEvent(new CustomEvent("user-deactivated", { detail: deactivationData.message }));
+            const cachedUser =
+              queryClient.getQueryData<User | null>([api.auth.me.path]) ?? getStoredUser();
+            return cachedUser ?? null;
+          }
+          setStoredUser(null);
+          return null;
         }
-
-        setStoredUser(null);
-        return null;
+        if (!res.ok) {
+          throw new Error("Failed to fetch user");
+        }
+        const parsedUser = api.auth.me.responses[200].parse(await res.json());
+        setStoredUser(parsedUser);
+        return parsedUser;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AuthError") {
+          return null;
+        }
+        throw e;
       }
-      if (!res.ok) {
-        const error = new Error("Failed to fetch user");
-        error.name = "AuthError"; // Mark as auth error to suppress console error
-        throw error;
-      }
-
-      const parsedUser = api.auth.me.responses[200].parse(await res.json());
-      setStoredUser(parsedUser);
-      return parsedUser;
     },
     initialData: () => getStoredUser(),
     retry: false,
-    staleTime: 30000, // Cache user data for 30 seconds to prevent rapid refetches
-    throwOnError: (error) => {
-      // Don't throw on auth errors to suppress console errors
-      return error.name === "AuthError" ? false : true;
-    },
-    // Poll every 5 seconds to detect role changes from other sessions
+    staleTime: 30000,
     refetchInterval: (data) => {
-      // Stop polling if user is not authenticated or if logged out
       if (!data || isLoggedOut) return false;
       return 5000;
     },
