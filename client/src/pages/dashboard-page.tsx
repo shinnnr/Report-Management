@@ -53,11 +53,12 @@ function DashboardContent() {
     const { user } = useAuth();
     const { openSidebar } = useSidebar();
     const isMobile = useIsMobile();
+    const isAdmin = user?.role === "admin";
     const { data: folders } = useFolders('all', 'active', 5000);
     const { data: reportsCount } = useReportsCount(undefined, 'active');
     const { data: reports } = useReports(undefined, 'active', 5000);
     const { data: activities } = useActivities();
-    const { data: logs } = useLogs();
+    const { data: logs } = useLogs(isAdmin);
     const [, setLocation] = useLocation();
     const { data: notifications } = useNotifications();
     const markReadMutation = useMarkNotificationRead();
@@ -97,6 +98,26 @@ function DashboardContent() {
     const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
     const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
     const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
+    const inProgressActivities = activities?.filter(a => a.status === 'in-progress').length || 0;
+    const completedActivities = activities?.filter(a => a.status === 'completed' || a.status === 'late').length || 0;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const sevenDaysFromNow = new Date(startOfToday);
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    const dueThisWeekCount = activities?.filter(activity => {
+      if (activity.status === 'completed' || activity.status === 'late') return false;
+      const deadline = new Date(activity.deadlineDate);
+      return deadline >= startOfToday && deadline <= sevenDaysFromNow;
+    }).length || 0;
+    const priorityActivities = (activities || [])
+      .filter(activity => activity.status !== 'completed' && activity.status !== 'late')
+      .sort((a, b) => {
+        const aPriority = a.status === 'overdue' ? 0 : 1;
+        const bPriority = b.status === 'overdue' ? 0 : 1;
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        return new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime();
+      })
+      .slice(0, 10);
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
         const data: { items: any[]; total: number } = getPreviewData(type);
@@ -424,103 +445,223 @@ function DashboardContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity Logs */}
+        {/* Main Activity Panel */}
         <div className="lg:col-span-2">
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                Recent System Activity
-              </CardTitle>
-              {user?.role === 'admin' && (
-                <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                  <button
-                    onClick={() => setShowViewAllLogs(true)}
-                    className="p-1 hover:bg-primary/20 rounded"
-                    title="View all logs"
-                  >
-                    <Eye className="h-4 w-4 text-primary" />
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteLogsConfirm(true)}
-                    className="p-1 hover:bg-destructive/20 rounded"
-                    title="Delete all logs"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </button>
+          <div className="space-y-6">
+            <Card className="border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  Priority Activities
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Focus on overdue work first, then your nearest upcoming deadlines.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      Overdue
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-foreground">{overdueActivities}</p>
+                    <p className="text-xs text-muted-foreground">Needs attention right away</p>
+                  </div>
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Clock className="h-4 w-4 text-primary" />
+                      Due This Week
+                    </div>
+                    <p className="mt-2 text-2xl font-bold text-foreground">{dueThisWeekCount}</p>
+                    <p className="text-xs text-muted-foreground">Upcoming work in the next 7 days</p>
+                  </div>
                 </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-4">
-                  {logs?.slice(0, 10).map((log) => {
-                    const toggleVisual = getSettingToggleVisual(log.action);
-                    const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
-                    return (
-                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
-                        <div
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                            toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
-                            toggleVisual?.enabled === false && "bg-muted",
-                            toggleVisual == null && "bg-primary/10"
-                          )}
+
+                <ScrollArea className="h-[280px] pr-4">
+                  <div className="space-y-3">
+                    {priorityActivities.length > 0 ? (
+                      priorityActivities.map((activity) => (
+                        <button
+                          key={activity.id}
+                          type="button"
+                          onClick={() => setLocation(`/calendar?activityId=${activity.id}`)}
+                          className="w-full text-left p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50 hover:bg-muted/50 transition-colors"
                         >
-                          <IconComponent
-                            className={cn(
-                              "w-4 h-4",
-                              toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
-                              toggleVisual?.enabled === false && "text-muted-foreground",
-                              toggleVisual == null && "text-primary"
-                            )}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{log.description}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm text-foreground truncate">{activity.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Due {format(new Date(activity.deadlineDate), 'MMM d, yyyy h:mm a')}
+                              </p>
+                            </div>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize w-fit",
+                                activity.status === 'overdue' && "bg-red-100 text-red-700",
+                                activity.status === 'in-progress' && "bg-blue-100 text-blue-700",
+                                activity.status === 'pending' && "bg-orange-100 text-orange-700"
+                              )}
+                            >
+                              {activity.status}
                             </span>
                           </div>
-                          <div className="ml-4 mt-1">
-                            <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                              {log.userFullName || 'Unknown'}
-                            </p>
-                          </div>
-                        </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="text-center py-10 text-muted-foreground">
+                        No pending activities right now.
                       </div>
-                    );
-                  })}
-                  {!logs?.length && (
-                    <div className="text-center py-10 text-muted-foreground">
-                      No recent system activity found.
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <Button variant="outline" className="self-start" onClick={() => setLocation('/calendar')}>
+                  Open Calendar
+                </Button>
+              </CardContent>
+            </Card>
+
+            {isAdmin && (
+              <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-primary" />
+                    Recent System Activity
+                  </CardTitle>
+                  <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                    <button
+                      onClick={() => setShowViewAllLogs(true)}
+                      className="p-1 hover:bg-primary/20 rounded"
+                      title="View all logs"
+                    >
+                      <Eye className="h-4 w-4 text-primary" />
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteLogsConfirm(true)}
+                      className="p-1 hover:bg-destructive/20 rounded"
+                      title="Delete all logs"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div className="space-y-4">
+                      {logs?.slice(0, 10).map((log) => {
+                        const toggleVisual = getSettingToggleVisual(log.action);
+                        const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
+                        return (
+                          <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
+                            <div
+                              className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                                toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
+                                toggleVisual?.enabled === false && "bg-muted",
+                                toggleVisual == null && "bg-primary/10"
+                              )}
+                            >
+                              <IconComponent
+                                className={cn(
+                                  "w-4 h-4",
+                                  toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
+                                  toggleVisual?.enabled === false && "text-muted-foreground",
+                                  toggleVisual == null && "text-primary"
+                                )}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <p className="font-medium text-sm text-foreground truncate cursor-help">{log.description}</p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{log.description}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {format(new Date(log.timestamp!), 'MMM d, h:mm a')}
+                                </span>
+                              </div>
+                              <div className="ml-4 mt-1">
+                                <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                  {log.userFullName || 'Unknown'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {!logs?.length && (
+                        <div className="text-center py-10 text-muted-foreground">
+                          No recent system activity found.
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
         {/* Quick Actions / Info */}
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-[#022420] dark:to-[#023020] dark:text-white">
-            <h3 className="text-lg font-display font-bold mb-2">Need Help?</h3>
-            <p className="text-sm mb-4 text-primary-foreground/80 dark:text-gray-200">
-              Contact the system administrator if you encounter any issues with file permissions.
-            </p>
-            <div className="text-xs text-primary-foreground/60 dark:text-gray-400">System Version 1.0.0</div>
-          </div>
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-primary" />
+                Activity Status Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setLocation('/calendar')}
+                className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Pending</p>
+                    <p className="text-xs text-muted-foreground">Activities waiting to be started</p>
+                  </div>
+                  <span className="text-2xl font-bold text-orange-600">{pendingActivities}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLocation('/calendar')}
+                className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">In Progress</p>
+                    <p className="text-xs text-muted-foreground">Activities currently being worked on</p>
+                  </div>
+                  <span className="text-2xl font-bold text-blue-600">{inProgressActivities}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLocation('/calendar')}
+                className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Completed</p>
+                    <p className="text-xs text-muted-foreground">Finished and submitted activities</p>
+                  </div>
+                  <span className="text-2xl font-bold text-green-600">{completedActivities}</span>
+                </div>
+              </button>
+            </CardContent>
+          </Card>
 
           <Card className="border border-gray-200 dark:border-gray-800 shadow-lg">
             <CardHeader>
@@ -555,6 +696,16 @@ function DashboardContent() {
               </div>
             </CardContent>
           </Card>
+
+          {!isAdmin && (
+            <div className="bg-gradient-to-br from-primary to-primary/90 rounded-2xl p-6 text-primary-foreground shadow-xl shadow-primary/20 dark:from-[#022420] dark:to-[#023020] dark:text-white">
+              <h3 className="text-lg font-display font-bold mb-2">Need Help?</h3>
+              <p className="text-sm mb-4 text-primary-foreground/80 dark:text-gray-200">
+                Contact the system administrator if you encounter any issues with file permissions.
+              </p>
+              <div className="text-xs text-primary-foreground/60 dark:text-gray-400">System Version 1.0.0</div>
+            </div>
+          )}
         </div>
       </div>
 

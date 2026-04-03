@@ -83,7 +83,7 @@ export function useDeleteActivity() {
   });
 }
 
-export function useLogs() {
+export function useLogs(enabled: boolean = true) {
   return useQuery({
     queryKey: [api.logs.list.path],
     queryFn: async () => {
@@ -91,8 +91,9 @@ export function useLogs() {
       if (!res.ok) throw new Error("Failed to fetch logs");
       return api.logs.list.responses[200].parse(await res.json());
     },
+    enabled,
     staleTime: 0, // Always fetch fresh data
-    refetchInterval: 5000, // Poll every 5 seconds to check for new activity logs
+    refetchInterval: enabled ? 5000 : false, // Poll every 5 seconds to check for new activity logs
   });
 }
 
