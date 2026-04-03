@@ -534,17 +534,25 @@ function CalendarContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [startingActivityId, setStartingActivityId] = useState<number | null>(null);
-  const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
+  const [confirmDeletingActivityId, setConfirmDeletingActivityId] = useState<number | null>(null);
   const [manuallyClosedWhileAdding, setManuallyClosedWhileAdding] = useState(false);
   
   // Day Activities Modal State
   const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
   const [dayActivitiesModalDate, setDayActivitiesModalDate] = useState<Date | null>(null);
   const [dayActivitiesPage, setDayActivitiesPage] = useState(1);
+  const [selectedDayActivityIds, setSelectedDayActivityIds] = useState<number[]>([]);
   const [activityFromDayModal, setActivityFromDayModal] = useState(false);
   const [newActivityReturnModal, setNewActivityReturnModal] = useState<null | 'day' | 'time'>(null);
   const [holidayReturnModal, setHolidayReturnModal] = useState<null | 'day' | 'time'>(null);
   const dayActivitiesPerPage = 10;
+  const [selectedTimeSlotActivityIds, setSelectedTimeSlotActivityIds] = useState<number[]>([]);
+  const [deleteSelectionContext, setDeleteSelectionContext] = useState<null | {
+    type: 'day' | 'time';
+    ids: number[];
+    label: string;
+  }>(null);
+  const [confirmDeletingSelectionType, setConfirmDeletingSelectionType] = useState<null | 'day' | 'time'>(null);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -1537,6 +1545,73 @@ function CalendarContent() {
       toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
     } finally {
       setIsDeletingAll(false);
+    }
+  };
+
+  const toggleDayActivitySelection = (id: number) => {
+    setSelectedDayActivityIds(prev =>
+      prev.includes(id) ? prev.filter(activityId => activityId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleTimeSlotActivitySelection = (id: number) => {
+    setSelectedTimeSlotActivityIds(prev =>
+      prev.includes(id) ? prev.filter(activityId => activityId !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelectedActivities = async (selectionType: 'day' | 'time', ids: number[]) => {
+    if (ids.length === 0) return;
+
+    setConfirmDeletingSelectionType(selectionType);
+    try {
+      const deleteResults = await Promise.all(
+        ids.map(async (id) => {
+          const url = buildUrl(api.activities.delete.path, { id });
+          const response = await fetch(url, { method: api.activities.delete.method });
+          return { id, success: response.ok };
+        })
+      );
+
+      const successCount = deleteResults.filter(result => result.success).length;
+      const failedCount = deleteResults.length - successCount;
+
+      queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+
+      if (selectedActivity && ids.includes(selectedActivity.id)) {
+        setIsActivityModalOpen(false);
+        setSelectedActivity(null);
+      }
+
+      if (selectionType === 'day') {
+        setSelectedDayActivityIds([]);
+      } else {
+        setSelectedTimeSlotActivityIds([]);
+      }
+
+      setDeleteSelectionContext(null);
+      setShowDeleteConfirm(false);
+
+      if (failedCount === 0) {
+        toast({
+          title: "Deleted",
+          description: `Deleted ${successCount} selected ${successCount === 1 ? 'activity' : 'activities'}`,
+        });
+      } else {
+        toast({
+          title: "Partially Deleted",
+          description: `${successCount} deleted, ${failedCount} failed.`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to delete selected activities:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete selected activities. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setConfirmDeletingSelectionType(null);
     }
   };
 
@@ -2567,6 +2642,7 @@ function CalendarContent() {
               if (!open) {
                 setDayActivitiesModalDate(null);
                 setDayActivitiesPage(1);
+                setSelectedDayActivityIds([]);
               }
             }}>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
@@ -2647,7 +2723,6 @@ function CalendarContent() {
                           setSelectedActivity(activity);
                           // Only reset if clicking a different activity
                           setStartingActivityId(current => current === activity.id ? current : null);
-                          setDeletingActivityId(current => current === activity.id ? current : null);
                           setActivityFromDayModal(true);
                           setIsActivityModalOpen(true);
                           // Clear previous submissions and show loading
@@ -2666,10 +2741,18 @@ function CalendarContent() {
                             });
                         }}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{activity.title}</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <Checkbox
+                              checked={selectedDayActivityIds.includes(activity.id)}
+                              onCheckedChange={() => toggleDayActivitySelection(activity.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0"
+                            />
+                            <span className="font-medium truncate">{activity.title}</span>
+                          </div>
                           <span className={cn(
-                            "px-2 py-0.5 rounded-full text-xs",
+                            "px-2 py-0.5 rounded-full text-xs shrink-0",
                             activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
                             activity.status === 'overdue' ? "bg-red-100 text-red-700" :
                             activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
@@ -2688,31 +2771,63 @@ function CalendarContent() {
                   )}
                 </div>
                 </ScrollArea>
-                {dayActs.length > dayActivitiesPerPage && (
-                  <div className="shrink-0 flex items-center justify-between p-4 border-t bg-muted/10">
-                    <p className="text-sm text-muted-foreground">
-                      Page {dayActivitiesPage} of {totalPages}
-                    </p>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
-                        disabled={dayActivitiesPage === 1}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
-                        disabled={dayActivitiesPage === totalPages}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
+                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t bg-muted/10">
+                  <div className="flex items-center gap-2">
+                    {dayActs.length > dayActivitiesPerPage && (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          Page {dayActivitiesPage} of {totalPages}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                            disabled={dayActivitiesPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                            disabled={dayActivitiesPage === totalPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
+                  <div className="flex items-center gap-4">
+                    {canDeleteActivities && (
+                      <>
+                        <span className={cn(
+                          "text-sm text-muted-foreground min-w-[72px] text-right",
+                          selectedDayActivityIds.length === 0 && "invisible"
+                        )}>
+                          {selectedDayActivityIds.length} selected
+                        </span>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className={cn(selectedDayActivityIds.length === 0 && "invisible pointer-events-none")}
+                          onClick={() => {
+                            setDeleteSelectionContext({
+                              type: 'day',
+                              ids: [...selectedDayActivityIds],
+                              label: `${selectedDayActivityIds.length} selected ${selectedDayActivityIds.length === 1 ? 'activity' : 'activities'} for ${format(dayActivitiesModalDate, 'MMMM d, yyyy')}`,
+                            });
+                            setActivityToDelete(null);
+                            setShowDeleteConfirm(true);
+                          }}
+                        >
+                          Delete Selected
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
           );
@@ -2971,11 +3086,11 @@ function CalendarContent() {
                     setActivityToDelete(selectedActivity);
                     setShowDeleteConfirm(true);
                   }}
-                  disabled={deletingActivityId === selectedActivity?.id}
+                  disabled={confirmDeletingActivityId === selectedActivity?.id}
                   className="gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {deletingActivityId === selectedActivity?.id ? 'Deleting Activity...' : 'Delete Activity'}
+                  {confirmDeletingActivityId === selectedActivity?.id ? 'Deleting Activity...' : 'Delete Activity'}
                 </Button>
               )}
 
@@ -3024,6 +3139,7 @@ function CalendarContent() {
           if (!open) {
             setTimeSlotActivitiesModalData(null);
             setTimeSlotActivitiesPage(1);
+            setSelectedTimeSlotActivityIds([]);
           }
         }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
@@ -3113,7 +3229,6 @@ function CalendarContent() {
                               setShowTimeSlotActivitiesModal(false);
                               setSelectedActivity(activity);
                               setStartingActivityId(current => current === activity.id ? current : null);
-                              setDeletingActivityId(current => current === activity.id ? current : null);
                               setActivityFromDayModal(true);
                               setIsActivityModalOpen(true);
                               // Clear previous submissions and show loading
@@ -3132,10 +3247,18 @@ function CalendarContent() {
                                 });
                             }}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{activity.title}</span>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <Checkbox
+                                  checked={selectedTimeSlotActivityIds.includes(activity.id)}
+                                  onCheckedChange={() => toggleTimeSlotActivitySelection(activity.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="shrink-0"
+                                />
+                                <span className="font-medium truncate">{activity.title}</span>
+                              </div>
                               <span className={cn(
-                                "px-2 py-0.5 rounded-full text-xs",
+                                "px-2 py-0.5 rounded-full text-xs shrink-0",
                                 activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
                                 activity.status === 'overdue' ? "bg-red-100 text-red-700" :
                                 activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
@@ -3157,30 +3280,64 @@ function CalendarContent() {
                 )}
               </div>
             </ScrollArea>
-            {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && (() => {
+            {timeSlotActivitiesModalData && (() => {
               const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
               return (
-                <div className="shrink-0 flex items-center justify-between p-4 border-t bg-muted/10">
-                  <p className="text-sm text-muted-foreground">
-                    Page {timeSlotActivitiesPage} of {totalPages}
-                  </p>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
-                      disabled={timeSlotActivitiesPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
-                      disabled={timeSlotActivitiesPage === totalPages}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t bg-muted/10">
+                  <div className="flex items-center gap-2">
+                    {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          Page {timeSlotActivitiesPage} of {totalPages}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                            disabled={timeSlotActivitiesPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                            disabled={timeSlotActivitiesPage === totalPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {canDeleteActivities && (
+                      <>
+                        <span className={cn(
+                          "text-sm text-muted-foreground min-w-[72px] text-right",
+                          selectedTimeSlotActivityIds.length === 0 && "invisible"
+                        )}>
+                          {selectedTimeSlotActivityIds.length} selected
+                        </span>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className={cn(selectedTimeSlotActivityIds.length === 0 && "invisible pointer-events-none")}
+                          onClick={() => {
+                            setDeleteSelectionContext({
+                              type: 'time',
+                              ids: [...selectedTimeSlotActivityIds],
+                              label: `${selectedTimeSlotActivityIds.length} selected ${selectedTimeSlotActivityIds.length === 1 ? 'activity' : 'activities'} at ${timeSlotActivitiesModalData?.time || ''}`,
+                            });
+                            setActivityToDelete(null);
+                            setShowDeleteConfirm(true);
+                          }}
+                        >
+                          Delete Selected
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -3189,38 +3346,61 @@ function CalendarContent() {
         </Dialog>
 
         {/* Delete Confirmation Modal */}
-        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <Dialog open={showDeleteConfirm} onOpenChange={(open) => {
+          if (!confirmDeletingActivityId && !confirmDeletingSelectionType) {
+            setShowDeleteConfirm(open);
+            if (!open) {
+              setActivityToDelete(null);
+              setDeleteSelectionContext(null);
+            }
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Activity</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete the activity "{activityToDelete?.title}"? This action cannot be undone.
+                {deleteSelectionContext
+                  ? `Are you sure you want to delete ${deleteSelectionContext.label}? This action cannot be undone.`
+                  : `Are you sure you want to delete the activity "${activityToDelete?.title}"? This action cannot be undone.`}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setActivityToDelete(null);
+                  setDeleteSelectionContext(null);
+                }}
+                disabled={confirmDeletingActivityId === activityToDelete?.id || confirmDeletingSelectionType !== null}
+              >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 onClick={() => {
+                  if (deleteSelectionContext) {
+                    handleDeleteSelectedActivities(deleteSelectionContext.type, deleteSelectionContext.ids);
+                    return;
+                  }
+
                   if (activityToDelete) {
-                    setDeletingActivityId(activityToDelete.id);
+                    setConfirmDeletingActivityId(activityToDelete.id);
                     deleteActivity.mutate(activityToDelete.id, {
                       onSuccess: () => {
                         if (selectedActivity?.id === activityToDelete.id) {
                           setIsActivityModalOpen(false);
                         }
+                        setShowDeleteConfirm(false);
+                        setActivityToDelete(null);
                       },
-                      onSettled: () => setDeletingActivityId(null)
+                      onSettled: () => setConfirmDeletingActivityId(null)
                     });
-                    setIsActivityModalOpen(false);
                   }
-                  setShowDeleteConfirm(false);
                 }}
-                disabled={deletingActivityId === activityToDelete?.id}
+                disabled={confirmDeletingActivityId === activityToDelete?.id || confirmDeletingSelectionType !== null}
               >
-                {deletingActivityId === activityToDelete?.id ? "Deleting..." : "Delete"}
+                {confirmDeletingSelectionType !== null || confirmDeletingActivityId === activityToDelete?.id ? "Deleting..." : "Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -3482,7 +3662,6 @@ function CalendarContent() {
                       e.stopPropagation();
                       setSelectedActivity(activity);
                       setStartingActivityId(current => current === activity.id ? current : null);
-                      setDeletingActivityId(current => current === activity.id ? current : null);
                       setIsActivityModalOpen(true);
                       // Clear previous submissions and show loading
                       setActivitySubmissions([]);
@@ -3548,7 +3727,6 @@ function CalendarContent() {
             selectedDate={selectedDate}
             onActivityClick={(activity) => {
               setStartingActivityId(current => current === activity.id ? current : null);
-              setDeletingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
               // Clear previous submissions and show loading
@@ -3603,7 +3781,6 @@ function CalendarContent() {
             activities={filteredActivities}
             onActivityClick={(activity) => {
               setStartingActivityId(current => current === activity.id ? current : null);
-              setDeletingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
               // Clear previous submissions and show loading
