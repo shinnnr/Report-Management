@@ -495,8 +495,8 @@ function CalendarContent() {
         setCurrentDate(activityDate);
         // Auto-switch to month view when navigating from notification
         setView('month');
-        // Clear the URL parameter after handling
-        setLocation('/calendar', { replace: true });
+        // Clear the URL parameter without adding to browser history
+        window.history.replaceState({}, '', '/calendar');
       }
     }
   }, [activities, setLocation]);

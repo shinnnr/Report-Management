@@ -39,32 +39,11 @@ function setStoredUser(user: User | null) {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
-export function useUser(isLoginPage: boolean = false) {
+export function useUser() {
   const queryClient = useQueryClient();
 
-  // Track if we just logged in - if so, we need to refetch even if on login page
-  const [forceRefetch, setForceRefetch] = useState(false);
-
-  useEffect(() => {
-    // Listen for login success event
-    const handler = () => {
-      setForceRefetch(true);
-    };
-    window.addEventListener("auth-updated", handler);
-    return () => window.removeEventListener("auth-updated", handler);
-  }, []);
-
-  // Determine if query should run - skip on login page until forceRefetch triggers
-  const shouldRunQuery = !isLoginPage || forceRefetch;
-
-  useEffect(() => {
-    if (!isLoginPage) {
-      setForceRefetch(false);
-    }
-  }, [isLoginPage]);
-
   return useQuery({
-    queryKey: [api.auth.me.path, isLoginPage, forceRefetch],
+    queryKey: [api.auth.me.path],
     queryFn: async () => {
       const res = await fetch(api.auth.me.path, { credentials: "include" });
       if (res.status === 401) {
@@ -104,7 +83,6 @@ export function useUser(isLoginPage: boolean = false) {
       setStoredUser(parsedUser);
       return parsedUser;
     },
-    enabled: shouldRunQuery,
     initialData: () => getStoredUser(),
     retry: false,
     staleTime: 30000, // Cache user data for 30 seconds to prevent rapid refetches
@@ -114,8 +92,8 @@ export function useUser(isLoginPage: boolean = false) {
     },
     // Poll every 5 seconds to detect role changes from other sessions
     refetchInterval: (data) => {
-      // Stop polling if on login page, if user is not authenticated, or if logged out
-      if (isLoginPage || !data || isLoggedOut) return false;
+      // Stop polling if user is not authenticated or if logged out
+      if (!data || isLoggedOut) return false;
       return 5000;
     },
   });
@@ -202,8 +180,8 @@ export function useLogoutMutation() {
   });
 }
 
-export function AuthProvider({ children, isLoginPage = false }: { children: ReactNode; isLoginPage?: boolean }) {
-  const { data: user, isLoading, error, refetch } = useUser(isLoginPage);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const { data: user, isLoading, error, refetch } = useUser();
   const loginMutation = useLoginMutation();
   const logoutMutation = useLogoutMutation();
 
