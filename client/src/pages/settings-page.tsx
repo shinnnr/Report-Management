@@ -148,6 +148,15 @@ function SettingsContent() {
     return filteredUsers.slice(startIndex, startIndex + usersPerPage);
   }, [filteredUsers, userCurrentPage, usersPerPage]);
 
+  useEffect(() => {
+    if (!selectedUserForDialog || !users) return;
+
+    const updatedSelectedUser = users.find(user => user.id === selectedUserForDialog.id);
+    if (updatedSelectedUser) {
+      setSelectedUserForDialog(updatedSelectedUser);
+    }
+  }, [users, selectedUserForDialog]);
+
   // Update username
   const handleUpdateUsername = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,7 +276,11 @@ function SettingsContent() {
   const handleUpdateRole = async (userId: number, role: "admin" | "cps" | "ets") => {
     setChangingRoleUserId({ userId, role });
     try {
-      await updateUserMutation.mutateAsync({ userId, updates: { role } });
+      const updatedUser = await updateUserMutation.mutateAsync({ userId, updates: { role } });
+
+      if (selectedUserForDialog?.id === userId && updatedUser) {
+        setSelectedUserForDialog(updatedUser);
+      }
     } catch (error) {
       // Error handled in mutation
     } finally {
@@ -293,10 +306,14 @@ function SettingsContent() {
     const newStatus = user.status === "active" ? "inactive" : "active";
     setTogglingUserId(userId);
     try {
-      await updateUserMutation.mutateAsync({ 
+      const updatedUser = await updateUserMutation.mutateAsync({ 
         userId, 
         updates: { status: newStatus } 
       });
+
+      if (selectedUserForDialog?.id === userId && updatedUser) {
+        setSelectedUserForDialog(updatedUser);
+      }
     } catch (error) {
       // Error handled in mutation
     } finally {
@@ -993,7 +1010,6 @@ function SettingsContent() {
                   onClick={() => {
                     if (selectedUserForDialog) {
                       handleToggleUserStatus(selectedUserForDialog.id);
-                      setIsUserDialogOpen(false);
                     }
                   }}
                   disabled={togglingUserId === selectedUserForDialog?.id}
@@ -1019,7 +1035,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >
@@ -1029,7 +1044,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >
@@ -1042,7 +1056,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >
@@ -1052,7 +1065,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >
@@ -1065,7 +1077,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >
@@ -1075,7 +1086,6 @@ function SettingsContent() {
                   variant="outline"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
-                    setIsUserDialogOpen(false);
                   }}
                   disabled={changingRoleUserId !== null}
                 >

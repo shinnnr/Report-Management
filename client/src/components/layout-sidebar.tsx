@@ -37,6 +37,7 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
   const { resetTheme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const userRoleLabel = user?.role === "admin" ? "Admin" : user?.role?.toUpperCase();
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -92,7 +93,7 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
           </div>
           <div className="overflow-hidden">
             <p className="font-medium text-sm truncate text-primary-foreground dark:text-white">{user?.fullName}</p>
-            <p className="text-xs text-primary-foreground/60 dark:text-gray-400 uppercase">{user?.role}</p>
+            <p className="text-xs text-primary-foreground/60 dark:text-gray-400">{userRoleLabel}</p>
           </div>
         </div>
         

@@ -41,6 +41,12 @@ function setStoredUser(user: User | null) {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
+function notifyUserDeactivated(message: string) {
+  window.setTimeout(() => {
+    window.dispatchEvent(new CustomEvent("user-deactivated", { detail: message }));
+  }, 0);
+}
+
 export function useUser() {
   const queryClient = useQueryClient();
   const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
@@ -67,7 +73,7 @@ export function useUser() {
             sessionTimestamp: sessionTimestamp,
           };
           localStorage.setItem("userDeactivated", JSON.stringify(deactivationData));
-          window.dispatchEvent(new CustomEvent("user-deactivated", { detail: deactivationData.message }));
+          notifyUserDeactivated(deactivationData.message);
           const cachedUser =
             queryClient.getQueryData<User | null>([api.auth.me.path]) ?? getStoredUser();
           return cachedUser ?? null;
@@ -88,7 +94,7 @@ export function useUser() {
               sessionTimestamp: sessionTimestamp,
             };
             localStorage.setItem("userDeactivated", JSON.stringify(deactivationData));
-            window.dispatchEvent(new CustomEvent("user-deactivated", { detail: deactivationData.message }));
+            notifyUserDeactivated(deactivationData.message);
             const cachedUser =
               queryClient.getQueryData<User | null>([api.auth.me.path]) ?? getStoredUser();
             return cachedUser ?? null;
