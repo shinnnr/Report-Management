@@ -86,6 +86,94 @@ const isDateWeekend = (date: Date) => {
   return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
 };
 
+// Helper function to generate recurring activities for a specific year based on an original activity
+const generateRecurringActivitiesForYear = (originalActivity: any, year: number): any[] => {
+  const activities: any[] = [];
+  const recurrence = originalActivity.recurrence;
+
+  if (!recurrence) return activities;
+
+  switch (recurrence) {
+    case 'monthly':
+      // Create 12 activities, one for each month
+      for (let month = 0; month < 12; month++) {
+        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
+        // Adjust time to match original
+        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+
+        activities.push({
+          ...originalActivity,
+          deadlineDate,
+          startDate: new Date(year, month, 1), // Start of the month
+          id: undefined, // Will be assigned by backend
+        });
+      }
+      break;
+
+    case 'quarterly':
+      // Create 4 activities, one for each quarter
+      const quarters = [0, 3, 6, 9]; // January, April, July, October
+      quarters.forEach(month => {
+        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
+        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+
+        activities.push({
+          ...originalActivity,
+          deadlineDate,
+          startDate: new Date(year, month, 1),
+          id: undefined,
+        });
+      });
+      break;
+
+    case 'semi-annual':
+      // Create 2 activities, one for each half of the year
+      const halves = [0, 6]; // January, July
+      halves.forEach(month => {
+        const deadlineDate = new Date(year, month, originalActivity.deadlineDate.getDate());
+        deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+
+        activities.push({
+          ...originalActivity,
+          deadlineDate,
+          startDate: new Date(year, month, 1),
+          id: undefined,
+        });
+      });
+      break;
+
+    case 'yearly':
+      // Create 1 activity for the year
+      const deadlineDate = new Date(year, originalActivity.deadlineDate.getMonth(), originalActivity.deadlineDate.getDate());
+      deadlineDate.setHours(originalActivity.deadlineDate.getHours(), originalActivity.deadlineDate.getMinutes(), 0, 0);
+
+      activities.push({
+        ...originalActivity,
+        deadlineDate,
+        startDate: new Date(year, 0, 1), // Start of the year
+        id: undefined,
+      });
+      break;
+  }
+
+  return activities;
+};
+
+// Helper function to get the count of activities that would be created for a year
+const getActivitiesCountForYear = (originalActivity: any, year: number): number => {
+  const recurrence = originalActivity.recurrence;
+
+  if (!recurrence) return 0;
+
+  switch (recurrence) {
+    case 'monthly': return 12;
+    case 'quarterly': return 4;
+    case 'semi-annual': return 2;
+    case 'yearly': return 1;
+    default: return 0;
+  }
+};
+
 // Helper function to get the effective display date for an activity (adjusted for holidays/weekends)
 const getEffectiveActivityDate = (activity: any): Date => {
   const deadlineDate = new Date(activity.deadlineDate);
@@ -398,6 +486,13 @@ function CalendarContent() {
   const [deleteRecurPreview, setDeleteRecurPreview] = useState<any[]>([]);
   const [showDeleteRecurConfirm, setShowDeleteRecurConfirm] = useState(false);
   const [isDeletingRecurring, setIsDeletingRecurring] = useState(false);
+
+  // Add Recurring Activities State
+  const [addRecurTypes, setAddRecurTypes] = useState<string[]>([]);
+  const [addRecurTitles, setAddRecurTitles] = useState<string[]>([]);
+  const [addRecurYears, setAddRecurYears] = useState<string[]>([]);
+  const [addRecurPreview, setAddRecurPreview] = useState<any[]>([]);
+  const [isAddingRecurring, setIsAddingRecurring] = useState(false);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -1742,8 +1837,272 @@ function CalendarContent() {
                            Cancel
                          </Button>
                        )}
-                     </div>
+                </div>
+              </div>
+
+              {/* Delete Recurring Activities - Right Column */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-red-500 rounded-full"></span>
+                  Delete Recurring Activities
+                </h4>
+                <div className="space-y-4">
+                  {/* Recurrence Type Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurTypes.length === 0
+                            ? "Select recurrence types"
+                            : `${deleteRecurTypes.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {[
+                              { value: "monthly", label: "Monthly" },
+                              { value: "quarterly", label: "Quarterly" },
+                              { value: "semi-annual", label: "Semi-Annual" },
+                              { value: "yearly", label: "Yearly" }
+                            ].map(type => (
+                              <div key={type.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                <Checkbox
+                                  id={`recurrence-${type.value}`}
+                                  checked={deleteRecurTypes.includes(type.value)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setDeleteRecurTypes(prev => [...prev, type.value]);
+                                    } else {
+                                      setDeleteRecurTypes(prev => prev.filter(t => t !== type.value));
+                                    }
+                                    setDeleteRecurTitles([]);
+                                    setDeleteRecurYears([]);
+                                    setDeleteRecurPreview([]);
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`recurrence-${type.value}`}
+                                  className="text-sm font-normal cursor-pointer flex-1"
+                                >
+                                  {type.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
+
+                  {/* Activity Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Activity</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurTitles.length === 0
+                            ? "Select activities"
+                            : `${deleteRecurTitles.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (deleteRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              // Filter activities by selected recurrence types and extract unique titles
+                              const titlesWithRecurrence = activities
+                                .filter(a => a.recurrence && deleteRecurTypes.includes(a.recurrence))
+                                .map(a => a.title)
+                                .filter((title): title is string => title !== null && title !== undefined)
+                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
+                                .sort(); // Sort alphabetically
+
+                              if (titlesWithRecurrence.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
+                              }
+
+                              return titlesWithRecurrence.map(title => (
+                                <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`activity-${title}`}
+                                    checked={deleteRecurTitles.includes(title)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setDeleteRecurTitles(prev => [...prev, title]);
+                                      } else {
+                                        setDeleteRecurTitles(prev => prev.filter(t => t !== title));
+                                      }
+                                      setDeleteRecurYears([]);
+                                      setDeleteRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`activity-${title}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {title}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Year Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Year</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurYears.length === 0
+                            ? "Select years"
+                            : `${deleteRecurYears.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (deleteRecurTypes.length === 0 && deleteRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type and activity first</p>;
+                              }
+                              if (deleteRecurTypes.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              }
+                              if (deleteRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
+                              }
+                              if (!activities) return <p className="text-sm text-muted-foreground p-2">No activities available</p>;
+
+                              // Filter activities by selected recurrence types and titles, then extract unique years
+                              const yearsWithActivities = activities
+                                .filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title))
+                                .map(a => new Date(a.deadlineDate).getFullYear())
+                                .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
+                                .sort((a, b) => b - a); // Sort in descending order (most recent first)
+
+                              if (yearsWithActivities.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No years found</p>;
+                              }
+
+                              return yearsWithActivities.map(year => (
+                                <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`year-${year}`}
+                                    checked={deleteRecurYears.includes(String(year))}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setDeleteRecurYears(prev => [...prev, String(year)]);
+                                      } else {
+                                        setDeleteRecurYears(prev => prev.filter(y => y !== String(year)));
+                                      }
+                                      setDeleteRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`year-${year}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {year}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Preview Button */}
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    style={{ borderColor: '#94a3b8' }}
+                    disabled={deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0}
+                     onClick={() => {
+                       if (deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0) return;
+                       const years = deleteRecurYears.map(y => parseInt(y));
+                        const matched = (activities || []).filter(a => {
+                          if (!a.recurrence || !a.title || !deleteRecurTypes.includes(a.recurrence) || !deleteRecurTitles.includes(a.title)) return false;
+                          const actDate = new Date(a.deadlineDate);
+                          return years.includes(actDate.getFullYear());
+                        });
+                       setDeleteRecurPreview(matched);
+                     }}
+                  >
+                    Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0) ? (() => {
+                      const years = deleteRecurYears.map(y => parseInt(y || "0"));
+                      return (activities || []).filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title) && years.includes(new Date(a.deadlineDate).getFullYear())).length;
+                    })() : 0})
+                  </Button>
+
+                  {/* Preview List */}
+                  <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
+                    {deleteRecurPreview.length > 0 ? (
+                      <>
+                        <h5 className="text-sm font-medium text-muted-foreground">
+                          {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
+                        </h5>
+                        <div className="space-y-1">
+                          {deleteRecurPreview.map((activity: any) => (
+                            <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
+                              <div>
+                                <p className="font-medium truncate max-w-[150px]">{activity.title}</p>
+                                <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+                              </div>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-xs",
+                                activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                                activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                                activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                                "bg-orange-100 text-orange-700"
+                              )}>
+                                {activity.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0
+                          ? "Click 'Preview Activities' to see matching activities"
+                          : "Select recurrence types, activities, and years to preview"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Delete Button */}
+                  <Button
+                    variant="destructive"
+                    className="gap-2 w-full"
+                    disabled={deleteRecurPreview.length === 0}
+                    onClick={() => setShowDeleteRecurConfirm(true)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </Button>
+                </div>
+              </div>
 
                    {/* Existing Holidays List */}
                    {holidays && holidays.length > 0 && (
@@ -3967,274 +4326,610 @@ function CalendarContent() {
           </div>
           )}
 
-          {/* Delete Recurring Activities Panel */}
+          {/* Manage Recurring Activities Panel */}
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
-                Delete Recurring Activities
+                Manage Recurring Activities
               </h3>
-              <p className="text-sm text-muted-foreground">Delete all occurrences of a recurring activity type for a specific year.</p>
+              <p className="text-sm text-muted-foreground">Add or delete recurring activities for specific years.</p>
             </div>
-            
-            <div className="p-6 space-y-4">
-              {/* Recurrence Type Selector */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Recurrence Type</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                    >
-                      {deleteRecurTypes.length === 0
-                        ? "Select recurrence types"
-                        : `${deleteRecurTypes.length} selected`}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start">
-                    <div className="p-2">
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {[
-                          { value: "monthly", label: "Monthly" },
-                          { value: "quarterly", label: "Quarterly" },
-                          { value: "semi-annual", label: "Semi-Annual" },
-                          { value: "yearly", label: "Yearly" }
-                        ].map(type => (
-                          <div key={type.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                            <Checkbox
-                              id={`recurrence-${type.value}`}
-                              checked={deleteRecurTypes.includes(type.value)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setDeleteRecurTypes(prev => [...prev, type.value]);
-                                } else {
-                                  setDeleteRecurTypes(prev => prev.filter(t => t !== type.value));
-                                }
-                                setDeleteRecurTitles([]);
-                                setDeleteRecurYears([]);
-                                setDeleteRecurPreview([]);
-                              }}
-                            />
-                            <Label
-                              htmlFor={`recurrence-${type.value}`}
-                              className="text-sm font-normal cursor-pointer flex-1"
-                            >
-                              {type.label}
-                            </Label>
+
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Add Recurring Activities - Left Column */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                  Add Recurring Activities
+                </h4>
+                <div className="space-y-4">
+                  {/* Recurrence Type Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {addRecurTypes.length === 0
+                            ? "Select recurrence types"
+                            : `${addRecurTypes.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {[
+                              { value: "monthly", label: "Monthly" },
+                              { value: "quarterly", label: "Quarterly" },
+                              { value: "semi-annual", label: "Semi-Annual" },
+                              { value: "yearly", label: "Yearly" }
+                            ].map(type => (
+                              <div key={type.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                <Checkbox
+                                  id={`add-recurrence-${type.value}`}
+                                  checked={addRecurTypes.includes(type.value)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setAddRecurTypes(prev => [...prev, type.value]);
+                                    } else {
+                                      setAddRecurTypes(prev => prev.filter(t => t !== type.value));
+                                    }
+                                    setAddRecurTitles([]);
+                                    setAddRecurYears([]);
+                                    setAddRecurPreview([]);
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`add-recurrence-${type.value}`}
+                                  className="text-sm font-normal cursor-pointer flex-1"
+                                >
+                                  {type.label}
+                                </Label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-              {/* Activity Selector */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Activity</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                    >
-                      {deleteRecurTitles.length === 0
-                        ? "Select activities"
-                        : `${deleteRecurTitles.length} selected`}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start">
-                    <div className="p-2">
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {(() => {
-                          if (deleteRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                          // Filter activities by selected recurrence types and extract unique titles
-                          const titlesWithRecurrence = activities
-                            .filter(a => a.recurrence && deleteRecurTypes.includes(a.recurrence))
-                            .map(a => a.title)
-                            .filter((title): title is string => title !== null && title !== undefined)
-                            .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
-                            .sort(); // Sort alphabetically
+                  {/* Activity Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Activity</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {addRecurTitles.length === 0
+                            ? "Select activities"
+                            : `${addRecurTitles.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (addRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              // Filter activities by selected recurrence types and extract unique titles
+                              const titlesWithRecurrence = activities
+                                .filter(a => a.recurrence && addRecurTypes.includes(a.recurrence))
+                                .map(a => a.title)
+                                .filter((title): title is string => title !== null && title !== undefined)
+                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
+                                .sort(); // Sort alphabetically
 
-                          if (titlesWithRecurrence.length === 0) {
-                            return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
-                          }
+                              if (titlesWithRecurrence.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
+                              }
 
-                          return titlesWithRecurrence.map(title => (
-                            <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                              <Checkbox
-                                id={`activity-${title}`}
-                                checked={deleteRecurTitles.includes(title)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setDeleteRecurTitles(prev => [...prev, title]);
-                                  } else {
-                                    setDeleteRecurTitles(prev => prev.filter(t => t !== title));
-                                  }
-                                  setDeleteRecurYears([]);
-                                  setDeleteRecurPreview([]);
-                                }}
-                              />
-                              <Label
-                                htmlFor={`activity-${title}`}
-                                className="text-sm font-normal cursor-pointer flex-1"
-                              >
-                                {title}
-                              </Label>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Year Selector */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Year</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
-                    >
-                      {deleteRecurYears.length === 0
-                        ? "Select years"
-                        : `${deleteRecurYears.length} selected`}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="start">
-                    <div className="p-2">
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {(() => {
-                          if (deleteRecurTypes.length === 0 && deleteRecurTitles.length === 0) {
-                            return <p className="text-sm text-muted-foreground p-2">Select recurrence type and activity first</p>;
-                          }
-                          if (deleteRecurTypes.length === 0) {
-                            return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                          }
-                          if (deleteRecurTitles.length === 0) {
-                            return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
-                          }
-                          if (!activities) return <p className="text-sm text-muted-foreground p-2">No activities available</p>;
-
-                          // Filter activities by selected recurrence types and titles, then extract unique years
-                          const yearsWithActivities = activities
-                            .filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title))
-                            .map(a => new Date(a.deadlineDate).getFullYear())
-                            .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
-                            .sort((a, b) => b - a); // Sort in descending order (most recent first)
-
-                          if (yearsWithActivities.length === 0) {
-                            return <p className="text-sm text-muted-foreground p-2">No years found</p>;
-                          }
-
-                          return yearsWithActivities.map(year => (
-                            <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                              <Checkbox
-                                id={`year-${year}`}
-                                checked={deleteRecurYears.includes(String(year))}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setDeleteRecurYears(prev => [...prev, String(year)]);
-                                  } else {
-                                    setDeleteRecurYears(prev => prev.filter(y => y !== String(year)));
-                                  }
-                                  setDeleteRecurPreview([]);
-                                }}
-                              />
-                              <Label
-                                htmlFor={`year-${year}`}
-                                className="text-sm font-normal cursor-pointer flex-1"
-                              >
-                                {year}
-                              </Label>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Preview Button */}
-              <Button
-                variant="outline"
-                className="gap-2"
-                style={{ borderColor: '#94a3b8' }}
-                disabled={deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0}
-                 onClick={() => {
-                   if (deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0) return;
-                   const years = deleteRecurYears.map(y => parseInt(y));
-                    const matched = (activities || []).filter(a => {
-                      if (!a.recurrence || !a.title || !deleteRecurTypes.includes(a.recurrence) || !deleteRecurTitles.includes(a.title)) return false;
-                      const actDate = new Date(a.deadlineDate);
-                      return years.includes(actDate.getFullYear());
-                    });
-                   setDeleteRecurPreview(matched);
-                 }}
-              >
-                Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0) ? (() => {
-                  const years = deleteRecurYears.map(y => parseInt(y || "0"));
-                  return (activities || []).filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title) && years.includes(new Date(a.deadlineDate).getFullYear())).length;
-                })() : 0})
-              </Button>
-
-              {/* Preview List */}
-              <div className="border rounded-lg p-3 space-y-2">
-                {deleteRecurPreview.length > 0 ? (
-                  <>
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
-                    </h4>
-                    <ScrollArea className="h-[200px]">
-                      <div className="space-y-1 pr-4">
-                        {deleteRecurPreview.map((activity: any) => (
-                          <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
-                            <div>
-                              <p className="font-medium truncate max-w-[200px]">{activity.title}</p>
-                              <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
-                            </div>
-                            <span className={cn(
-                              "px-2 py-0.5 rounded-full text-xs",
-                              activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
-                              activity.status === 'overdue' ? "bg-red-100 text-red-700" :
-                              activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
-                              "bg-orange-100 text-orange-700"
-                            )}>
-                              {activity.status}
-                            </span>
+                              return titlesWithRecurrence.map(title => (
+                                <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`add-activity-${title}`}
+                                    checked={addRecurTitles.includes(title)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setAddRecurTitles(prev => [...prev, title]);
+                                      } else {
+                                        setAddRecurTitles(prev => prev.filter(t => t !== title));
+                                      }
+                                      setAddRecurYears([]);
+                                      setAddRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`add-activity-${title}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {title}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0
-                      ? "Click 'Preview Activities' to see matching activities"
-                      : "Select recurrence types, activities, and years to preview"}
-                  </p>
-                )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Year Selector - Future years only */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Year</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {addRecurYears.length === 0
+                            ? "Select years"
+                            : `${addRecurYears.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (addRecurTypes.length === 0 && addRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type and activity first</p>;
+                              }
+                              if (addRecurTypes.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              }
+                              if (addRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
+                              }
+
+                              // Generate future years (current year + next 5 years)
+                              const currentYear = new Date().getFullYear();
+                              const futureYears = Array.from({ length: 6 }, (_, i) => currentYear + i);
+
+                              return futureYears.map(year => (
+                                <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`add-year-${year}`}
+                                    checked={addRecurYears.includes(String(year))}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setAddRecurYears(prev => [...prev, String(year)]);
+                                      } else {
+                                        setAddRecurYears(prev => prev.filter(y => y !== String(year)));
+                                      }
+                                      setAddRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`add-year-${year}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {year}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Preview Button */}
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    style={{ borderColor: '#94a3b8' }}
+                    disabled={addRecurTypes.length === 0 || addRecurTitles.length === 0 || addRecurYears.length === 0}
+                     onClick={() => {
+                       if (addRecurTypes.length === 0 || addRecurTitles.length === 0 || addRecurYears.length === 0) return;
+
+                       // Generate preview of activities that would be created
+                       const previewActivities: any[] = [];
+                       const years = addRecurYears.map(y => parseInt(y));
+
+                       years.forEach(year => {
+                         addRecurTitles.forEach(title => {
+                           // Find the original activity to get its template
+                           const originalActivity = activities?.find(a =>
+                             a.title === title &&
+                             a.recurrence &&
+                             addRecurTypes.includes(a.recurrence)
+                           );
+
+                           if (originalActivity) {
+                             // Generate activities based on recurrence type
+                             const activitiesForYear = generateRecurringActivitiesForYear(originalActivity, year);
+                             previewActivities.push(...activitiesForYear);
+                           }
+                         });
+                       });
+
+                       setAddRecurPreview(previewActivities);
+                     }}
+                  >
+                    Preview Activities ({addRecurPreview.length > 0 || (addRecurTypes.length > 0 && addRecurTitles.length > 0 && addRecurYears.length > 0) ? (() => {
+                      let count = 0;
+                      const years = addRecurYears.map(y => parseInt(y || "0"));
+                      years.forEach(year => {
+                        addRecurTitles.forEach(title => {
+                          const originalActivity = activities?.find(a =>
+                            a.title === title &&
+                            a.recurrence &&
+                            addRecurTypes.includes(a.recurrence)
+                          );
+                          if (originalActivity) {
+                            count += getActivitiesCountForYear(originalActivity, year);
+                          }
+                        });
+                      });
+                      return count;
+                    })() : 0})
+                  </Button>
+
+                  {/* Preview List */}
+                  <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
+                    {addRecurPreview.length > 0 ? (
+                      <>
+                        <h5 className="text-sm font-medium text-muted-foreground">
+                          {addRecurPreview.length} {addRecurPreview.length === 1 ? 'activity' : 'activities'} will be created
+                        </h5>
+                        <div className="space-y-1">
+                          {addRecurPreview.slice(0, 10).map((activity: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-2 border rounded-md text-sm">
+                              <div>
+                                <p className="font-medium truncate max-w-[150px]">{activity.title}</p>
+                                <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                                New
+                              </span>
+                            </div>
+                          ))}
+                          {addRecurPreview.length > 10 && (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                              ...and {addRecurPreview.length - 10} more activities
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {addRecurTypes.length > 0 && addRecurTitles.length > 0 && addRecurYears.length > 0
+                          ? "Click 'Preview Activities' to see activities that will be created"
+                          : "Select recurrence types, activities, and years to preview"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Add Button */}
+                  <Button
+                    className="gap-2 w-full"
+                    disabled={addRecurPreview.length === 0 || isAddingRecurring}
+                    onClick={async () => {
+                      if (addRecurPreview.length === 0) return;
+
+                      setIsAddingRecurring(true);
+                      try {
+                        // Create all the activities
+                        for (const activity of addRecurPreview) {
+                          await createActivity.mutateAsync({
+                            title: activity.title,
+                            description: activity.description,
+                            startDate: activity.startDate,
+                            deadlineDate: activity.deadlineDate,
+                            status: 'pending',
+                            regulatoryAgency: activity.regulatoryAgency || null,
+                            concernDepartment: activity.concernDepartment || null,
+                            reportDetails: activity.reportDetails || null,
+                            remarks: activity.remarks || null,
+                            recurrence: activity.recurrence || null,
+                            recurrenceEndDate: activity.recurrenceEndDate || null,
+                          });
+                        }
+
+                        // Clear form
+                        setAddRecurTypes([]);
+                        setAddRecurTitles([]);
+                        setAddRecurYears([]);
+                        setAddRecurPreview([]);
+
+                        toast({
+                          title: "Success",
+                          description: `Created ${addRecurPreview.length} recurring activities`,
+                        });
+                      } catch (error) {
+                        console.error('Failed to create recurring activities:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to create some activities. Please try again.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsAddingRecurring(false);
+                      }
+                    }}
+                  >
+                    {isAddingRecurring ? (
+                      <>Creating...</>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Create Activities
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
+              {/* Delete Recurring Activities - Right Column */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-red-500 rounded-full"></span>
+                  Delete Recurring Activities
+                </h4>
+                <div className="space-y-4">
+                  {/* Recurrence Type Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Recurrence Type</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurTypes.length === 0
+                            ? "Select recurrence types"
+                            : `${deleteRecurTypes.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {[
+                              { value: "monthly", label: "Monthly" },
+                              { value: "quarterly", label: "Quarterly" },
+                              { value: "semi-annual", label: "Semi-Annual" },
+                              { value: "yearly", label: "Yearly" }
+                            ].map(type => (
+                              <div key={type.value} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                <Checkbox
+                                  id={`recurrence-${type.value}`}
+                                  checked={deleteRecurTypes.includes(type.value)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setDeleteRecurTypes(prev => [...prev, type.value]);
+                                    } else {
+                                      setDeleteRecurTypes(prev => prev.filter(t => t !== type.value));
+                                    }
+                                    setDeleteRecurTitles([]);
+                                    setDeleteRecurYears([]);
+                                    setDeleteRecurPreview([]);
+                                  }}
+                                />
+                                <Label
+                                  htmlFor={`recurrence-${type.value}`}
+                                  className="text-sm font-normal cursor-pointer flex-1"
+                                >
+                                  {type.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
+                  {/* Activity Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Activity</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurTitles.length === 0
+                            ? "Select activities"
+                            : `${deleteRecurTitles.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (deleteRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              // Filter activities by selected recurrence types and extract unique titles
+                              const titlesWithRecurrence = activities
+                                .filter(a => a.recurrence && deleteRecurTypes.includes(a.recurrence))
+                                .map(a => a.title)
+                                .filter((title): title is string => title !== null && title !== undefined)
+                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
+                                .sort(); // Sort alphabetically
 
-              {/* Delete Button */}
-              <Button
-                variant="destructive"
-                className="gap-2"
-                disabled={deleteRecurPreview.length === 0}
-                onClick={() => setShowDeleteRecurConfirm(true)}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete All
-              </Button>
+                              if (titlesWithRecurrence.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
+                              }
+
+                              return titlesWithRecurrence.map(title => (
+                                <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`activity-${title}`}
+                                    checked={deleteRecurTitles.includes(title)}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setDeleteRecurTitles(prev => [...prev, title]);
+                                      } else {
+                                        setDeleteRecurTitles(prev => prev.filter(t => t !== title));
+                                      }
+                                      setDeleteRecurYears([]);
+                                      setDeleteRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`activity-${title}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {title}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Year Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Year</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-between text-left font-normal border border-gray-300 dark:border-gray-600 text-muted-foreground"
+                        >
+                          {deleteRecurYears.length === 0
+                            ? "Select years"
+                            : `${deleteRecurYears.length} selected`}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-0" align="start">
+                        <div className="p-2">
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {(() => {
+                              if (deleteRecurTypes.length === 0 && deleteRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type and activity first</p>;
+                              }
+                              if (deleteRecurTypes.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
+                              }
+                              if (deleteRecurTitles.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
+                              }
+                              if (!activities) return <p className="text-sm text-muted-foreground p-2">No activities available</p>;
+
+                              // Filter activities by selected recurrence types and titles, then extract unique years
+                              const yearsWithActivities = activities
+                                .filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title))
+                                .map(a => new Date(a.deadlineDate).getFullYear())
+                                .filter((year, index, arr) => arr.indexOf(year) === index) // Remove duplicates
+                                .sort((a, b) => b - a); // Sort in descending order (most recent first)
+
+                              if (yearsWithActivities.length === 0) {
+                                return <p className="text-sm text-muted-foreground p-2">No years found</p>;
+                              }
+
+                              return yearsWithActivities.map(year => (
+                                <div key={year} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                  <Checkbox
+                                    id={`year-${year}`}
+                                    checked={deleteRecurYears.includes(String(year))}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        setDeleteRecurYears(prev => [...prev, String(year)]);
+                                      } else {
+                                        setDeleteRecurYears(prev => prev.filter(y => y !== String(year)));
+                                      }
+                                      setDeleteRecurPreview([]);
+                                    }}
+                                  />
+                                  <Label
+                                    htmlFor={`year-${year}`}
+                                    className="text-sm font-normal cursor-pointer flex-1"
+                                  >
+                                    {year}
+                                  </Label>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Preview Button */}
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    style={{ borderColor: '#94a3b8' }}
+                    disabled={deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0}
+                     onClick={() => {
+                       if (deleteRecurTypes.length === 0 || deleteRecurTitles.length === 0 || deleteRecurYears.length === 0) return;
+                       const years = deleteRecurYears.map(y => parseInt(y));
+                        const matched = (activities || []).filter(a => {
+                          if (!a.recurrence || !a.title || !deleteRecurTypes.includes(a.recurrence) || !deleteRecurTitles.includes(a.title)) return false;
+                          const actDate = new Date(a.deadlineDate);
+                          return years.includes(actDate.getFullYear());
+                        });
+                       setDeleteRecurPreview(matched);
+                     }}
+                  >
+                    Preview Activities ({deleteRecurPreview.length > 0 || (deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0) ? (() => {
+                      const years = deleteRecurYears.map(y => parseInt(y || "0"));
+                      return (activities || []).filter(a => a.recurrence && a.title && deleteRecurTypes.includes(a.recurrence) && deleteRecurTitles.includes(a.title) && years.includes(new Date(a.deadlineDate).getFullYear())).length;
+                    })() : 0})
+                  </Button>
+
+                  {/* Preview List */}
+                  <div className="border rounded-lg p-3 space-y-2 max-h-60 overflow-y-auto">
+                    {deleteRecurPreview.length > 0 ? (
+                      <>
+                        <h5 className="text-sm font-medium text-muted-foreground">
+                          {deleteRecurPreview.length} {deleteRecurPreview.length === 1 ? 'activity' : 'activities'} found
+                        </h5>
+                        <div className="space-y-1">
+                          {deleteRecurPreview.map((activity: any) => (
+                            <div key={activity.id} className="flex items-center justify-between p-2 border rounded-md text-sm">
+                              <div>
+                                <p className="font-medium truncate max-w-[150px]">{activity.title}</p>
+                                <p className="text-xs text-muted-foreground">{format(new Date(activity.deadlineDate), 'MMM d, yyyy')}</p>
+                              </div>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-xs",
+                                activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                                activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                                activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                                "bg-orange-100 text-orange-700"
+                              )}>
+                                {activity.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {deleteRecurTypes.length > 0 && deleteRecurTitles.length > 0 && deleteRecurYears.length > 0
+                          ? "Click 'Preview Activities' to see matching activities"
+                          : "Select recurrence types, activities, and years to preview"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Delete Button */}
+                  <Button
+                    variant="destructive"
+                    className="gap-2 w-full"
+                    disabled={deleteRecurPreview.length === 0}
+                    onClick={() => setShowDeleteRecurConfirm(true)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
