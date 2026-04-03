@@ -2204,7 +2204,7 @@ function CalendarContent() {
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0}>
+                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0 || (recurrence !== 'none' && !recurrenceEndDate)}>
                   {createActivity.isPending ? (
                     <>
                       Adding...
