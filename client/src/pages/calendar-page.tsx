@@ -2227,14 +2227,15 @@ function CalendarContent() {
                     </div>
                     <div className="space-y-2">
                       <div className="text-sm font-medium">Concern Department</div>
-                      {!regulatoryAgency ? (
-                        <div className="h-10 border border-gray-300 dark:border-gray-600 rounded-md flex items-center px-3">
-                          <span className="text-muted-foreground text-sm">Select a regulatory agency first</span>
-                        </div>
-                      ) : (
-                        <Popover>
+                      <Popover>
                         <PopoverTrigger asChild>
-                          <Button id="concernDepartment" variant="outline" className="h-10 w-full justify-between border-gray-400 font-normal" style={{ borderColor: '#9ca3af' }}>
+                          <Button
+                            id="concernDepartment"
+                            variant="outline"
+                            disabled={!regulatoryAgency}
+                            className="h-10 w-full justify-between border-gray-400 font-normal disabled:cursor-not-allowed disabled:opacity-100"
+                            style={{ borderColor: '#9ca3af' }}
+                          >
                             {concernDepartment.length > 0 ? (
                               <span className="truncate">
                                 {concernDepartment.join(", ")}
@@ -2245,6 +2246,7 @@ function CalendarContent() {
                             <ChevronDown className="h-4 w-4 opacity-50" />
                           </Button>
                         </PopoverTrigger>
+                        {regulatoryAgency && (
                         <PopoverContent className="w-[300px] p-2" align="start">
                           <div className="space-y-2">
                             {/* ERC Departments */}
@@ -2375,8 +2377,8 @@ function CalendarContent() {
                             )}
                           </div>
                         </PopoverContent>
+                        )}
                       </Popover>
-                      )}
                     </div>
                     
                     {/* Recurrence Section */}
