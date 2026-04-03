@@ -1870,7 +1870,7 @@ function CalendarContent() {
                   Holiday Management
                 </DialogTitle>
                 <DialogDescription className="text-sm">
-                  Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.
+                  Add or update holidays. Activities scheduled on holidays will be automatically moved to the previous working day.
                 </DialogDescription>
                 <div className="flex items-center justify-between pt-2">
                   <Label htmlFor="holidays-enabled-modal" className="text-sm font-medium">
@@ -1923,7 +1923,7 @@ function CalendarContent() {
                         </Popover>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                        <Button
                          onClick={async () => {
                            if (!holidayName || !holidayDate) return;
@@ -1993,11 +1993,12 @@ function CalendarContent() {
                          )}
                        </Button>
                        {editingHoliday && (
-                         <Button
-                           variant="outline"
-                           onClick={() => {
-                             setHolidayName("");
-                             setHolidayDate(undefined);
+                        <Button
+                          variant="outline"
+                          className="shrink-0"
+                          onClick={() => {
+                            setHolidayName("");
+                            setHolidayDate(undefined);
                              setEditingHoliday(null);
                            }}
                            disabled={isAddingHoliday}
@@ -4032,7 +4033,7 @@ function CalendarContent() {
                     <CalendarDays className="w-5 h-5" />
                     Holiday Management
                   </h3>
-                  <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
+                  <p className="text-sm text-muted-foreground">Add or update holidays. Activities scheduled on holidays will be automatically moved to the previous working day.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch
@@ -4082,7 +4083,7 @@ function CalendarContent() {
                         </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       onClick={async () => {
                         if (!holidayName || !holidayDate) return;
@@ -4153,6 +4154,7 @@ function CalendarContent() {
                     {editingHoliday && (
                       <Button
                         variant="outline"
+                        className="shrink-0"
                         onClick={() => {
                           setHolidayName("");
                           setHolidayDate(undefined);
