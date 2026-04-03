@@ -582,7 +582,7 @@ function SettingsContent() {
                   <div className="space-y-0.5">
                     <Label className="text-base font-medium">File Management</Label>
                     <p className="text-sm text-muted-foreground">
-                      Allow non-admin users to rename, archive, delete, move, and restore folders and files in Drive and Archives pages. If disabled, the 3-dot menu will not be visible.
+                      Allow non-admin users to manage folders and files in the Drive and Archives pages, including renaming, moving, archiving, deleting, and restoring items. If disabled, the 3-dot menu will be hidden.
                     </p>
                   </div>
                   <Switch
@@ -595,7 +595,7 @@ function SettingsContent() {
                   <div className="space-y-0.5">
                     <Label className="text-base font-medium">Activity Deletion</Label>
                     <p className="text-sm text-muted-foreground">
-                      Allow non-admin users to delete activities and use the delete all button in the calendar page. If disabled, these buttons will not be shown.
+                      Allow non-admin users to delete activities and use the Delete All button on the Calendar page. If disabled, these options will be hidden.
                     </p>
                   </div>
                   <Switch
@@ -608,7 +608,7 @@ function SettingsContent() {
                   <div className="space-y-0.5">
                     <Label className="text-base font-medium">Holiday Management</Label>
                     <p className="text-sm text-muted-foreground">
-                      Allow non-admin users to add holidays. If disabled, the Manage Holidays button, modal, and panel will not be visible.
+                      Allow non-admin users to add and manage holidays. If disabled, the Manage Holidays button, modal, and panel will be hidden.
                     </p>
                   </div>
                   <Switch
