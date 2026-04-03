@@ -3275,7 +3275,7 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Calendar Header */}
-        <div className="flex flex-wrap items-center justify-between p-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20 gap-3">
+        <div className="flex flex-wrap gap-3 p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(220px,max-content)] lg:items-center lg:gap-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
           <div className="flex flex-wrap items-center gap-2 md:gap-4 min-w-0">
             <Button 
               variant="outline" 
@@ -3309,7 +3309,7 @@ function CalendarContent() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            <h2 className="text-lg md:text-xl font-bold font-display text-primary min-w-0 break-words">
+            <h2 className="text-lg md:text-xl font-bold font-display text-primary min-w-0">
               {view === 'day' ? format(currentDate, 'MMMM d, yyyy') :
                view === 'week' ? format(currentDate, 'MMMM yyyy') :
                format(currentDate, 'MMMM yyyy')}
@@ -3317,7 +3317,7 @@ function CalendarContent() {
           </div>
           
           {/* View Toggle Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 lg:justify-self-center">
             <div className="flex bg-muted rounded-lg p-1">
               <Button
                 variant={view === 'day' ? 'default' : 'ghost'}
@@ -3364,7 +3364,7 @@ function CalendarContent() {
               </div>
 
           {/* Activity counts */}
-          <div className="text-sm text-muted-foreground md:w-auto md:flex-none">
+          <div className="text-sm text-muted-foreground lg:justify-self-end lg:text-right lg:min-w-[220px]">
             {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
           </div>
         </div>
