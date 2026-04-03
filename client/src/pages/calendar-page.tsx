@@ -2579,8 +2579,8 @@ function CalendarContent() {
                     <p className="text-center text-muted-foreground py-8">No activities for this day</p>
                   ) : paginatedActivities.length === 0 && isHolidayOrWeekend ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
+                      <div className="w-full max-w-md">
+                        <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                           <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
                              {isHoliday ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
                           </p>
@@ -3035,8 +3035,8 @@ function CalendarContent() {
                   <p className="text-center text-muted-foreground py-8">No activities at this time</p>
                 ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
                   <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
+                    <div className="w-full max-w-md">
+                      <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                         <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
                           {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
                         </p>
