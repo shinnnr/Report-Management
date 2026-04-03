@@ -2529,12 +2529,13 @@ function CalendarContent() {
             }}>
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
                 <DialogHeader className="shrink-0 pb-2">
-                  <div className="flex items-center justify-between pr-8">
+                  <div className="flex flex-col gap-3 pr-8">
                     <DialogTitle className="leading-tight">
-                      <span className="block">Activities for</span>
-                      <span className="block">{format(dayActivitiesModalDate, 'MMMM d, yyyy')}</span>
+                      <span className="whitespace-nowrap">
+                        Activities for {format(dayActivitiesModalDate, 'MMMM d, yyyy')}
+                      </span>
                     </DialogTitle>
-                    <div className="flex gap-2">
+                    <div className="flex w-full flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -2581,7 +2582,7 @@ function CalendarContent() {
                       <div className="text-center">
                         <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
                           <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                            🏖️ {isHoliday ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
+                             {isHoliday ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
                           </p>
                           <p className="text-sm text-amber-700 dark:text-amber-300">
                             Activities cannot be created on {isHoliday ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -2982,11 +2983,11 @@ function CalendarContent() {
         }}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-visible flex flex-col">
             <DialogHeader className="shrink-0 pb-2">
-              <div className="flex items-center justify-between pr-8">
-                <DialogTitle>
+              <div className="flex flex-col gap-3 pr-8">
+                <DialogTitle className="whitespace-nowrap">
                   Activities at {timeSlotActivitiesModalData?.time}
                 </DialogTitle>
-                <div className="flex gap-2">
+                <div className="flex w-full flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -3037,7 +3038,7 @@ function CalendarContent() {
                     <div className="text-center">
                       <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md max-w-md mx-auto">
                         <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                          🏖️ {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
+                          {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
                         </p>
                         <p className="text-sm text-amber-700 dark:text-amber-300">
                           Activities cannot be created on {isDateHoliday(timeSlotActivitiesModalData.date) ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -5185,9 +5186,9 @@ function DayView({
                 const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
                 if (isHoliday) {
                   const holidayName = holidays?.find(h => isSameDay(new Date(h.date), currentDate))?.name;
-                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">🏖️ {holidayName}</div>;
+                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">{holidayName}</div>;
                 } else if (isWeekend) {
-                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">🏖️ Weekend</div>;
+                  return <div className="text-xs text-red-600 dark:text-red-400 mt-1">Weekend</div>;
                 }
                 return null;
               })()}
