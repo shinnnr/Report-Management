@@ -569,7 +569,8 @@ export class DatabaseStorage implements IStorage {
     
     // If this activity has recurrence, generate activities for future years
     // Only generate for the newly created activity, not for all master activities
-    if (activity.recurrence && activity.recurrence !== 'none' && activity.recurrence !== null) {
+    // Skip generation for activities where recurrenceEndDate is null (generated instances)
+    if (activity.recurrence && activity.recurrence !== 'none' && activity.recurrence !== null && activity.recurrenceEndDate) {
       const currentYear = new Date().getFullYear();
       const deadlineYear = new Date(activity.deadlineDate).getFullYear();
       const endYear = activity.recurrenceEndDate 
@@ -800,8 +801,8 @@ export class DatabaseStorage implements IStorage {
           concernDepartment: activity.concernDepartment,
           reportDetails: activity.reportDetails,
           remarks: activity.remarks,
-          recurrence: activity.recurrence, // Same recurrence as master activity
-          recurrenceEndDate: activity.recurrenceEndDate,
+          recurrence: activity.recurrence, // Keep for filtering in Delete Recurring Activities
+          recurrenceEndDate: null, // Set to null to prevent re-generation (null fails the check at line 572)
         });
         
         // If the deadline has already passed, mark as overdue
