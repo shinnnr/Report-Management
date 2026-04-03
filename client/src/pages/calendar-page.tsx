@@ -3657,7 +3657,10 @@ function CalendarContent() {
           {/* Upcoming Activities Sidebar */}
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[600px]">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-              <h3 className="font-semibold text-lg">Upcoming Activities</h3>
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Upcoming Activities
+              </h3>
               <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
             </div>
             <ScrollArea className="flex-1 p-4">
@@ -3768,7 +3771,10 @@ function CalendarContent() {
       {/* Agency & Department Filter Panel */}
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible flex flex-col h-[600px]">
         <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-          <h3 className="font-semibold text-lg">Activities by Agency & Department</h3>
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Activities by Agency & Department
+          </h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -4015,6 +4021,7 @@ function CalendarContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5" />
                     Holiday Management
                   </h3>
                   <p className="text-sm text-muted-foreground">Add or edit holidays. Activities will be automatically moved to the previous working day if they fall on holidays.</p>
@@ -4247,6 +4254,7 @@ function CalendarContent() {
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
               <h3 className="font-semibold text-lg flex items-center gap-2">
+                <LayoutList className="w-5 h-5" />
                 Manage Recurring Activities
               </h3>
               <p className="text-sm text-muted-foreground">Add or delete recurring activities for specific years.</p>
