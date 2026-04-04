@@ -529,7 +529,7 @@ function CalendarContent() {
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
-  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deletingAllDateKeys, setDeletingAllDateKeys] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -588,6 +588,7 @@ function CalendarContent() {
     ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
     : undefined;
   const holidaySubmissionToastDescription = "The selected submission date matches a configured holiday.";
+  const selectedDateRef = useRef<Date | null>(null);
 
   const scrollHolidayModalToForm = () => {
     requestAnimationFrame(() => {
@@ -627,6 +628,10 @@ function CalendarContent() {
       setSubmissionDate(new Date());
     }
   }, [isActivityModalOpen, selectedActivity?.id]);
+
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
 
   const handleRecurrenceChange = (value: string) => {
     setRecurrence(value);
@@ -1539,15 +1544,23 @@ function CalendarContent() {
   const selectedDateActivities = selectedDate
     ? activities?.filter(a => isSameDay(getCalendarDisplayDate(a), selectedDate)) || []
     : [];
+  const getDeleteAllDateKey = (date: Date | null) => date ? format(date, 'yyyy-MM-dd') : null;
+  const selectedDateDeleteKey = getDeleteAllDateKey(selectedDate);
+  const isDeletingSelectedDate = selectedDateDeleteKey ? deletingAllDateKeys.includes(selectedDateDeleteKey) : false;
 
   const handleDeleteAllByDate = async () => {
     if (!selectedDate) return;
-    
-    setIsDeletingAll(true);
+
+    const targetDate = selectedDate;
+    const targetDateKey = getDeleteAllDateKey(targetDate);
+    const targetDateActivities = [...selectedDateActivities];
+    if (!targetDateKey) return;
+
+    setDeletingAllDateKeys(prev => prev.includes(targetDateKey) ? prev : [...prev, targetDateKey]);
     try {
       // Delete all activities for the selected date using direct API calls to avoid multiple toasts
       const deleteResults = await Promise.all(
-        selectedDateActivities.map(async (activity) => {
+        targetDateActivities.map(async (activity) => {
           const url = buildUrl(api.activities.delete.path, { id: activity.id });
           const response = await fetch(url, { method: api.activities.delete.method });
           return { id: activity.id, success: response.ok };
@@ -1558,19 +1571,21 @@ function CalendarContent() {
       
       // Invalidate queries to refresh the list
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-      
-      setShowDeleteAllConfirm(false);
-      setSelectedDate(null);
+
+      if (getDeleteAllDateKey(selectedDateRef.current) === targetDateKey) {
+        setShowDeleteAllConfirm(false);
+        setSelectedDate(null);
+      }
       
       if (failedCount === 0) {
         toast({
           title: "Deleted",
-          description: `All ${selectedDateActivities.length} activities for ${format(selectedDate, 'MMMM d, yyyy')} have been deleted`,
+          description: `All ${targetDateActivities.length} activities for ${format(targetDate, 'MMMM d, yyyy')} have been deleted`,
         });
-      } else if (selectedDateActivities.length - failedCount > 0) {
+      } else if (targetDateActivities.length - failedCount > 0) {
         toast({
           title: "Partially Deleted",
-          description: `${selectedDateActivities.length - failedCount} activities deleted. ${failedCount} failed to delete.`,
+          description: `${targetDateActivities.length - failedCount} activities deleted. ${failedCount} failed to delete.`,
         });
       } else {
         toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
@@ -1579,7 +1594,7 @@ function CalendarContent() {
       console.error("Failed to delete activities:", error);
       toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
     } finally {
-      setIsDeletingAll(false);
+      setDeletingAllDateKeys(prev => prev.filter(key => key !== targetDateKey));
     }
   };
 
@@ -2656,10 +2671,9 @@ function CalendarContent() {
             variant="destructive"
             onClick={() => setShowDeleteAllConfirm(true)}
             className="gap-2 whitespace-nowrap w-auto lg:order-1 order-3"
-            disabled={isDeletingAll}
           >
             <Trash2 className="w-4 h-4" />
-            {isDeletingAll ? "Deleting..." : `Delete All (${selectedDateActivities.length})`}
+            {`Delete All (${selectedDateActivities.length})`}
           </Button>
         )}
 
@@ -3461,9 +3475,9 @@ function CalendarContent() {
               <Button
                 variant="destructive"
                 onClick={handleDeleteAllByDate}
-                disabled={isDeletingAll}
+                disabled={isDeletingSelectedDate}
               >
-                {isDeletingAll ? "Deleting..." : "Delete All"}
+                {isDeletingSelectedDate ? "Deleting..." : "Delete All"}
               </Button>
             </DialogFooter>
           </DialogContent>
