@@ -981,6 +981,12 @@ function CalendarContent() {
   const showHolidayPagination = (holidays?.length || 0) > holidaysPerPage;
   const holidayModalFormRef = useRef<HTMLDivElement | null>(null);
 
+  const resetHolidayForm = () => {
+    setHolidayName("");
+    setHolidayDate(undefined);
+    setEditingHoliday(null);
+  };
+
   // Check if holiday fields have changed from original values
   const hasHolidayChanges = editingHoliday && (
     holidayName !== editingHoliday.name || 
@@ -2737,14 +2743,19 @@ function CalendarContent() {
                   disabled={isDeletingHolidayId === holidayToDelete?.id}
                   onClick={async () => {
                     if (holidayToDelete) {
-                      setIsDeletingHolidayId(holidayToDelete.id);
+                      const holidayId = holidayToDelete.id;
+                      const isDeletingEditedHoliday = editingHoliday?.id === holidayId;
+
+                      setIsDeletingHolidayId(holidayId);
                       // Close modal immediately
                       setShowDeleteHolidayConfirm(false);
-                      const holidayId = holidayToDelete.id;
                       setHolidayToDelete(null);
 
                       try {
                         await deleteHoliday.mutateAsync(holidayId);
+                        if (isDeletingEditedHoliday) {
+                          resetHolidayForm();
+                        }
                       } catch (error) {
                         console.error('Failed to delete holiday:', error);
                       } finally {
@@ -2849,9 +2860,7 @@ function CalendarContent() {
              setIsHolidayModalOpen(open);
              if (!open) {
                 // Reset form state
-                setHolidayName("");
-                setHolidayDate(undefined);
-                setEditingHoliday(null);
+                resetHolidayForm();
                 setHolidayPage(1);
                 setIsAddingHoliday(false);
                 if (holidayReturnModal === 'day' && dayActivitiesModalDate) {
@@ -2967,10 +2976,8 @@ function CalendarContent() {
                                  date: holidayDate
                                });
                              }
-                             setHolidayName("");
-                             setHolidayDate(undefined);
-                             setEditingHoliday(null);
-                             setHolidayPage(1);
+                              resetHolidayForm();
+                              setHolidayPage(1);
                            } catch (error) {
                              // Error handled by mutation
                            } finally {
@@ -2996,9 +3003,7 @@ function CalendarContent() {
                           variant="outline"
                           className="shrink-0"
                           onClick={() => {
-                            setHolidayName("");
-                            setHolidayDate(undefined);
-                             setEditingHoliday(null);
+                            resetHolidayForm();
                            }}
                            disabled={isAddingHoliday}
                          >
@@ -5169,9 +5174,7 @@ function CalendarContent() {
                               date: holidayDate
                             });
                           }
-                          setHolidayName("");
-                          setHolidayDate(undefined);
-                          setEditingHoliday(null);
+                          resetHolidayForm();
                         } catch (error) {
                           // Error handled by mutation
                         } finally {
@@ -5197,9 +5200,7 @@ function CalendarContent() {
                         variant="outline"
                         className="shrink-0"
                         onClick={() => {
-                          setHolidayName("");
-                          setHolidayDate(undefined);
-                          setEditingHoliday(null);
+                          resetHolidayForm();
                         }}
                         disabled={isAddingHoliday}
                       >
