@@ -3713,12 +3713,67 @@ function CalendarContent() {
                 </div>
                 <div className="shrink-0 bg-muted/10 p-4">
                   <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:gap-4">
-                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                      {dayActs.length > dayActivitiesPerPage ? (
-                        <>
-                          <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
-                            Page {dayActivitiesPage} of {totalPages}
-                          </p>
+                    {selectedDayActivityIds.length > 0 ? (
+                      <>
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                          {dayActs.length > dayActivitiesPerPage ? (
+                            <>
+                              <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                                Page {dayActivitiesPage} of {totalPages}
+                              </p>
+                              <div className="flex shrink-0 gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                                  disabled={dayActivitiesPage === 1}
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                                  disabled={dayActivitiesPage === totalPages}
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                        {canDeleteActivities ? (
+                          <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
+                            <span className="hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline">
+                              {selectedDayActivityIds.length} selected
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setDeleteSelectionContext({
+                                  type: 'day',
+                                  ids: [...selectedDayActivityIds],
+                                  label: `${selectedDayActivityIds.length} selected ${selectedDayActivityIds.length === 1 ? 'activity' : 'activities'} for ${format(dayActivitiesModalDate, 'MMMM d, yyyy')}`,
+                                });
+                                setActivityToDelete(null);
+                                setShowDeleteConfirm(true);
+                              }}
+                            >
+                              <span className="sm:hidden">Delete Selected</span>
+                              <span className="hidden sm:inline">Delete Selected</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="min-h-9" />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                          {dayActs.length > dayActivitiesPerPage ? `Page ${dayActivitiesPage} of ${totalPages}` : ""}
+                        </p>
+                        {dayActs.length > dayActivitiesPerPage ? (
                           <div className="flex shrink-0 gap-1">
                             <Button
                               variant="outline"
@@ -3737,42 +3792,10 @@ function CalendarContent() {
                               <ChevronRight className="w-4 h-4" />
                             </Button>
                           </div>
-                        </>
-                      ) : null}
-                    </div>
-                    {canDeleteActivities ? (
-                      <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
-                        <span
-                          className={cn(
-                            "hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline",
-                            selectedDayActivityIds.length === 0 && "invisible"
-                          )}
-                        >
-                          {selectedDayActivityIds.length === 0 ? "0 selected" : `${selectedDayActivityIds.length} selected`}
-                        </span>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className={cn(
-                            selectedDayActivityIds.length === 0 && "invisible pointer-events-none"
-                          )}
-                          disabled={selectedDayActivityIds.length === 0}
-                          onClick={() => {
-                            setDeleteSelectionContext({
-                              type: 'day',
-                              ids: [...selectedDayActivityIds],
-                              label: `${selectedDayActivityIds.length} selected ${selectedDayActivityIds.length === 1 ? 'activity' : 'activities'} for ${format(dayActivitiesModalDate, 'MMMM d, yyyy')}`,
-                            });
-                            setActivityToDelete(null);
-                            setShowDeleteConfirm(true);
-                          }}
-                        >
-                          <span className="sm:hidden">Delete selected</span>
-                          <span className="hidden sm:inline">Delete Selected</span>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="min-h-9" />
+                        ) : (
+                          <div className="min-h-9" />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -4231,12 +4254,67 @@ function CalendarContent() {
               return (
                 <div className="shrink-0 bg-muted/10 p-4">
                   <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:gap-4">
-                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                      {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? (
-                        <>
-                          <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
-                            Page {timeSlotActivitiesPage} of {totalPages}
-                          </p>
+                    {selectedTimeSlotActivityIds.length > 0 ? (
+                      <>
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                          {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? (
+                            <>
+                              <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                                Page {timeSlotActivitiesPage} of {totalPages}
+                              </p>
+                              <div className="flex shrink-0 gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                                  disabled={timeSlotActivitiesPage === 1}
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                                  disabled={timeSlotActivitiesPage === totalPages}
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                        {canDeleteActivities ? (
+                          <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
+                            <span className="hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline">
+                              {selectedTimeSlotActivityIds.length} selected
+                            </span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setDeleteSelectionContext({
+                                  type: 'time',
+                                  ids: [...selectedTimeSlotActivityIds],
+                                  label: `${selectedTimeSlotActivityIds.length} selected ${selectedTimeSlotActivityIds.length === 1 ? 'activity' : 'activities'} at ${timeSlotActivitiesModalData?.time || ''}`,
+                                });
+                                setActivityToDelete(null);
+                                setShowDeleteConfirm(true);
+                              }}
+                            >
+                              <span className="sm:hidden">Delete Selected</span>
+                              <span className="hidden sm:inline">Delete Selected</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="min-h-9" />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                          {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? `Page ${timeSlotActivitiesPage} of ${totalPages}` : ""}
+                        </p>
+                        {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? (
                           <div className="flex shrink-0 gap-1">
                             <Button
                               variant="outline"
@@ -4255,42 +4333,10 @@ function CalendarContent() {
                               <ChevronRight className="w-4 h-4" />
                             </Button>
                           </div>
-                        </>
-                      ) : null}
-                    </div>
-                    {canDeleteActivities ? (
-                      <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
-                        <span
-                          className={cn(
-                            "hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline",
-                            selectedTimeSlotActivityIds.length === 0 && "invisible"
-                          )}
-                        >
-                          {selectedTimeSlotActivityIds.length === 0 ? "0 selected" : `${selectedTimeSlotActivityIds.length} selected`}
-                        </span>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className={cn(
-                            selectedTimeSlotActivityIds.length === 0 && "invisible pointer-events-none"
-                          )}
-                          disabled={selectedTimeSlotActivityIds.length === 0}
-                          onClick={() => {
-                            setDeleteSelectionContext({
-                              type: 'time',
-                              ids: [...selectedTimeSlotActivityIds],
-                              label: `${selectedTimeSlotActivityIds.length} selected ${selectedTimeSlotActivityIds.length === 1 ? 'activity' : 'activities'} at ${timeSlotActivitiesModalData?.time || ''}`,
-                            });
-                            setActivityToDelete(null);
-                            setShowDeleteConfirm(true);
-                          }}
-                        >
-                          <span className="sm:hidden">Delete Selected</span>
-                          <span className="hidden sm:inline">Delete Selected</span>
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="min-h-9" />
+                        ) : (
+                          <div className="min-h-9" />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
