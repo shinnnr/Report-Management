@@ -1127,7 +1127,7 @@ function DashboardContent() {
             </div>
           </ScrollArea>
 
-          <div className="mt-2 flex min-h-[56px] shrink-0 items-center justify-between gap-2 py-2">
+          <div className="mt-2 flex min-h-[56px] shrink-0 items-center justify-between gap-2 py-2 pr-4">
             {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE && (
               <>
                 <span className="text-sm text-muted-foreground">

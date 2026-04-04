@@ -131,39 +131,13 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="mt-2 flex min-h-[88px] shrink-0 flex-col items-start justify-between gap-2 py-2 sm:min-h-[56px] sm:flex-row sm:items-center sm:gap-0">
-            <div className="flex items-center gap-2">
-              {notifications && notifications.length >= notificationsPerPage && (
-                <>
-                  <span className="text-sm text-muted-foreground">
-                    Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-                  </span>
-                  {selectedNotifications.length > 0 && (
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                        disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="flex min-h-9 w-full items-center justify-end gap-2 sm:w-auto sm:gap-4">
-              {notifications && notifications.length >= notificationsPerPage && selectedNotifications.length === 0 && (
-                <div className="flex gap-1">
+          <div className="mt-2 shrink-0 space-y-2 py-2">
+            {notifications && notifications.length >= notificationsPerPage && (
+              <div className="flex w-full items-center justify-between gap-3">
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+                </span>
+                <div className="flex shrink-0 gap-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -181,23 +155,23 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-              {selectedNotifications.length > 0 && (
-                <>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedNotifications.length} selected
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteSelected}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Delete Selected
-                  </Button>
-                </>
-              )}
-            </div>
+              </div>
+            )}
+            {selectedNotifications.length > 0 && (
+              <div className="flex w-full items-center justify-end gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedNotifications.length} selected
+                </span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMutation.isPending}
+                >
+                  Delete Selected
+                </Button>
+              </div>
+            )}
           </div>
       </DialogContent>
     </Dialog>
