@@ -131,47 +131,53 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="mt-2 shrink-0 space-y-2 py-2">
-            {notifications && notifications.length >= notificationsPerPage && (
-              <div className="flex w-full items-center justify-between gap-3">
-                <span className="text-sm text-muted-foreground">
-                  Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-                </span>
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                    disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+          <div className="mt-2 shrink-0 py-2">
+            <div className="flex min-h-9 w-full items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                {notifications && notifications.length >= notificationsPerPage ? (
+                  <>
+                    <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                      Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
+                    </span>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                        disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
               </div>
-            )}
-            {selectedNotifications.length > 0 && (
-              <div className="flex w-full items-center justify-end gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedNotifications.length} selected
+              <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
+                <span
+                  className={`hidden text-sm text-muted-foreground sm:inline ${selectedNotifications.length === 0 ? "invisible" : ""}`}
+                >
+                  {selectedNotifications.length === 0 ? "0 selected" : `${selectedNotifications.length} selected`}
                 </span>
                 <Button
                   variant="destructive"
                   size="sm"
+                  className={selectedNotifications.length === 0 ? "invisible pointer-events-none" : ""}
                   onClick={handleDeleteSelected}
-                  disabled={deleteMutation.isPending}
+                  disabled={deleteMutation.isPending || selectedNotifications.length === 0}
                 >
-                  Delete Selected
+                  <span className="sm:hidden">Delete Selected</span>
+                  <span className="hidden sm:inline">Delete Selected</span>
                 </Button>
               </div>
-            )}
+            </div>
           </div>
       </DialogContent>
     </Dialog>
