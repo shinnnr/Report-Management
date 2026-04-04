@@ -973,6 +973,12 @@ function CalendarContent() {
   const [isDeletingHolidayId, setIsDeletingHolidayId] = useState<number | null>(null);
   const [holidayPage, setHolidayPage] = useState(1);
   const holidaysPerPage = 5;
+  const totalHolidayPages = Math.max(1, Math.ceil((holidays?.length || 0) / holidaysPerPage));
+  const paginatedHolidays = (holidays || []).slice(
+    (holidayPage - 1) * holidaysPerPage,
+    holidayPage * holidaysPerPage
+  );
+  const showHolidayPagination = (holidays?.length || 0) > holidaysPerPage;
   const holidayModalFormRef = useRef<HTMLDivElement | null>(null);
 
   // Check if holiday fields have changed from original values
@@ -1024,6 +1030,10 @@ function CalendarContent() {
       setSubmissionDate(new Date());
     }
   }, [isActivityModalOpen, selectedActivity?.id]);
+
+  useEffect(() => {
+    setHolidayPage((currentPage) => Math.min(currentPage, totalHolidayPages));
+  }, [totalHolidayPages]);
 
   useEffect(() => {
     selectedDateRef.current = selectedDate;
@@ -2999,85 +3009,75 @@ function CalendarContent() {
               </div>
 
               {/* Existing Holidays - Right Column */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 flex flex-col">
                 <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                   <span className="w-1 h-4 bg-green-500 rounded-full"></span>
                   EXISTING HOLIDAYS
                 </h4>
                 {holidays && holidays.length > 0 ? (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2 pr-4">
-                      {(() => {
-                        const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
-                        const paginatedHolidays = holidays?.slice(
-                          (holidayPage - 1) * holidaysPerPage,
-                          holidayPage * holidaysPerPage
-                        ) || [];
-
-                        return (
-                          <>
-                            {paginatedHolidays.map((holiday: any) => (
-                              <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                                <div>
-                                  <p className="font-medium">{holiday.name}</p>
-                                  <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingHoliday(holiday);
-                                      setHolidayName(holiday.name);
-                                      setHolidayDate(new Date(holiday.date));
-                                      scrollHolidayModalToForm();
-                                    }}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => {
-                                      setHolidayToDelete(holiday);
-                                      setShowDeleteHolidayConfirm(true);
-                                    }}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                            {(holidays?.length || 0) > holidaysPerPage && (
-                              <div className="flex items-center justify-between pt-4 border-t mt-4">
-                                <p className="text-sm text-muted-foreground">
-                                  Page {holidayPage} of {totalPages}
-                                </p>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                                    disabled={holidayPage === 1}
-                                  >
-                                    <ChevronLeft className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={holidayPage === totalPages}
-                                  >
-                                    <ChevronRight className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </ScrollArea>
+                  <>
+                    <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
+                      <div className="space-y-2 pr-4">
+                        {paginatedHolidays.map((holiday: any) => (
+                          <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                            <div>
+                              <p className="font-medium">{holiday.name}</p>
+                              <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingHoliday(holiday);
+                                  setHolidayName(holiday.name);
+                                  setHolidayDate(new Date(holiday.date));
+                                  scrollHolidayModalToForm();
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setHolidayToDelete(holiday);
+                                  setShowDeleteHolidayConfirm(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    {showHolidayPagination && (
+                      <div className="mt-6 flex items-center justify-between pl-0 pr-4 py-2 bg-muted/10">
+                        <p className="text-sm text-muted-foreground">
+                          Page {holidayPage} of {totalHolidayPages}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                            disabled={holidayPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.min(totalHolidayPages, p + 1))}
+                            disabled={holidayPage === totalHolidayPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     No holidays configured yet
@@ -3397,7 +3397,7 @@ function CalendarContent() {
                 </div>
               </div>
             </div>
-            <DialogFooter className="shrink-0 pt-4 border-t mt-4">
+            <DialogFooter className="shrink-0 pt-4 mt-4">
               <div className="flex gap-3 w-full justify-end">
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
@@ -3585,60 +3585,80 @@ function CalendarContent() {
                   )}
                 </div>
                 </div>
-                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t bg-muted/10">
+                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 bg-muted/10">
                   <div className="flex items-center gap-2">
                     {dayActs.length > dayActivitiesPerPage && (
                       <>
                         <p className="text-sm text-muted-foreground">
                           Page {dayActivitiesPage} of {totalPages}
                         </p>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
-                            disabled={dayActivitiesPage === 1}
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
-                            disabled={dayActivitiesPage === totalPages}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {canDeleteActivities && selectedDayActivityIds.length > 0 && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                              disabled={dayActivitiesPage === 1}
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                              disabled={dayActivitiesPage === totalPages}
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
-                  <div className="ml-auto flex items-center gap-4 justify-end self-end sm:self-auto">
-                    {canDeleteActivities && (
-                      <>
-                        <span className={cn(
-                          "text-sm text-muted-foreground min-w-[72px] text-right",
-                          selectedDayActivityIds.length === 0 && "invisible"
-                        )}>
-                          {selectedDayActivityIds.length} selected
-                        </span>
+                  <div className="ml-auto flex w-full sm:w-auto items-center justify-end gap-2 self-end sm:self-auto">
+                    {dayActs.length > dayActivitiesPerPage && !(canDeleteActivities && selectedDayActivityIds.length > 0) && (
+                      <div className="flex gap-1">
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
-                          className={cn(selectedDayActivityIds.length === 0 && "invisible pointer-events-none")}
-                          onClick={() => {
-                            setDeleteSelectionContext({
-                              type: 'day',
-                              ids: [...selectedDayActivityIds],
-                              label: `${selectedDayActivityIds.length} selected ${selectedDayActivityIds.length === 1 ? 'activity' : 'activities'} for ${format(dayActivitiesModalDate, 'MMMM d, yyyy')}`,
-                            });
-                            setActivityToDelete(null);
-                            setShowDeleteConfirm(true);
-                          }}
+                          onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                          disabled={dayActivitiesPage === 1}
                         >
-                          Delete Selected
+                          <ChevronLeft className="w-4 h-4" />
                         </Button>
-                      </>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                          disabled={dayActivitiesPage === totalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {canDeleteActivities && (
+                      selectedDayActivityIds.length > 0 && (
+                        <>
+                          <span className="min-w-[72px] text-right text-sm text-muted-foreground">
+                          {selectedDayActivityIds.length} selected
+                          </span>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setDeleteSelectionContext({
+                                type: 'day',
+                                ids: [...selectedDayActivityIds],
+                                label: `${selectedDayActivityIds.length} selected ${selectedDayActivityIds.length === 1 ? 'activity' : 'activities'} for ${format(dayActivitiesModalDate, 'MMMM d, yyyy')}`,
+                              });
+                              setActivityToDelete(null);
+                              setShowDeleteConfirm(true);
+                            }}
+                          >
+                            Delete Selected
+                          </Button>
+                        </>
+                      )
                     )}
                   </div>
                 </div>
@@ -4095,60 +4115,80 @@ function CalendarContent() {
             {timeSlotActivitiesModalData && (() => {
               const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
               return (
-                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center gap-2 p-4 border-t bg-muted/10">
+                <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 bg-muted/10">
                   <div className="flex items-center gap-2">
                     {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && (
                       <>
                         <p className="text-sm text-muted-foreground">
                           Page {timeSlotActivitiesPage} of {totalPages}
                         </p>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
-                            disabled={timeSlotActivitiesPage === 1}
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
-                            disabled={timeSlotActivitiesPage === totalPages}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        {canDeleteActivities && selectedTimeSlotActivityIds.length > 0 && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                              disabled={timeSlotActivitiesPage === 1}
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                              disabled={timeSlotActivitiesPage === totalPages}
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
-                  <div className="flex w-full sm:w-auto items-center justify-end gap-4 sm:ml-auto">
-                    {canDeleteActivities && (
-                      <>
-                        <span className={cn(
-                          "text-sm text-muted-foreground min-w-[72px] text-right",
-                          selectedTimeSlotActivityIds.length === 0 && "invisible"
-                        )}>
-                          {selectedTimeSlotActivityIds.length} selected
-                        </span>
+                  <div className="flex w-full sm:w-auto items-center justify-end gap-2 sm:ml-auto">
+                    {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage && !(canDeleteActivities && selectedTimeSlotActivityIds.length > 0) && (
+                      <div className="flex gap-1">
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
-                          className={cn(selectedTimeSlotActivityIds.length === 0 && "invisible pointer-events-none")}
-                          onClick={() => {
-                            setDeleteSelectionContext({
-                              type: 'time',
-                              ids: [...selectedTimeSlotActivityIds],
-                              label: `${selectedTimeSlotActivityIds.length} selected ${selectedTimeSlotActivityIds.length === 1 ? 'activity' : 'activities'} at ${timeSlotActivitiesModalData?.time || ''}`,
-                            });
-                            setActivityToDelete(null);
-                            setShowDeleteConfirm(true);
-                          }}
+                          onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                          disabled={timeSlotActivitiesPage === 1}
                         >
-                          Delete Selected
+                          <ChevronLeft className="w-4 h-4" />
                         </Button>
-                      </>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                          disabled={timeSlotActivitiesPage === totalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {canDeleteActivities && (
+                      selectedTimeSlotActivityIds.length > 0 && (
+                        <>
+                          <span className="min-w-[72px] text-right text-sm text-muted-foreground">
+                          {selectedTimeSlotActivityIds.length} selected
+                          </span>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              setDeleteSelectionContext({
+                                type: 'time',
+                                ids: [...selectedTimeSlotActivityIds],
+                                label: `${selectedTimeSlotActivityIds.length} selected ${selectedTimeSlotActivityIds.length === 1 ? 'activity' : 'activities'} at ${timeSlotActivitiesModalData?.time || ''}`,
+                              });
+                              setActivityToDelete(null);
+                              setShowDeleteConfirm(true);
+                            }}
+                          >
+                            Delete Selected
+                          </Button>
+                        </>
+                      )
                     )}
                   </div>
                 </div>
@@ -5002,7 +5042,7 @@ function CalendarContent() {
                    
                     {/* Pagination - only show if more than 10 activities */}
                     {filtered.length > itemsPerPage && (
-                      <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-800 bg-muted/10">
+                      <div className="flex items-center justify-between p-4 bg-muted/10">
                        <p className="text-sm text-muted-foreground">
                          Page {validPage} of {totalPages}
                        </p>
@@ -5167,85 +5207,74 @@ function CalendarContent() {
               </div>
 
               {/* Edit Existing Holiday - Right Column */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 flex flex-col">
                   <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                     <span className="w-1 h-4 bg-green-500 rounded-full"></span>
                     EXISTING HOLIDAYS
                   </h4>
                 {holidays && holidays.length > 0 ? (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2 pr-4">
-                      {(() => {
-                        const totalPages = Math.ceil((holidays?.length || 0) / holidaysPerPage);
-                        const paginatedHolidays = holidays?.slice(
-                          (holidayPage - 1) * holidaysPerPage,
-                          holidayPage * holidaysPerPage
-                        ) || [];
-
-                        return (
-                          <>
-                            {paginatedHolidays.map((holiday: any) => (
-                              <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                                <div>
-                                  <p className="font-medium">{holiday.name}</p>
-                                  <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
-                                </div>
-                                <div className="flex gap-2">
-                                   <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingHoliday(holiday);
-                                        setHolidayName(holiday.name);
-                                        setHolidayDate(new Date(holiday.date));
-                                      }}
-                                    >
-                                      Edit
-                                   </Button>
-                                   <Button
-                                     variant="destructive"
-                                     size="sm"
-                                     onClick={() => {
-                                       setHolidayToDelete(holiday);
-                                       setShowDeleteHolidayConfirm(true);
-                                     }}
-                                   >
-                                     <Trash2 className="w-4 h-4" />
-                                   </Button>
-                                </div>
-                              </div>
-                            ))}
-                            {/* Pagination - only show if more than 5 holidays */}
-                            {(holidays?.length || 0) > holidaysPerPage && (
-                              <div className="flex items-center justify-between pt-4 border-t mt-4">
-                                <p className="text-sm text-muted-foreground">
-                                  Page {holidayPage} of {totalPages}
-                                </p>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                                    disabled={holidayPage === 1}
-                                  >
-                                    <ChevronLeft className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setHolidayPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={holidayPage === totalPages}
-                                  >
-                                    <ChevronRight className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </ScrollArea>
+                  <>
+                    <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
+                      <div className="space-y-2 pr-4">
+                        {paginatedHolidays.map((holiday: any) => (
+                          <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                            <div>
+                              <p className="font-medium">{holiday.name}</p>
+                              <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                            </div>
+                            <div className="flex gap-2">
+                               <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingHoliday(holiday);
+                                    setHolidayName(holiday.name);
+                                    setHolidayDate(new Date(holiday.date));
+                                  }}
+                                >
+                                  Edit
+                               </Button>
+                               <Button
+                                 variant="destructive"
+                                 size="sm"
+                                 onClick={() => {
+                                   setHolidayToDelete(holiday);
+                                   setShowDeleteHolidayConfirm(true);
+                                 }}
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    {showHolidayPagination && (
+                      <div className="mt-6 flex items-center justify-between pl-0 pr-4 py-2 bg-muted/10">
+                        <p className="text-sm text-muted-foreground">
+                          Page {holidayPage} of {totalHolidayPages}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                            disabled={holidayPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.min(totalHolidayPages, p + 1))}
+                            disabled={holidayPage === totalHolidayPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     No holidays configured yet

@@ -1127,32 +1127,34 @@ function DashboardContent() {
             </div>
           </ScrollArea>
 
-          <div className="mt-2 flex min-h-[56px] shrink-0 items-center gap-2 border-t py-2">
+          <div className="mt-2 flex min-h-[56px] shrink-0 items-center justify-between gap-2 py-2">
             {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE && (
               <>
                 <span className="text-sm text-muted-foreground">
                   Page {safeActivityStatusOverviewPage} of {activityStatusOverviewTotalPages}
                 </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setActivityStatusOverviewPage((page) => Math.max(1, page - 1))}
-                  disabled={safeActivityStatusOverviewPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setActivityStatusOverviewPage((page) =>
-                      Math.min(activityStatusOverviewTotalPages, page + 1)
-                    )
-                  }
-                  disabled={safeActivityStatusOverviewPage >= activityStatusOverviewTotalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                <div className="ml-auto flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActivityStatusOverviewPage((page) => Math.max(1, page - 1))}
+                    disabled={safeActivityStatusOverviewPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setActivityStatusOverviewPage((page) =>
+                        Math.min(activityStatusOverviewTotalPages, page + 1)
+                      )
+                    }
+                    disabled={safeActivityStatusOverviewPage >= activityStatusOverviewTotalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </>
             )}
           </div>
