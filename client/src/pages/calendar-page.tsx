@@ -4284,13 +4284,19 @@ function CalendarContent() {
           const dayActivities = filteredActivities.filter(a =>
             isSameDay(getCalendarDisplayDate(a), date)
           );
+          const holidayForDate = holidaysEnabledData
+            ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), date))
+            : undefined;
+          const monthVisibleActivitiesLimit = holidayForDate
+            ? Math.max(MONTH_VIEW_VISIBLE_ACTIVITIES - 1, 1)
+            : MONTH_VIEW_VISIBLE_ACTIVITIES;
           const showMonthDragPreview = Boolean(
             draggedActivity &&
             dropTargetDate &&
             !dropTargetTime &&
             isSameDay(date, dropTargetDate)
           );
-          const visibleMonthActivities = dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES);
+          const visibleMonthActivities = dayActivities.slice(0, monthVisibleActivitiesLimit);
           const monthPreviewIndex = draggedActivity
             ? Math.max(visibleMonthActivities.findIndex((activity) => activity.id === draggedActivity.id), 0)
             : 0;
@@ -4357,6 +4363,12 @@ function CalendarContent() {
               >
                 {format(date, 'd')}
               </div>
+
+              {holidayForDate?.name && (
+                <div className="mb-1 truncate text-[10px] font-semibold leading-tight text-red-700 dark:text-red-300">
+                  {holidayForDate.name}
+                </div>
+              )}
 
               {/* Activities */}
               <div className="relative mt-1 flex-1 overflow-hidden">
@@ -5864,6 +5876,10 @@ function WeekView({
   const getDayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
   const weekDayKeys = weekDays.map(getDayKey);
   const weekDayKeySet = new Set(weekDayKeys);
+  const weekHeaderHolidayDate = selectedDate ?? currentDate;
+  const weekHeaderHoliday = holidaysEnabled && weekDays.some((day) => isSameDay(day, weekHeaderHolidayDate))
+    ? holidays?.find((holiday) => isSameDay(new Date(holiday.date), weekHeaderHolidayDate))
+    : undefined;
 
   const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
     if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
@@ -5928,7 +5944,13 @@ function WeekView({
           data-drop-target-suppress="true"
           className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-30"
         >
-          <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
+          <div className="flex items-center justify-center border-r px-2 py-2 text-center">
+            {weekHeaderHoliday?.name && (
+              <div className="truncate text-xs font-semibold leading-tight text-red-600 dark:text-red-400">
+                {weekHeaderHoliday.name}
+              </div>
+            )}
+          </div>
           {weekDays.map((day) => {
             const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
@@ -6161,6 +6183,9 @@ function DayView({
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dayActivities = activities.filter(a => isSameDay(getCalendarDisplayDate(a), currentDate));
+  const holidayForCurrentDate = holidaysEnabled
+    ? holidays?.find((holiday) => isSameDay(new Date(holiday.date), currentDate))
+    : undefined;
 
   const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
     if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
@@ -6209,14 +6234,29 @@ function DayView({
         {/* Day header */}
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
+          holidayForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
         )}>
-          <div className="flex items-center justify-between pl-4">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 pl-4">
             <div className="flex flex-col items-center">
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
-                isToday(currentDate) ? "text-primary" : "text-muted-foreground"
+                holidayForCurrentDate
+                  ? "text-red-600 dark:text-red-400"
+                  : isToday(currentDate)
+                    ? "text-primary"
+                    : "text-muted-foreground"
               )}>{format(currentDate, 'EEE')}</div>
-              <div className="text-4xl font-bold">{format(currentDate, 'd')}</div>
+              <div className={cn(
+                "text-4xl font-bold",
+                holidayForCurrentDate && "text-red-600 dark:text-red-400"
+              )}>{format(currentDate, 'd')}</div>
+            </div>
+            <div className="min-w-0 text-center">
+              {holidayForCurrentDate?.name && (
+                <div className="truncate text-sm font-semibold text-red-600 dark:text-red-400">
+                  {holidayForCurrentDate.name}
+                </div>
+              )}
             </div>
             <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
           </div>
