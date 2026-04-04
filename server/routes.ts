@@ -208,9 +208,9 @@ export async function registerRoutes(
       if (err) return next(err);
       if (!user) {
         if (info?.message && info.message.includes("deactivated")) {
-          return res.json({ message: info.message, deactivated: true });
+          return res.json({ authenticated: false, message: info.message, deactivated: true });
         }
-        return res.status(401).json({ message: info.message });
+        return res.json({ authenticated: false, message: "Invalid username or password" });
       }
       req.logIn(user, async (err) => {
         if (err) return next(err);

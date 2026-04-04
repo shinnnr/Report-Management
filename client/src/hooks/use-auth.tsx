@@ -141,22 +141,23 @@ export function useLoginMutation() {
         body: JSON.stringify(credentials),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        if (res.status === 401) {
-          const data = await res.json().catch(() => ({}));
-          // Check if account is deactivated
-          if (data.message && data.message.includes("deactivated")) {
-            throw new Error(data.message);
-          }
-          throw new Error("Invalid username or password");
-        }
         throw new Error("Login failed");
       }
-      const data = await res.json();
+
+      if (data?.authenticated === false) {
+        if (data?.deactivated) {
+          throw new Error(data.message || "Your account has been deactivated. Please contact the administrator.");
+        }
+        throw new Error("Invalid username or password");
+      }
+
       if (data?.deactivated) {
         throw new Error(data.message || "Your account has been deactivated. Please contact the administrator.");
       }
-      return api.auth.login.responses[200].parse(data);
+      return api.auth.login.responses[200].parse(data) as User;
     },
     onSuccess: (user) => {
       // Reset logout flag on successful login

@@ -17,6 +17,12 @@ export const errorSchemas = {
   }),
 };
 
+const loginFailureSchema = z.object({
+  authenticated: z.literal(false),
+  message: z.string(),
+  deactivated: z.boolean().optional(),
+});
+
 export const api = {
   auth: {
     login: {
@@ -27,7 +33,7 @@ export const api = {
         password: z.string(),
       }),
       responses: {
-        200: z.custom<typeof users.$inferSelect>(),
+        200: z.union([z.custom<typeof users.$inferSelect>(), loginFailureSchema]),
         401: errorSchemas.unauthorized,
       },
     },
