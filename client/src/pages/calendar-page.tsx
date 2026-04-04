@@ -3839,8 +3839,10 @@ function CalendarContent() {
               </h3>
               <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
             </div>
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4 pr-4">
+            <div className="flex-1 min-h-0 p-4">
+              <div className="h-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                <ScrollArea className="h-full">
+                  <div className="space-y-4 p-4 pr-4">
                 {/* Overdue Section */}
                 {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
                   <div className="mt-0">
@@ -3876,7 +3878,11 @@ function CalendarContent() {
                               setIsLoadingSubmissions(false);
                             });
                         }}
-                        className="w-full text-left p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                        className={cn(
+                          "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
+                          getStatusColor(activity.status),
+                          getStatusBorderColor(activity.status)
+                        )}
                       >
                         <div className="font-medium text-sm">{activity.title}</div>
                         <div className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -3940,8 +3946,10 @@ function CalendarContent() {
                 <p className="text-sm text-muted-foreground">No upcoming activities</p>
               )}
               </div>
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
-          </ScrollArea>
         </div>
 
       {/* Agency & Department Filter Panel */}
@@ -3953,9 +3961,10 @@ function CalendarContent() {
           </h3>
           <p className="text-sm text-muted-foreground">Filter activities by regulatory agency and concern department</p>
         </div>
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 p-4">
+          <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
           {/* Filter Dropdowns */}
-          <div className="flex gap-3 mb-4 flex-shrink-0 px-4 pt-4">
+          <div className="flex gap-3 flex-shrink-0 p-4">
             <div className="flex-1">
               <div className="text-sm font-medium mb-1 block">Regulatory Agency</div>
               <Select value={filterAgency || 'all'} onValueChange={(value) => { setFilterAgency(value === 'all' ? '' : value); setFilterDepartment(''); }}>
@@ -4183,9 +4192,10 @@ function CalendarContent() {
                  </>
                );
              })()}
-           </div>
-         </div>
-       </div>
+            </div>
+          </div>
+        </div>
+      </div>
         </div>
 
         {/* Holiday Management & Recurring Activity Deletion Panel */}
