@@ -264,6 +264,27 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
   return chunks;
 };
 
+const getActivityCreatedSortValue = (activity: { createdAt?: string | Date | null; id?: number }) => {
+  if (activity.createdAt) {
+    const createdAtTime = new Date(activity.createdAt).getTime();
+    if (!Number.isNaN(createdAtTime)) {
+      return createdAtTime;
+    }
+  }
+
+  return activity.id ?? 0;
+};
+
+const sortActivitiesByLatestCreated = <T extends { createdAt?: string | Date | null; id?: number }>(items: T[]) =>
+  [...items].sort((left, right) => {
+    const createdAtDifference = getActivityCreatedSortValue(right) - getActivityCreatedSortValue(left);
+    if (createdAtDifference !== 0) {
+      return createdAtDifference;
+    }
+
+    return (right.id ?? 0) - (left.id ?? 0);
+  });
+
 const getConcernDepartmentTokens = (value?: string | null): string[] =>
   value
     ? value.split(",").map((department) => department.trim()).filter(Boolean)
@@ -2636,8 +2657,9 @@ function CalendarContent() {
           const dayActs = (activities || []).filter(a =>
             isSameDay(getCalendarDisplayDate(a), dayActivitiesModalDate)
           );
-          const totalPages = Math.ceil(dayActs.length / dayActivitiesPerPage);
-          const paginatedActivities = dayActs.slice(
+          const sortedDayActs = sortActivitiesByLatestCreated(dayActs);
+          const totalPages = Math.ceil(sortedDayActs.length / dayActivitiesPerPage);
+          const paginatedActivities = sortedDayActs.slice(
             (dayActivitiesPage - 1) * dayActivitiesPerPage,
             dayActivitiesPage * dayActivitiesPerPage
           );
@@ -3219,11 +3241,12 @@ function CalendarContent() {
                   </div>
                 ) : (
                   (() => {
-                    const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
-                    const paginatedActivities = timeSlotActivitiesModalData?.activities.slice(
+                    const sortedActivities = sortActivitiesByLatestCreated(timeSlotActivitiesModalData?.activities || []);
+                    const totalPages = Math.ceil(sortedActivities.length / timeSlotActivitiesPerPage);
+                    const paginatedActivities = sortedActivities.slice(
                       (timeSlotActivitiesPage - 1) * timeSlotActivitiesPerPage,
                       timeSlotActivitiesPage * timeSlotActivitiesPerPage
-                    ) || [];
+                    );
                     return (
                       <>
                         {paginatedActivities.map(activity => (
