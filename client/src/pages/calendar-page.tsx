@@ -4749,7 +4749,7 @@ function CalendarContent() {
             </div>
             <div className="flex-1 min-h-0 p-4">
               <div className="h-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                <ScrollArea className="h-full">
+                <ScrollArea className="h-full mr-3">
                   <div className="space-y-4 p-4 pr-4">
                 {/* Overdue Section */}
                 {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
@@ -4984,8 +4984,8 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="flex-1 px-4 pb-2">
-                  <div className="space-y-2 pb-2">
+                <ScrollArea className="flex-1 mr-3">
+                  <div className="space-y-2 pl-4 pr-4 pb-2">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}
