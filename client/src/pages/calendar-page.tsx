@@ -1119,15 +1119,18 @@ function CalendarContent() {
 
     if (activeScrollViewport) {
       const rect = activeScrollViewport.getBoundingClientRect();
+      const visibleTop = Math.max(rect.top, 0);
+      const visibleBottom = Math.min(rect.bottom, viewportHeight);
       const canScrollUp = activeScrollViewport.scrollTop > 0;
       const canScrollDown =
         activeScrollViewport.scrollTop + activeScrollViewport.clientHeight < activeScrollViewport.scrollHeight - 1;
+      const hasVisibleVerticalArea = visibleBottom > visibleTop;
 
-      if (clientY < rect.top + scrollThreshold && canScrollUp) {
+      if (hasVisibleVerticalArea && clientY < visibleTop + scrollThreshold && canScrollUp) {
         scrollDirection = 'up';
         targetType = 'viewport';
         targetElement = activeScrollViewport;
-      } else if (clientY > rect.bottom - scrollThreshold && canScrollDown) {
+      } else if (hasVisibleVerticalArea && clientY > visibleBottom - scrollThreshold && canScrollDown) {
         scrollDirection = 'down';
         targetType = 'viewport';
         targetElement = activeScrollViewport;
@@ -5595,7 +5598,7 @@ function WeekView({
   });
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="h-[700px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[600px] pr-4">
       <div className="h-full">
         {/* Week header */}
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
@@ -5873,7 +5876,7 @@ function DayView({
   };
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="h-[700px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[600px] pr-4">
       <div className="h-full">
         {/* Day header */}
         <div className={cn(
