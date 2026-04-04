@@ -4143,20 +4143,22 @@ function CalendarContent() {
                         )}
                       >
                         <div className="font-medium text-sm">{activity.title}</div>
-                        <div className="flex gap-2 mt-1">
-                          {activity.regulatoryAgency && (
-                            <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
-                              {activity.regulatoryAgency}
-                            </span>
-                          )}
-                          {activity.concernDepartment && (
-                            <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
-                              {activity.concernDepartment}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                        <div className="mt-1 flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                            {activity.regulatoryAgency && (
+                              <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
+                                {activity.regulatoryAgency}
+                              </span>
+                            )}
+                            {activity.concernDepartment && (
+                              <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded">
+                                {activity.concernDepartment}
+                              </span>
+                            )}
+                          </div>
+                          <div className="shrink-0 pt-0.5 text-right text-xs text-muted-foreground">
+                            Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                          </div>
                         </div>
                       </button>
                     ))}
