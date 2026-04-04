@@ -506,6 +506,15 @@ const findClosestCalendarDropTarget = (clientX: number, clientY: number): Calend
   return closestTarget;
 };
 
+const shouldSuppressCalendarDropTargetAtPoint = (clientX: number, clientY: number) => {
+  if (typeof document === "undefined") return false;
+
+  const elementAtPoint = document.elementFromPoint(clientX, clientY);
+  return elementAtPoint instanceof HTMLElement && Boolean(
+    elementAtPoint.closest('[data-drop-target-suppress="true"]')
+  );
+};
+
 const shouldPreserveCalendarMouseDown = (target: EventTarget | null): boolean => {
   return target instanceof HTMLElement && Boolean(
     target.closest('[data-activity-drag-handle="true"], [draggable="true"], button, a, input, textarea, select, [role="button"]')
@@ -1100,6 +1109,10 @@ function CalendarContent() {
   const getCalendarDropTargetAtPoint = useCallback((clientX: number, clientY: number): CalendarDropTarget | null => {
     if (typeof document === "undefined") return null;
 
+    if (shouldSuppressCalendarDropTargetAtPoint(clientX, clientY)) {
+      return null;
+    }
+
     return (
       getCalendarDropTargetFromElement(document.elementFromPoint(clientX, clientY)) ??
       findClosestCalendarDropTarget(clientX, clientY)
@@ -1666,7 +1679,9 @@ function CalendarContent() {
       return;
     }
     
-    const target = getCalendarDropTargetFromElement(element) ?? findClosestCalendarDropTarget(currentX, currentY);
+    const target = shouldSuppressCalendarDropTargetAtPoint(currentX, currentY)
+      ? null
+      : getCalendarDropTargetFromElement(element) ?? findClosestCalendarDropTarget(currentX, currentY);
     if (target) {
       resetDragInteractionState();
       setIsTouchDragging(false);
@@ -1904,12 +1919,12 @@ function CalendarContent() {
     if (!draggedActivity || typeof document === "undefined") return;
 
     const handleDocumentDragOver = (event: DragEvent) => {
-      const directTarget =
-        getCalendarDropTargetFromElement(event.target instanceof Element ? event.target : null) ??
-        getCalendarDropTargetFromElement(document.elementFromPoint(event.clientX, event.clientY));
-      const closestTarget = directTarget ?? findClosestCalendarDropTarget(event.clientX, event.clientY);
+      const closestTarget = getCalendarDropTargetAtPoint(event.clientX, event.clientY);
 
-      if (!closestTarget) return;
+      if (!closestTarget) {
+        setActiveDropTarget(null);
+        return;
+      }
 
       event.preventDefault();
       if (event.dataTransfer) {
@@ -1921,15 +1936,10 @@ function CalendarContent() {
     };
 
     const handleDocumentDrop = (event: DragEvent) => {
-      const directTarget =
-        getCalendarDropTargetFromElement(event.target instanceof Element ? event.target : null) ??
-        getCalendarDropTargetFromElement(document.elementFromPoint(event.clientX, event.clientY));
-
-      if (directTarget) return;
-
-      const closestTarget =
-        findClosestCalendarDropTarget(event.clientX, event.clientY) ??
-        (dropTargetDate ? { date: dropTargetDate, time: dropTargetTime ?? null } : null);
+      const closestTarget = shouldSuppressCalendarDropTargetAtPoint(event.clientX, event.clientY)
+        ? null
+        : getCalendarDropTargetAtPoint(event.clientX, event.clientY) ??
+          (dropTargetDate ? { date: dropTargetDate, time: dropTargetTime ?? null } : null);
 
       if (!closestTarget) {
         resetDragInteractionState();
@@ -1953,6 +1963,7 @@ function CalendarContent() {
     draggedActivity,
     dropTargetDate,
     dropTargetTime,
+    getCalendarDropTargetAtPoint,
     resetDragInteractionState,
     rescheduleActivityToDropTarget,
     setActiveDropTarget,
@@ -5790,7 +5801,10 @@ function WeekView({
     <ScrollArea ref={scrollAreaRef} className="pr-4" style={{ height: `${contentHeight}px` }}>
       <div className="h-full">
         {/* Week header */}
-        <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
+        <div
+          data-drop-target-suppress="true"
+          className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-30"
+        >
           <div className="p-2 text-center text-sm font-semibold text-muted-foreground border-r" />
           {weekDays.map((day) => {
             const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
