@@ -70,11 +70,34 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 
 // Helper functions defined outside component for accessibility
+const HOLIDAYS_ENABLED_STORAGE_KEY = "calendar-holidays-enabled";
+const SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY = "calendar-show-philippine-holidays";
+
+const readStoredBoolean = (key: string): boolean | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedValue = window.localStorage.getItem(key);
+  if (storedValue === null) {
+    return null;
+  }
+
+  return storedValue === "true";
+};
+
+const writeStoredBoolean = (key: string, value: boolean) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(key, value.toString());
+};
+
 let holidaysData: any[] = [];
-let holidaysEnabledDataData: boolean = true;
+let holidaysEnabledDataData: boolean = readStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY) ?? false;
 let holidayDateKeysData = new Set<string>();
 let holidayLabelsByDateKeyData = new Map<string, string>();
-const SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY = "calendar-show-philippine-holidays";
 
 const getDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -650,7 +673,9 @@ function CalendarContent() {
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
 
   // Holidays enabled state - local with polling for sync across users
-  const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(true);
+  const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(
+    () => readStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY) ?? false,
+  );
   const { toast } = useToast();
   const holidaysEnabledSavePendingRef = useRef(false);
 
@@ -674,12 +699,14 @@ function CalendarContent() {
       const previous = holidaysEnabledDataData;
       setHolidaysEnabled(value);
       holidaysEnabledDataData = value;
+      writeStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY, value);
       return { previous };
     },
     onError: (err, _value, context) => {
       if (context?.previous !== undefined) {
         setHolidaysEnabled(context.previous);
         holidaysEnabledDataData = context.previous;
+        writeStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY, context.previous);
       }
       toast({
         title: "Could not save setting",
@@ -693,6 +720,7 @@ function CalendarContent() {
     onSuccess: (_, value) => {
       setHolidaysEnabled(value);
       holidaysEnabledDataData = value;
+      writeStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY, value);
       queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
       toast({
         title: "Setting saved",
@@ -711,10 +739,11 @@ function CalendarContent() {
         const res = await fetch('/api/settings/holidays_enabled', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          const newValue = data.value === 'true';
+          const newValue = data.value !== 'false';
           setHolidaysEnabled(prev => {
             if (prev !== newValue) {
               holidaysEnabledDataData = newValue;
+              writeStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY, newValue);
               return newValue;
             }
             return prev;
@@ -741,11 +770,7 @@ function CalendarContent() {
   const updateActivity = useUpdateActivity();
   const { data: holidays } = useHolidays();
   const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return window.localStorage.getItem(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) === "true";
+    return readStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) === true;
   });
   const {
     data: philippineHolidays,
@@ -767,14 +792,7 @@ function CalendarContent() {
   ];
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(
-      SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY,
-      showPhilippineHolidays.toString(),
-    );
+    writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, showPhilippineHolidays);
   }, [showPhilippineHolidays]);
 
   // Calendar view state
