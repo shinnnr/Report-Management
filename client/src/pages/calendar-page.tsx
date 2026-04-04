@@ -6282,8 +6282,9 @@ function WeekView({
                         </div>
                       ))}
                       {dayHourActivities.length > 0 && (
-                        <div 
-                          className="flex h-full items-center justify-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+                        <button
+                          type="button"
+                          className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -6292,11 +6293,12 @@ function WeekView({
                           }}
                         >
                           +{dayHourActivities.length}
-                        </div>
+                        </button>
                       )}
                       {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                        <div 
-                          className="hidden select-none cursor-pointer px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-primary sm:block"
+                        <button
+                          type="button"
+                          className="hidden self-start select-none text-xs font-medium text-muted-foreground transition-colors hover:text-primary sm:block"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -6306,7 +6308,7 @@ function WeekView({
                           }}
                         >
                           +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES}
-                        </div>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -6565,8 +6567,9 @@ function DayView({
                     </div>
                   ))}
                   {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                    <div 
-                      className="select-none text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
+                    <button
+                      type="button"
+                      className="self-start select-none text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -6575,7 +6578,7 @@ function DayView({
                       }}
                     >
                       +{hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
-                    </div>
+                    </button>
                   )}
                 </div>
               </div>
