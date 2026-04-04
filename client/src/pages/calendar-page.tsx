@@ -6136,7 +6136,7 @@ function WeekView({
   });
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="pr-4" style={{ height: `${contentHeight}px` }}>
+    <ScrollArea ref={scrollAreaRef} className="mr-3 pr-4" style={{ height: `${contentHeight}px` }}>
       <div className="h-full">
         {/* Week header */}
         <div
@@ -6443,7 +6443,7 @@ function DayView({
   };
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="pr-4" style={{ height: `${contentHeight}px` }}>
+    <ScrollArea ref={scrollAreaRef} className="mr-3 pr-4" style={{ height: `${contentHeight}px` }}>
       <div className="h-full">
         {/* Day header */}
         <div className={cn(
