@@ -502,9 +502,6 @@ function ActivityDragPreviewCard({
       )}
     >
       <div className={cn("truncate", variant === 'day' && "font-semibold")}>{activity.title}</div>
-      {variant === 'day' && activity.description && (
-        <div className="mt-1 truncate text-xs opacity-80">{activity.description}</div>
-      )}
     </div>
   );
 }
@@ -1892,15 +1889,10 @@ function CalendarContent() {
   const rescheduleActivityToDropTarget = useCallback((activityToMove: any, target: CalendarDropTarget | null) => {
     if (!activityToMove || !target) return;
 
-    const currentDeadline = new Date(activityToMove.deadlineDate);
     const currentDisplayDate = getCalendarDisplayDate(activityToMove);
 
     if (target.time) {
-      const [hours, minutes] = target.time.split(':').map(Number);
-      const hasDateChanged = !isSameDay(currentDisplayDate, target.date);
-      const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
-
-      if (hasDateChanged || hasTimeChanged) {
+      if (!isSameDay(currentDisplayDate, target.date)) {
         void performActivityReschedule(activityToMove, target.date, target.time);
       }
       return;
@@ -4655,21 +4647,6 @@ function CalendarContent() {
                     {activity.title}
                   </div>
                 ))}
-                {dayActivities.length > 0 && (
-                  <button
-                    type="button"
-                    className="block h-5 select-none truncate text-xs font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDayActivitiesModalDate(date);
-                      setDayActivitiesPage(1);
-                      setShowDayActivitiesModal(true);
-                    }}
-                  >
-                    +{dayActivities.length}
-                  </button>
-                )}
                 {dayActivities.length > MONTH_VIEW_VISIBLE_ACTIVITIES && (
                   <button
                     type="button"
@@ -6585,9 +6562,6 @@ function DayView({
                       )}
                     >
                       <div className="font-semibold">{activity.title}</div>
-                      {activity.description && (
-                        <div className="text-xs mt-1 opacity-80">{activity.description}</div>
-                      )}
                     </div>
                   ))}
                   {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
