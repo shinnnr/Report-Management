@@ -689,13 +689,17 @@ function CalendarContent() {
   const autoScrollRef = useRef<{
     direction: 'left' | 'right' | 'up' | 'down' | null;
     intervalId: NodeJS.Timeout | null;
-  }>({ direction: null, intervalId: null });
+    targetType: 'window' | 'viewport' | null;
+    targetElement: HTMLElement | null;
+  }>({ direction: null, intervalId: null, targetType: null, targetElement: null });
   const transparentDragImageRef = useRef<HTMLCanvasElement | null>(null);
   const dragCursorStyleRef = useRef<HTMLStyleElement | null>(null);
   const mouseDragRef = useRef<MouseActivityDragState | null>(null);
   const activeDropTargetRef = useRef<CalendarDropTarget | null>(null);
   const suppressNextActivityClickRef = useRef<number | null>(null);
   const [isMouseDragArmed, setIsMouseDragArmed] = useState(false);
+  const weekScrollAreaRef = useRef<HTMLDivElement>(null);
+  const dayScrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -1013,6 +1017,8 @@ function CalendarContent() {
       autoScrollRef.current.intervalId = null;
     }
     autoScrollRef.current.direction = null;
+    autoScrollRef.current.targetType = null;
+    autoScrollRef.current.targetElement = null;
     setAutoScrollEnabled(false);
   }, []);
 
@@ -1084,6 +1090,11 @@ function CalendarContent() {
     return true;
   }, []);
 
+  const getScrollAreaViewport = useCallback((scrollAreaRoot: HTMLDivElement | null) => {
+    if (!scrollAreaRoot) return null;
+    return scrollAreaRoot.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
+  }, []);
+
   const updateAutoScrollForPointer = useCallback((clientX: number, clientY: number) => {
     if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
       stopAutoScroll();
@@ -1095,18 +1106,65 @@ function CalendarContent() {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+    const activeScrollViewport =
+      view === 'week'
+        ? getScrollAreaViewport(weekScrollAreaRef.current)
+        : view === 'day'
+          ? getScrollAreaViewport(dayScrollAreaRef.current)
+          : null;
 
-    if (clientX < scrollThreshold) {
-      scrollDirection = 'left';
-    } else if (clientX > viewportWidth - scrollThreshold) {
-      scrollDirection = 'right';
+    let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
+    let targetType: 'window' | 'viewport' | null = null;
+    let targetElement: HTMLElement | null = null;
+
+    if (activeScrollViewport) {
+      const rect = activeScrollViewport.getBoundingClientRect();
+      const canScrollUp = activeScrollViewport.scrollTop > 0;
+      const canScrollDown =
+        activeScrollViewport.scrollTop + activeScrollViewport.clientHeight < activeScrollViewport.scrollHeight - 1;
+
+      if (clientY < rect.top + scrollThreshold && canScrollUp) {
+        scrollDirection = 'up';
+        targetType = 'viewport';
+        targetElement = activeScrollViewport;
+      } else if (clientY > rect.bottom - scrollThreshold && canScrollDown) {
+        scrollDirection = 'down';
+        targetType = 'viewport';
+        targetElement = activeScrollViewport;
+      }
     }
 
-    if (clientY < scrollThreshold) {
-      scrollDirection = 'up';
-    } else if (clientY > viewportHeight - scrollThreshold) {
-      scrollDirection = 'down';
+    if (!scrollDirection) {
+      if (clientX < scrollThreshold) {
+        scrollDirection = 'left';
+      } else if (clientX > viewportWidth - scrollThreshold) {
+        scrollDirection = 'right';
+      }
+
+      if (clientY < scrollThreshold) {
+        scrollDirection = 'up';
+      } else if (clientY > viewportHeight - scrollThreshold) {
+        scrollDirection = 'down';
+      }
+
+      if (scrollDirection) {
+        targetType = 'window';
+      }
+    }
+
+    if (!scrollDirection) {
+      stopAutoScroll();
+      return;
+    }
+
+    if (
+      autoScrollRef.current.intervalId &&
+      autoScrollRef.current.direction === scrollDirection &&
+      autoScrollRef.current.targetType === targetType &&
+      autoScrollRef.current.targetElement === targetElement
+    ) {
+      setAutoScrollEnabled(true);
+      return;
     }
 
     if (autoScrollRef.current.intervalId) {
@@ -1114,19 +1172,33 @@ function CalendarContent() {
       autoScrollRef.current.intervalId = null;
     }
 
-    if (!scrollDirection) {
-      autoScrollRef.current.direction = null;
-      setAutoScrollEnabled(false);
-      return;
-    }
-
     setAutoScrollEnabled(true);
     autoScrollRef.current.direction = scrollDirection;
+    autoScrollRef.current.targetType = targetType;
+    autoScrollRef.current.targetElement = targetElement;
 
     const intervalId = setInterval(() => {
-      if (!draggedActivity) {
+      if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
         clearInterval(intervalId);
         autoScrollRef.current.intervalId = null;
+        return;
+      }
+
+      if (targetType === 'viewport' && targetElement) {
+        switch (scrollDirection) {
+          case 'up':
+            targetElement.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'down':
+            targetElement.scrollBy({ top: scrollSpeed, behavior: 'auto' });
+            break;
+          case 'left':
+            targetElement.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
+            break;
+          case 'right':
+            targetElement.scrollBy({ left: scrollSpeed, behavior: 'auto' });
+            break;
+        }
         return;
       }
 
@@ -1147,7 +1219,7 @@ function CalendarContent() {
     }, 16);
 
     autoScrollRef.current.intervalId = intervalId;
-  }, [draggedActivity, stopAutoScroll]);
+  }, [draggedActivity, getScrollAreaViewport, stopAutoScroll, view]);
 
   // Handle drag over for time slot (Week/Day view)
   const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
@@ -4101,6 +4173,7 @@ function CalendarContent() {
             onDayClick={handleDayClickInWeekView}
             holidays={holidays}
             holidaysEnabled={holidaysEnabledData}
+            scrollAreaRef={weekScrollAreaRef}
             // New activity modal handlers
             setIsNewActivityOpen={setIsNewActivityOpen}
             setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
@@ -4159,6 +4232,7 @@ function CalendarContent() {
             onTouchDragStart={handleTouchDragStart}
             onTouchDragMove={handleTouchDragMove}
             onTouchDragEnd={handleTouchDragEnd}
+            scrollAreaRef={dayScrollAreaRef}
             // New activity modal handlers
             setIsNewActivityOpen={setIsNewActivityOpen}
             setShowTimeSlotActivitiesModal={setShowTimeSlotActivitiesModal}
@@ -5413,6 +5487,7 @@ function WeekView({
   getMultiStatusBorderColor,
   holidays,
   holidaysEnabled,
+  scrollAreaRef,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -5449,6 +5524,7 @@ function WeekView({
   onDayClick?: (date: Date) => void;
   holidays?: any[];
   holidaysEnabled?: boolean;
+  scrollAreaRef?: React.RefObject<HTMLDivElement>;
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -5519,7 +5595,7 @@ function WeekView({
   });
 
   return (
-    <ScrollArea className="h-[700px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[700px] pr-4">
       <div className="h-full">
         {/* Week header */}
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
@@ -5710,6 +5786,7 @@ function DayView({
   onTouchDragEnd,
   holidays,
   holidaysEnabled,
+  scrollAreaRef,
   // New activity modal handlers
   setIsNewActivityOpen,
   setShowTimeSlotActivitiesModal,
@@ -5743,6 +5820,7 @@ function DayView({
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   holidays?: any[];
   holidaysEnabled?: boolean;
+  scrollAreaRef?: React.RefObject<HTMLDivElement>;
   // New activity modal handlers
   setIsNewActivityOpen?: (open: boolean) => void;
   setShowTimeSlotActivitiesModal?: (open: boolean) => void;
@@ -5795,7 +5873,7 @@ function DayView({
   };
 
   return (
-    <ScrollArea className="h-[700px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[700px] pr-4">
       <div className="h-full">
         {/* Day header */}
         <div className={cn(
