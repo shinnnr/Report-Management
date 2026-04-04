@@ -133,7 +133,7 @@ export function DeactivationAlert() {
         setIsOpen(false);
       }
     }}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">

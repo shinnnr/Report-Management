@@ -940,7 +940,7 @@ function DashboardContent() {
           setCurrentPage(1);
         }
       }}>
-        <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+        <DialogContent className="flex max-h-[80vh] max-w-none flex-col sm:max-w-lg">
           <DialogHeader className="shrink-0">
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>
@@ -1078,7 +1078,7 @@ function DashboardContent() {
           }
         }}
       >
-        <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+        <DialogContent className="flex max-h-[80vh] max-w-none flex-col sm:max-w-lg">
           <DialogHeader className="pb-4 shrink-0">
             <DialogTitle className="flex items-center justify-between pr-8">
               <span>{selectedActivityStatusConfig?.title ?? "Activities"}</span>
