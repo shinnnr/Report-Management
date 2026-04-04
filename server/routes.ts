@@ -99,6 +99,144 @@ async function getSubmissionHolidayConflict(date: Date, submissionDateKey?: stri
   }) || null;
 }
 
+const PHILIPPINES_HOLIDAY_FEED_URL = "https://calendar.google.com/calendar/ical/en.philippines%23holiday%40group.v.calendar.google.com/public/basic.ics";
+const PHILIPPINES_HOLIDAY_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+
+type ExternalHolidayFeedItem = {
+  name: string;
+  date: string;
+};
+
+let philippineHolidayFeedCache:
+  | {
+      fetchedAt: number;
+      items: ExternalHolidayFeedItem[];
+    }
+  | null = null;
+
+function unfoldIcsLines(content: string) {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const unfolded: string[] = [];
+
+  for (const line of lines) {
+    if ((line.startsWith(" ") || line.startsWith("\t")) && unfolded.length > 0) {
+      unfolded[unfolded.length - 1] += line.slice(1);
+      continue;
+    }
+
+    unfolded.push(line);
+  }
+
+  return unfolded;
+}
+
+function decodeIcsText(value: string) {
+  return value
+    .replace(/\\\\/g, "\\")
+    .replace(/\\n/g, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";");
+}
+
+function parseIcsDate(value: string) {
+  const dateOnlyMatch = value.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  const dateTimeMatch = value.match(/^(\d{4})(\d{2})(\d{2})T/);
+  if (dateTimeMatch) {
+    const [, year, month, day] = dateTimeMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  return null;
+}
+
+function parseHolidayFeedFromIcs(content: string): ExternalHolidayFeedItem[] {
+  const lines = unfoldIcsLines(content);
+  const items: ExternalHolidayFeedItem[] = [];
+  const seen = new Set<string>();
+  let currentName = "";
+  let currentDate = "";
+  let inEvent = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+
+    if (line === "BEGIN:VEVENT") {
+      inEvent = true;
+      currentName = "";
+      currentDate = "";
+      continue;
+    }
+
+    if (line === "END:VEVENT") {
+      if (currentName && currentDate) {
+        const key = `${currentDate}|${currentName}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push({
+            name: currentName,
+            date: currentDate,
+          });
+        }
+      }
+
+      inEvent = false;
+      currentName = "";
+      currentDate = "";
+      continue;
+    }
+
+    if (!inEvent) continue;
+
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex === -1) continue;
+
+    const key = line.slice(0, separatorIndex);
+    const value = line.slice(separatorIndex + 1);
+
+    if (key.startsWith("SUMMARY")) {
+      currentName = decodeIcsText(value);
+    } else if (key.startsWith("DTSTART")) {
+      currentDate = parseIcsDate(value) || "";
+    }
+  }
+
+  return items.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+}
+
+async function getPhilippineHolidayFeed() {
+  if (
+    philippineHolidayFeedCache &&
+    Date.now() - philippineHolidayFeedCache.fetchedAt < PHILIPPINES_HOLIDAY_CACHE_TTL_MS
+  ) {
+    return philippineHolidayFeedCache.items;
+  }
+
+  const response = await fetch(PHILIPPINES_HOLIDAY_FEED_URL, {
+    headers: {
+      Accept: "text/calendar, text/plain;q=0.9, */*;q=0.8",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Holiday feed request failed with status ${response.status}`);
+  }
+
+  const content = await response.text();
+  const parsedItems = api.holidays.philippines.responses[200].parse(parseHolidayFeedFromIcs(content));
+
+  philippineHolidayFeedCache = {
+    fetchedAt: Date.now(),
+    items: parsedItems,
+  };
+
+  return parsedItems;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -897,6 +1035,16 @@ export async function registerRoutes(
   app.get(api.holidays.list.path, isAuthenticated, async (req, res) => {
     const holidays = await storage.getHolidays();
     res.json(holidays);
+  });
+
+  app.get(api.holidays.philippines.path, isAuthenticated, async (_req, res) => {
+    try {
+      const holidays = await getPhilippineHolidayFeed();
+      res.json(holidays);
+    } catch (error) {
+      console.error("Failed to fetch Philippines holiday feed:", error);
+      res.status(500).json({ message: "Failed to fetch Philippines holidays" });
+    }
   });
 
   app.post(api.holidays.create.path, isAuthenticated, async (req, res) => {

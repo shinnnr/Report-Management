@@ -30,7 +30,7 @@ import {
   FileText,
 } from "lucide-react";
 import { useActivities, useCreateActivity, useDeleteActivity, useStartActivity, useUpdateActivity } from "@/hooks/use-activities";
-import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from "@/hooks/use-holidays";
+import { useHolidays, usePhilippineHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from "@/hooks/use-holidays";
 import { useAuth } from "@/hooks/use-auth";
 import { useSystemSettings, useSystemSettingsPolling } from "@/hooks/use-settings";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -85,6 +85,11 @@ const isDateHoliday = (date: Date) => {
 const isDateWeekend = (date: Date) => {
   const dayOfWeek = date.getDay();
   return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+};
+
+const parseDateOnlyString = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
 };
 
 // Helper function to move a date to the previous working day while preserving time
@@ -539,6 +544,62 @@ const shouldPreserveCalendarMouseDown = (target: EventTarget | null): boolean =>
   );
 };
 
+type PhilippinesHolidaySectionProps = {
+  checkboxId: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  isLoading?: boolean;
+  error?: unknown;
+};
+
+function PhilippinesHolidaySection({
+  checkboxId,
+  checked,
+  onCheckedChange,
+  isLoading,
+  error,
+}: PhilippinesHolidaySectionProps) {
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed border-gray-300 bg-muted/20 p-3 dark:border-gray-700">
+      <div className="flex items-start gap-3">
+        <Checkbox
+          id={checkboxId}
+          checked={checked}
+          onCheckedChange={(checked) => onCheckedChange(checked === true)}
+          className="mt-0.5"
+        />
+        <div className="space-y-1">
+          <Label htmlFor={checkboxId} className="text-sm font-medium">
+            Holidays in Philippines
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Show holidays from the public Philippines Google Calendar feed directly on the calendar.
+          </p>
+        </div>
+      </div>
+
+      {checked && (
+        <div className="space-y-2">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading Philippines holidays...
+            </div>
+          ) : error ? (
+            <p className="text-sm text-destructive">
+              {error instanceof Error ? error.message : "Failed to load Philippines holidays."}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Philippines holidays are now visible on the calendar.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const handleCalendarCellMouseDown = (e: React.MouseEvent<HTMLElement>) => {
   if (shouldPreserveCalendarMouseDown(e.target)) {
     return;
@@ -652,11 +713,32 @@ function CalendarContent() {
   const startActivity = useStartActivity();
   const updateActivity = useUpdateActivity();
   const { data: holidays } = useHolidays();
+  const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(false);
+  const {
+    data: philippineHolidays,
+    isLoading: isLoadingPhilippineHolidays,
+    error: philippineHolidaysError,
+  } = usePhilippineHolidays(showPhilippineHolidays);
   const createHoliday = useCreateHoliday();
   const updateHoliday = useUpdateHoliday();
   const deleteHoliday = useDeleteHoliday();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
+  const calendarHolidays = [
+    ...(holidays || []),
+    ...((showPhilippineHolidays ? philippineHolidays : []) || [])
+      .filter((holiday) => {
+        const holidayDate = parseDateOnlyString(holiday.date);
+        return !(holidays || []).some((existingHoliday) =>
+          isSameDay(new Date(existingHoliday.date), holidayDate)
+        );
+      })
+      .map((holiday, index) => ({
+        id: `philippines-${holiday.date}-${index}`,
+        name: holiday.name,
+        date: parseDateOnlyString(holiday.date),
+      })),
+  ];
 
   // Calendar view state
   type CalendarView = 'day' | 'week' | 'month';
@@ -708,10 +790,10 @@ function CalendarContent() {
   // Update global holidays data when holidays change
   const [holidaysKey, setHolidaysKey] = useState(0);
   useEffect(() => {
-    holidaysData = holidays || [];
+    holidaysData = calendarHolidays;
     holidaysEnabledDataData = holidaysEnabledData;
     setHolidaysKey(k => k + 1); // Force re-render when holidays update
-  }, [holidays, holidaysEnabledData]);
+  }, [holidays, philippineHolidays, showPhilippineHolidays, holidaysEnabledData]);
 
   // Clear department filter when role-based filtering is enabled for non-admin users
   useEffect(() => {
@@ -854,9 +936,9 @@ function CalendarContent() {
     (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
   );
   const selectedSubmissionHoliday = holidaysEnabledData
-    ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
+    ? calendarHolidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
     : undefined;
-  const holidaySubmissionToastDescription = "The selected submission date matches a configured holiday.";
+  const holidaySubmissionToastDescription = "The selected submission date matches a holiday.";
   const selectedDateRef = useRef<Date | null>(null);
 
   const scrollHolidayModalToForm = () => {
@@ -2794,12 +2876,19 @@ function CalendarContent() {
                                 selected={holidayDate}
                                 onSelect={setHolidayDate}
                                 initialFocus
-                                holidays={holidays}
+                                holidays={calendarHolidays}
                                 holidaysEnabled={holidaysEnabledData}
                               />
                             </PopoverContent>
                         </Popover>
                       </div>
+                      <PhilippinesHolidaySection
+                        checkboxId="holiday-philippines-modal"
+                        checked={showPhilippineHolidays}
+                        onCheckedChange={setShowPhilippineHolidays}
+                        isLoading={isLoadingPhilippineHolidays}
+                        error={philippineHolidaysError}
+                      />
                     </div>
                     <div className="flex flex-wrap gap-2">
                        <Button
@@ -3405,7 +3494,7 @@ function CalendarContent() {
                       <div className="w-full max-w-md">
                         <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                           <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                             {isHoliday ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
+                             {isHoliday ? `Holiday: ${calendarHolidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
                           </p>
                           <p className="text-sm text-amber-700 dark:text-amber-300">
                             Activities cannot be created on {isHoliday ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -3645,7 +3734,7 @@ function CalendarContent() {
                         selected={submissionDate}
                         onSelect={(date) => date && setSubmissionDate(date)}
                         initialFocus
-                        holidays={holidays}
+                        holidays={calendarHolidays}
                         holidaysEnabled={holidaysEnabledData}
                       />
                     </PopoverContent>
@@ -3900,7 +3989,7 @@ function CalendarContent() {
                     <div className="w-full max-w-md">
                       <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                         <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                          {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${holidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
+                          {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${calendarHolidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
                         </p>
                         <p className="text-sm text-amber-700 dark:text-amber-300">
                           Activities cannot be created on {isDateHoliday(timeSlotActivitiesModalData.date) ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -4285,7 +4374,7 @@ function CalendarContent() {
             isSameDay(getCalendarDisplayDate(a), date)
           );
           const holidayForDate = holidaysEnabledData
-            ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), date))
+            ? calendarHolidays?.find((holiday: any) => isSameDay(new Date(holiday.date), date))
             : undefined;
           const monthVisibleActivitiesLimit = holidayForDate
             ? Math.max(MONTH_VIEW_VISIBLE_ACTIVITIES - 1, 1)
@@ -4505,7 +4594,7 @@ function CalendarContent() {
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
             onDayClick={handleDayClickInWeekView}
-            holidays={holidays}
+            holidays={calendarHolidays}
             holidaysEnabled={holidaysEnabledData}
             scrollAreaRef={weekScrollAreaRef}
             contentHeight={calendarViewContentHeight}
@@ -4575,7 +4664,7 @@ function CalendarContent() {
             setTimeSlotActivitiesModalData={setTimeSlotActivitiesModalData}
             setSelectedDate={setSelectedDate}
             setActivityTime={setActivityTime}
-            holidays={holidays}
+            holidays={calendarHolidays}
             holidaysEnabled={holidaysEnabledData}
           />
         )}
@@ -4976,12 +5065,19 @@ function CalendarContent() {
                             selected={holidayDate}
                             onSelect={setHolidayDate}
                             initialFocus
-                            holidays={holidays}
+                            holidays={calendarHolidays}
                             holidaysEnabled={holidaysEnabledData}
                           />
                         </PopoverContent>
                     </Popover>
                   </div>
+                  <PhilippinesHolidaySection
+                    checkboxId="holiday-philippines-panel"
+                    checked={showPhilippineHolidays}
+                    onCheckedChange={setShowPhilippineHolidays}
+                    isLoading={isLoadingPhilippineHolidays}
+                    error={philippineHolidaysError}
+                  />
                   <div className="flex flex-wrap gap-2">
                     <Button
                       onClick={async () => {

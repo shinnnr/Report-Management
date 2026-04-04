@@ -23,6 +23,11 @@ const loginFailureSchema = z.object({
   deactivated: z.boolean().optional(),
 });
 
+const externalHolidayFeedItemSchema = z.object({
+  name: z.string(),
+  date: z.string(),
+});
+
 export const api = {
   auth: {
     login: {
@@ -326,6 +331,14 @@ export const api = {
       path: '/api/holidays',
       responses: {
         200: z.array(z.custom<typeof holidays.$inferSelect>()),
+      },
+    },
+    philippines: {
+      method: 'GET' as const,
+      path: '/api/holidays/philippines',
+      responses: {
+        200: z.array(externalHolidayFeedItemSchema),
+        500: errorSchemas.internal,
       },
     },
     create: {

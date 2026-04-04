@@ -7,13 +7,32 @@ export function useHolidays() {
   return useQuery({
     queryKey: [api.holidays.list.path],
     queryFn: async () => {
-      const res = await fetch(api.holidays.list.path);
+      const res = await fetch(api.holidays.list.path, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch holidays");
       return api.holidays.list.responses[200].parse(await res.json());
     },
     staleTime: 0,
     refetchInterval: 2000,
     refetchOnWindowFocus: true,
+  });
+}
+
+export function usePhilippineHolidays(enabled: boolean) {
+  return useQuery({
+    queryKey: [api.holidays.philippines.path],
+    enabled,
+    queryFn: async () => {
+      const res = await fetch(api.holidays.philippines.path, { credentials: "include" });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Failed to fetch Philippines holidays" }));
+        throw new Error(errorData?.message ?? "Failed to fetch Philippines holidays");
+      }
+
+      return api.holidays.philippines.responses[200].parse(await res.json());
+    },
+    staleTime: 1000 * 60 * 60 * 6,
+    gcTime: 1000 * 60 * 60 * 6,
+    refetchOnWindowFocus: false,
   });
 }
 
