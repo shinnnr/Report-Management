@@ -68,6 +68,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 // Helper functions defined outside component for accessibility
 const HOLIDAYS_ENABLED_STORAGE_KEY = "calendar-holidays-enabled";
@@ -671,6 +672,7 @@ function CalendarContent() {
   const { openSidebar } = useSidebar();
   const { allowNonAdminActivityDelete, allowNonAdminHolidayAdd } = useSystemSettings();
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
+  const prefersReducedMotion = useReducedMotion();
 
   // Holidays enabled state - local with polling for sync across users
   const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(
@@ -799,6 +801,8 @@ function CalendarContent() {
   type CalendarView = 'day' | 'week' | 'month';
   const [view, setView] = useState<CalendarView>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [calendarTransitionKey, setCalendarTransitionKey] = useState(0);
+  const [calendarTransitionDirection, setCalendarTransitionDirection] = useState<1 | -1>(1);
   const [isNewActivityOpen, setIsNewActivityOpen] = useState(false);
   
   // Time slot activities modal state
@@ -1275,11 +1279,96 @@ function CalendarContent() {
     setAutoScrollEnabled(false);
   }, []);
 
+  const getCalendarNavigationDate = useCallback((date: Date, direction: 1 | -1, targetView: CalendarView) => {
+    if (targetView === 'day') {
+      return addDays(date, direction);
+    }
+
+    if (targetView === 'week') {
+      return addWeeks(date, direction);
+    }
+
+    return addMonths(date, direction);
+  }, []);
+
+  const getCalendarPeriodStart = useCallback((date: Date, targetView: CalendarView) => {
+    if (targetView === 'day') {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    if (targetView === 'week') {
+      return startOfWeek(date);
+    }
+
+    return startOfMonth(date);
+  }, []);
+
+  const getCalendarTransitionDirectionForDate = useCallback((targetDate: Date, targetView: CalendarView): 1 | -1 | 0 => {
+    const currentPeriodStart = getCalendarPeriodStart(currentDate, targetView).getTime();
+    const targetPeriodStart = getCalendarPeriodStart(targetDate, targetView).getTime();
+
+    if (targetPeriodStart === currentPeriodStart) {
+      return 0;
+    }
+
+    return targetPeriodStart > currentPeriodStart ? 1 : -1;
+  }, [currentDate, getCalendarPeriodStart]);
+
+  const animateCalendarToDate = useCallback((targetDate: Date, targetView: CalendarView = view) => {
+    const direction = getCalendarTransitionDirectionForDate(targetDate, targetView);
+    if (direction !== 0) {
+      setCalendarTransitionDirection(direction);
+      setCalendarTransitionKey((current) => current + 1);
+    }
+
+    setCurrentDate(targetDate);
+  }, [getCalendarTransitionDirectionForDate, view]);
+
   // Handle go to today
-  const handleGoToToday = () => {
-    const today = new Date();
-    setCurrentDate(today);
-    // Preserve the current view (day, week, or month) - only change the displayed date
+  const handleGoToToday = useCallback(() => {
+    animateCalendarToDate(new Date(), view);
+  }, [animateCalendarToDate, view]);
+
+  const handleCalendarNavigation = useCallback((direction: 1 | -1) => {
+    setCalendarTransitionDirection(direction);
+    setCalendarTransitionKey((current) => current + 1);
+    setCurrentDate((date) => getCalendarNavigationDate(date, direction, view));
+  }, [getCalendarNavigationDate, view]);
+
+  const calendarNavigationVariants = {
+    enter: ({ direction, reduceMotion }: { direction: 1 | -1; reduceMotion: boolean }) =>
+      reduceMotion
+        ? { opacity: 0.98 }
+        : { opacity: 0, x: direction > 0 ? 36 : -36 },
+    center: ({ reduceMotion }: { direction: 1 | -1; reduceMotion: boolean }) =>
+      reduceMotion
+        ? {
+            opacity: 1,
+            x: 0,
+            transition: { duration: 0.08, ease: "easeOut" },
+          }
+        : {
+            opacity: 1,
+            x: 0,
+            transition: {
+              x: { duration: 0.16, ease: [0.22, 1, 0.36, 1] },
+              opacity: { duration: 0.12, ease: "easeOut" },
+            },
+          },
+    exit: ({ direction, reduceMotion }: { direction: 1 | -1; reduceMotion: boolean }) =>
+      reduceMotion
+        ? {
+            opacity: 0.98,
+            transition: { duration: 0.08, ease: "easeOut" },
+          }
+        : {
+            opacity: 0,
+            x: direction > 0 ? -28 : 28,
+            transition: {
+              x: { duration: 0.14, ease: [0.4, 0, 1, 1] },
+              opacity: { duration: 0.1, ease: "easeOut" },
+            },
+          },
   };
 
   // Handle view change
@@ -4354,26 +4443,10 @@ function CalendarContent() {
                     Today
                   </Button>
                   <div className="flex gap-1">
-                    <Button variant="outline" size="icon" onClick={() => {
-                      if (view === 'day') {
-                        setCurrentDate(addDays(currentDate, -1));
-                      } else if (view === 'week') {
-                        setCurrentDate(addWeeks(currentDate, -1));
-                      } else {
-                        setCurrentDate(addMonths(currentDate, -1));
-                      }
-                    }}>
+                    <Button variant="outline" size="icon" onClick={() => handleCalendarNavigation(-1)}>
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => {
-                      if (view === 'day') {
-                        setCurrentDate(addDays(currentDate, 1));
-                      } else if (view === 'week') {
-                        setCurrentDate(addWeeks(currentDate, 1));
-                      } else {
-                        setCurrentDate(addMonths(currentDate, 1));
-                      }
-                    }}>
+                    <Button variant="outline" size="icon" onClick={() => handleCalendarNavigation(1)}>
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
@@ -4447,6 +4520,21 @@ function CalendarContent() {
           </div>
         </div>
 
+        <div className="relative overflow-hidden">
+          <AnimatePresence
+            custom={{ direction: calendarTransitionDirection, reduceMotion: prefersReducedMotion }}
+            initial={false}
+            mode="wait"
+          >
+            <motion.div
+              key={calendarTransitionKey}
+              custom={{ direction: calendarTransitionDirection, reduceMotion: prefersReducedMotion }}
+              variants={calendarNavigationVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              style={{ willChange: prefersReducedMotion ? "auto" : "transform, opacity" }}
+            >
         {/* Calendar Grid - Month View */}
 {view === 'month' && (
   <>
@@ -4779,6 +4867,9 @@ function CalendarContent() {
             holidaysEnabled={holidaysEnabledData}
           />
         )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
        {/* Two-Column Grid for Panels on Desktop */}
