@@ -587,6 +587,7 @@ function CalendarContent() {
   const selectedSubmissionHoliday = holidaysEnabledData
     ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
     : undefined;
+  const holidaySubmissionToastDescription = "The selected submission date matches a configured holiday.";
 
   const scrollHolidayModalToForm = () => {
     requestAnimationFrame(() => {
@@ -620,6 +621,12 @@ function CalendarContent() {
       setSelectedTimeSlotActivityIds([]);
     }
   }, [canDeleteActivities]);
+
+  useEffect(() => {
+    if (isActivityModalOpen && selectedActivity?.id) {
+      setSubmissionDate(new Date());
+    }
+  }, [isActivityModalOpen, selectedActivity?.id]);
 
   const handleRecurrenceChange = (value: string) => {
     setRecurrence(value);
@@ -1708,8 +1715,8 @@ function CalendarContent() {
     if (!selectedActivity || selectedFiles.length === 0) return;
     if (selectedSubmissionHoliday) {
       toast({
-        title: "Invalid submission date",
-        description: `Submission date falls on ${selectedSubmissionHoliday.name}. Choose a different date while holidays are enabled.`,
+        title: "Submission date is a holiday",
+        description: holidaySubmissionToastDescription,
         variant: "destructive"
       });
       return;
@@ -1808,9 +1815,10 @@ function CalendarContent() {
       queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
     } catch (error: any) {
       console.error('Submission error:', error);
+      const isHolidaySubmissionError = error?.message === "Submission date is a holiday";
       toast({
-        title: "Submission failed",
-        description: error.message || 'Submission failed. Please try again.',
+        title: isHolidaySubmissionError ? "Submission date is a holiday" : "Submission failed",
+        description: isHolidaySubmissionError ? holidaySubmissionToastDescription : (error.message || 'Submission failed. Please try again.'),
         variant: "destructive"
       });
     } finally {
@@ -2985,11 +2993,6 @@ function CalendarContent() {
                       />
                     </PopoverContent>
                   </Popover>
-                  {selectedSubmissionHoliday && (
-                    <p className="text-sm text-destructive">
-                      Submission date falls on {selectedSubmissionHoliday.name}. Choose a different date while holidays are enabled.
-                    </p>
-                  )}
                 </div>
               )}
 

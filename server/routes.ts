@@ -1013,7 +1013,7 @@ export async function registerRoutes(
       const holidayConflict = await getSubmissionHolidayConflict(now, submissionDateKey);
       if (holidayConflict) {
         return res.status(400).json({
-          message: `Submission date falls on ${holidayConflict.name}. Choose a different date while holidays are enabled.`
+          message: "Submission date is a holiday"
         });
       }
       const isLate = now > deadline;
@@ -1181,7 +1181,7 @@ export async function registerRoutes(
       const holidayConflict = await getSubmissionHolidayConflict(now, submissionDateKey);
       if (holidayConflict) {
         return res.status(400).json({
-          message: `Submission date falls on ${holidayConflict.name}. Choose a different date while holidays are enabled.`
+          message: "Submission date is a holiday"
         });
       }
       const isLate = now > deadline;
