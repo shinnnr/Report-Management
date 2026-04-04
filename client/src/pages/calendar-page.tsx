@@ -360,6 +360,116 @@ const getEffectiveActivityDate = (activity: any): Date => {
   return deadlineDate;
 };
 
+const getActivityPreviewStatusColor = (status: string | null) => {
+  switch(status) {
+    case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+    case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
+    case 'late': return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+    default: return 'bg-amber-100 text-amber-800 border-amber-200';
+  }
+};
+
+const getActivityPreviewBorderColor = (status: string | null) => {
+  switch(status) {
+    case 'completed': return 'border-l-4 border-emerald-500';
+    case 'overdue': return 'border-l-4 border-red-500';
+    case 'late': return 'border-l-4 border-orange-500';
+    case 'in-progress': return 'border-l-4 border-blue-500';
+    default: return 'border-l-4 border-amber-500';
+  }
+};
+
+function ActivityDragPreviewCard({
+  activity,
+  variant,
+}: {
+  activity: any;
+  variant: 'month' | 'week' | 'day';
+}) {
+  if (!activity) return null;
+
+  const baseClasses =
+    variant === 'month'
+      ? "mb-1 h-6 px-1.5 py-1 text-xs truncate"
+      : variant === 'week'
+        ? "p-1 text-xs truncate"
+        : "mb-1 p-2 text-sm";
+
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none rounded-md border font-medium text-left opacity-60 cursor-move select-none",
+        baseClasses,
+        getActivityPreviewStatusColor(activity.status),
+        "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+        getActivityPreviewBorderColor(activity.status),
+      )}
+    >
+      <div className="truncate">{activity.title}</div>
+      {variant === 'day' && activity.description && (
+        <div className="mt-1 truncate text-xs opacity-80">{activity.description}</div>
+      )}
+    </div>
+  );
+}
+
+type CalendarDropTarget = {
+  date: Date;
+  time: string | null;
+};
+
+const getCalendarDropTargetFromElement = (element: Element | null): CalendarDropTarget | null => {
+  if (!(element instanceof HTMLElement)) return null;
+
+  const dropTargetElement = element.closest('[data-drop-target]');
+  if (!(dropTargetElement instanceof HTMLElement)) return null;
+
+  const targetDateStr = dropTargetElement.getAttribute('data-date');
+  if (!targetDateStr) return null;
+
+  const targetDate = new Date(targetDateStr);
+  if (Number.isNaN(targetDate.getTime())) return null;
+
+  return {
+    date: targetDate,
+    time: dropTargetElement.getAttribute('data-time-slot'),
+  };
+};
+
+const getDistanceToRect = (clientX: number, clientY: number, rect: DOMRect) => {
+  const nearestX = Math.max(rect.left, Math.min(clientX, rect.right));
+  const nearestY = Math.max(rect.top, Math.min(clientY, rect.bottom));
+
+  return Math.hypot(clientX - nearestX, clientY - nearestY);
+};
+
+const findClosestCalendarDropTarget = (clientX: number, clientY: number): CalendarDropTarget | null => {
+  if (typeof document === "undefined") return null;
+
+  const dropTargetElements = Array.from(document.querySelectorAll<HTMLElement>('[data-drop-target]'));
+
+  let closestTarget: CalendarDropTarget | null = null;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  dropTargetElements.forEach((dropTargetElement) => {
+    const rect = dropTargetElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const dropTarget = getCalendarDropTargetFromElement(dropTargetElement);
+    if (!dropTarget) return;
+
+    const distance = getDistanceToRect(clientX, clientY, rect);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestTarget = dropTarget;
+    }
+  });
+
+  return closestTarget;
+};
+
 const shouldPreserveCalendarMouseDown = (target: EventTarget | null): boolean => {
   return target instanceof HTMLElement && Boolean(
     target.closest('[draggable="true"], button, a, input, textarea, select, [role="button"]')
@@ -564,6 +674,8 @@ function CalendarContent() {
     direction: 'left' | 'right' | 'up' | 'down' | null;
     intervalId: NodeJS.Timeout | null;
   }>({ direction: null, intervalId: null });
+  const transparentDragImageRef = useRef<HTMLCanvasElement | null>(null);
+  const dragCursorStyleRef = useRef<HTMLStyleElement | null>(null);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -914,84 +1026,93 @@ function CalendarContent() {
     e.stopPropagation();
     setDraggedActivity(activity);
     e.dataTransfer.effectAllowed = 'move';
+    const transparentDragImage = getTransparentDragImage();
+    if (transparentDragImage) {
+      e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+    }
     e.dataTransfer.setData('text/plain', String(activity.id));
     // Also store the activity as JSON for touch support
     e.dataTransfer.setData('application/json', JSON.stringify(activity));
   };
 
-  // Handle drag over for time slot (Week/Day view)
-  const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDropTargetDate(date);
-    setDropTargetTime(time);
-    setIsDraggingOverTimeSlot(true);
-    
-    // Auto-scroll logic - scroll based on viewport edges (like Google Calendar)
-    if (!draggedActivity) return;
-    
+  const setActiveDropTarget = useCallback((target: CalendarDropTarget | null) => {
+    setDropTargetDate(target?.date ?? null);
+    setDropTargetTime(target?.time ?? null);
+    setIsDraggingOverTimeSlot(Boolean(target?.time));
+  }, []);
+
+  const updateAutoScrollForPointer = useCallback((clientX: number, clientY: number) => {
+    if (!draggedActivity) {
+      stopAutoScroll();
+      return;
+    }
+
     const scrollThreshold = 60;
     const scrollSpeed = 20;
-    
-    // Get viewport dimensions
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-    
+
     let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
-    
-    // Check horizontal edges of viewport
+
     if (clientX < scrollThreshold) {
       scrollDirection = 'left';
     } else if (clientX > viewportWidth - scrollThreshold) {
       scrollDirection = 'right';
     }
-    
-    // Check vertical edges of viewport
+
     if (clientY < scrollThreshold) {
       scrollDirection = 'up';
     } else if (clientY > viewportHeight - scrollThreshold) {
       scrollDirection = 'down';
     }
-    
-    // Stop existing auto-scroll if direction changed or no longer needed
+
     if (autoScrollRef.current.intervalId) {
       clearInterval(autoScrollRef.current.intervalId);
       autoScrollRef.current.intervalId = null;
     }
-    
-    if (scrollDirection) {
-      setAutoScrollEnabled(true);
-      autoScrollRef.current.direction = scrollDirection;
-      
-      const intervalId = setInterval(() => {
-        if (!draggedActivity) {
-          clearInterval(intervalId);
-          autoScrollRef.current.intervalId = null;
-          return;
-        }
-        
-        switch (scrollDirection) {
-          case 'left':
-            window.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
-            break;
-          case 'right':
-            window.scrollBy({ left: scrollSpeed, behavior: 'auto' });
-            break;
-          case 'up':
-            window.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
-            break;
-          case 'down':
-            window.scrollBy({ top: scrollSpeed, behavior: 'auto' });
-            break;
-        }
-      }, 16);
-      
-      autoScrollRef.current.intervalId = intervalId;
-    } else {
+
+    if (!scrollDirection) {
+      autoScrollRef.current.direction = null;
       setAutoScrollEnabled(false);
+      return;
     }
+
+    setAutoScrollEnabled(true);
+    autoScrollRef.current.direction = scrollDirection;
+
+    const intervalId = setInterval(() => {
+      if (!draggedActivity) {
+        clearInterval(intervalId);
+        autoScrollRef.current.intervalId = null;
+        return;
+      }
+
+      switch (scrollDirection) {
+        case 'left':
+          window.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
+          break;
+        case 'right':
+          window.scrollBy({ left: scrollSpeed, behavior: 'auto' });
+          break;
+        case 'up':
+          window.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
+          break;
+        case 'down':
+          window.scrollBy({ top: scrollSpeed, behavior: 'auto' });
+          break;
+      }
+    }, 16);
+
+    autoScrollRef.current.intervalId = intervalId;
+  }, [draggedActivity, stopAutoScroll]);
+
+  // Handle drag over for time slot (Week/Day view)
+  const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setActiveDropTarget({ date, time });
+    updateAutoScrollForPointer(e.clientX, e.clientY);
   };
 
   // Handle drag leave for time slot
@@ -1066,6 +1187,27 @@ function CalendarContent() {
     }
   }, [selectedActivity, toast, updateActivity]);
 
+  const rescheduleActivityToDropTarget = useCallback((activityToMove: any, target: CalendarDropTarget | null) => {
+    if (!activityToMove || !target) return;
+
+    const currentDeadline = new Date(activityToMove.deadlineDate);
+
+    if (target.time) {
+      const [hours, minutes] = target.time.split(':').map(Number);
+      const hasDateChanged = !isSameDay(currentDeadline, target.date);
+      const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
+
+      if (hasDateChanged || hasTimeChanged) {
+        void performActivityReschedule(activityToMove, target.date, target.time);
+      }
+      return;
+    }
+
+    if (!isSameDay(currentDeadline, target.date)) {
+      void performActivityReschedule(activityToMove, target.date);
+    }
+  }, [performActivityReschedule]);
+
   // Handle drop on time slot (Week/Day view)
   const handleTimeSlotDrop = (e: React.DragEvent, date: Date, time: string) => {
     e.preventDefault();
@@ -1074,21 +1216,7 @@ function CalendarContent() {
 
     const activityToMove = draggedActivity;
     resetDragInteractionState();
-
-    if (activityToMove) {
-      const currentDeadline = new Date(activityToMove.deadlineDate);
-      const targetDateTime = new Date(date);
-      const [hours, minutes] = time.split(':').map(Number);
-      targetDateTime.setHours(hours, minutes, 0, 0);
-      
-      const hasDateChanged = !isSameDay(currentDeadline, date);
-      const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
-      
-      if (hasDateChanged || hasTimeChanged) {
-        void performActivityReschedule(activityToMove, date, time);
-        return;
-      }
-    }
+    rescheduleActivityToDropTarget(activityToMove, { date, time });
   };
 
   // Touch-based drag handlers
@@ -1131,27 +1259,13 @@ function CalendarContent() {
       return;
     }
     
-    // Find the closest time slot cell
-    const timeSlotCell = element.closest('[data-time-slot]');
-    if (timeSlotCell) {
-      const targetDateStr = timeSlotCell.getAttribute('data-date');
-      const targetTimeStr = timeSlotCell.getAttribute('data-time-slot');
-      
-      if (targetDateStr && targetTimeStr) {
-        const targetDate = new Date(targetDateStr);
-        const currentDeadline = new Date(activity.deadlineDate);
-        const [hours, minutes] = targetTimeStr.split(':').map(Number);
-        
-        const hasDateChanged = !isSameDay(currentDeadline, targetDate);
-        const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
-        if (hasDateChanged || hasTimeChanged) {
-          resetDragInteractionState();
-          setIsTouchDragging(false);
-          touchDragRef.current = null;
-          void performActivityReschedule(activity, targetDate, targetTimeStr);
-          return;
-        }
-      }
+    const target = getCalendarDropTargetFromElement(element) ?? findClosestCalendarDropTarget(currentX, currentY);
+    if (target) {
+      resetDragInteractionState();
+      setIsTouchDragging(false);
+      touchDragRef.current = null;
+      rescheduleActivityToDropTarget(activity, target);
+      return;
     }
     
     resetDragInteractionState();
@@ -1163,70 +1277,9 @@ function CalendarContent() {
   const handleDateDragOver = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     e.stopPropagation();
-    setDropTargetDate(date);
-    
-    // Auto-scroll logic for MonthView - scroll based on viewport edges (like Google Calendar)
-    if (!draggedActivity) return;
-    
-    const scrollThreshold = 60;
-    const scrollSpeed = 20;
-    
-    // Get viewport dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-    
-    let scrollDirection: 'left' | 'right' | 'up' | 'down' | null = null;
-    
-    // Check horizontal edges of viewport
-    if (clientX < scrollThreshold) {
-      scrollDirection = 'left';
-    } else if (clientX > viewportWidth - scrollThreshold) {
-      scrollDirection = 'right';
-    }
-    
-    // Check vertical edges of viewport
-    if (clientY < scrollThreshold) {
-      scrollDirection = 'up';
-    } else if (clientY > viewportHeight - scrollThreshold) {
-      scrollDirection = 'down';
-    }
-    
-    // Stop existing auto-scroll if direction changed or no longer needed
-    if (autoScrollRef.current.intervalId) {
-      clearInterval(autoScrollRef.current.intervalId);
-      autoScrollRef.current.intervalId = null;
-    }
-    
-    if (scrollDirection) {
-      autoScrollRef.current.direction = scrollDirection;
-      
-      const intervalId = setInterval(() => {
-        if (!draggedActivity) {
-          clearInterval(intervalId);
-          autoScrollRef.current.intervalId = null;
-          return;
-        }
-        
-        switch (scrollDirection) {
-          case 'left':
-            window.scrollBy({ left: -scrollSpeed, behavior: 'auto' });
-            break;
-          case 'right':
-            window.scrollBy({ left: scrollSpeed, behavior: 'auto' });
-            break;
-          case 'up':
-            window.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
-            break;
-          case 'down':
-            window.scrollBy({ top: scrollSpeed, behavior: 'auto' });
-            break;
-        }
-      }, 16);
-      
-      autoScrollRef.current.intervalId = intervalId;
-    }
+    e.dataTransfer.dropEffect = 'move';
+    setActiveDropTarget({ date, time: null });
+    updateAutoScrollForPointer(e.clientX, e.clientY);
   };
 
   // Handle drop on date cell
@@ -1236,14 +1289,7 @@ function CalendarContent() {
 
     const activityToMove = draggedActivity;
     resetDragInteractionState();
-
-    if (activityToMove) {
-      const currentDeadline = new Date(activityToMove.deadlineDate);
-      if (!isSameDay(currentDeadline, date)) {
-        void performActivityReschedule(activityToMove, date);
-        return;
-      }
-    }
+    rescheduleActivityToDropTarget(activityToMove, { date, time: null });
   };
 
   const handleActivityDragEnd = useCallback(() => {
@@ -1389,6 +1435,119 @@ function CalendarContent() {
       timeSlotClickTimerRef.current = setTimeout(clearTimeSlotClickTimeout, DOUBLE_CLICK_DELAY);
     }
   }, [handleSelectTimeSlot, lastClickedTimeSlot, clearTimeSlotClickTimeout]);
+
+  const getTransparentDragImage = useCallback(() => {
+    if (typeof document === "undefined") return null;
+
+    if (!transparentDragImageRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      transparentDragImageRef.current = canvas;
+    }
+
+    return transparentDragImageRef.current;
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const previousBodyCursor = document.body.style.getPropertyValue("cursor");
+    const previousBodyCursorPriority = document.body.style.getPropertyPriority("cursor");
+    const previousHtmlCursor = document.documentElement.style.getPropertyValue("cursor");
+    const previousHtmlCursorPriority = document.documentElement.style.getPropertyPriority("cursor");
+
+    if (draggedActivity) {
+      document.body.style.setProperty("cursor", "move", "important");
+      document.documentElement.style.setProperty("cursor", "move", "important");
+
+      if (!dragCursorStyleRef.current) {
+        const styleElement = document.createElement("style");
+        styleElement.setAttribute("data-calendar-drag-cursor", "true");
+        dragCursorStyleRef.current = styleElement;
+      }
+
+      dragCursorStyleRef.current.textContent = "html, body, body * { cursor: move !important; }";
+      if (!dragCursorStyleRef.current.isConnected) {
+        document.head.appendChild(dragCursorStyleRef.current);
+      }
+    }
+
+    return () => {
+      dragCursorStyleRef.current?.remove();
+
+      if (previousBodyCursor) {
+        document.body.style.setProperty("cursor", previousBodyCursor, previousBodyCursorPriority);
+      } else {
+        document.body.style.removeProperty("cursor");
+      }
+
+      if (previousHtmlCursor) {
+        document.documentElement.style.setProperty("cursor", previousHtmlCursor, previousHtmlCursorPriority);
+      } else {
+        document.documentElement.style.removeProperty("cursor");
+      }
+    };
+  }, [draggedActivity]);
+
+  useEffect(() => {
+    if (!draggedActivity || typeof document === "undefined") return;
+
+    const handleDocumentDragOver = (event: DragEvent) => {
+      const directTarget =
+        getCalendarDropTargetFromElement(event.target instanceof Element ? event.target : null) ??
+        getCalendarDropTargetFromElement(document.elementFromPoint(event.clientX, event.clientY));
+      const closestTarget = directTarget ?? findClosestCalendarDropTarget(event.clientX, event.clientY);
+
+      if (!closestTarget) return;
+
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+
+      setActiveDropTarget(closestTarget);
+      updateAutoScrollForPointer(event.clientX, event.clientY);
+    };
+
+    const handleDocumentDrop = (event: DragEvent) => {
+      const directTarget =
+        getCalendarDropTargetFromElement(event.target instanceof Element ? event.target : null) ??
+        getCalendarDropTargetFromElement(document.elementFromPoint(event.clientX, event.clientY));
+
+      if (directTarget) return;
+
+      const closestTarget =
+        findClosestCalendarDropTarget(event.clientX, event.clientY) ??
+        (dropTargetDate ? { date: dropTargetDate, time: dropTargetTime ?? null } : null);
+
+      if (!closestTarget) {
+        resetDragInteractionState();
+        return;
+      }
+
+      event.preventDefault();
+      const activityToMove = draggedActivity;
+      resetDragInteractionState();
+      rescheduleActivityToDropTarget(activityToMove, closestTarget);
+    };
+
+    document.addEventListener('dragover', handleDocumentDragOver);
+    document.addEventListener('drop', handleDocumentDrop);
+
+    return () => {
+      document.removeEventListener('dragover', handleDocumentDragOver);
+      document.removeEventListener('drop', handleDocumentDrop);
+    };
+  }, [
+    draggedActivity,
+    dropTargetDate,
+    dropTargetTime,
+    resetDragInteractionState,
+    rescheduleActivityToDropTarget,
+    setActiveDropTarget,
+    updateAutoScrollForPointer,
+  ]);
 
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
@@ -3578,6 +3737,12 @@ function CalendarContent() {
           const dayActivities = filteredActivities.filter(a =>
             isSameDay(getCalendarDisplayDate(a), date)
           );
+          const showMonthDragPreview = Boolean(
+            draggedActivity &&
+            dropTargetDate &&
+            !dropTargetTime &&
+            isSameDay(date, dropTargetDate)
+          );
 
           const indicators = getDateIndicators(date);
 
@@ -3591,6 +3756,8 @@ function CalendarContent() {
           return (
             <div
               key={date.toISOString()}
+              data-date={date.toISOString()}
+              data-drop-target="date"
              className={cn(
                  "h-[132px] overflow-hidden border-b border-r px-2 py-2 transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 bg-muted/5 dark:bg-muted/10 relative flex flex-col select-none",
                   !isLastDayOfMonth && "last:border-r-0",
@@ -3610,6 +3777,7 @@ function CalendarContent() {
                 onDragOver={(e) => handleDateDragOver(e, date)}
                onDragLeave={() => {
                  setDropTargetDate(null);
+                 setDropTargetTime(null);
                  stopAutoScroll();
                 }}
                 onDrop={(e) => handleDateDrop(e, date)}
@@ -3643,6 +3811,9 @@ function CalendarContent() {
 
               {/* Activities */}
               <div className="mt-1 flex-1 overflow-hidden">
+                {showMonthDragPreview && draggedActivity && (
+                  <ActivityDragPreviewCard activity={draggedActivity} variant="month" />
+                )}
                 {dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES).map((activity) => (
                   <div
                     key={activity.id}
@@ -3672,12 +3843,12 @@ function CalendarContent() {
                         });
                     }}
                     className={cn(
-                      "mb-1 h-6 text-xs px-1.5 py-1 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
+                      "mb-1 h-6 text-xs px-1.5 py-1 rounded-md border truncate font-medium text-left cursor-pointer hover:opacity-80 transition-opacity",
                       getStatusColor(activity.status),
                       "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                       getStatusBorderColor?.(activity.status),
                       draggedActivity?.id === activity.id &&
-                        "opacity-50"
+                        "opacity-50 cursor-move"
                     )}
                   >
                     {activity.title}
@@ -5223,6 +5394,12 @@ function WeekView({
                 // Filter activities for this specific day AND hour
                 const dayHourActivities = activities
                   .filter(a => isSameDay(getCalendarDisplayDate(a), day) && getActivityHour(a) === hour);
+                const showSlotDragPreview = Boolean(
+                  draggedActivity &&
+                  dropTargetDate &&
+                  dropTargetTime === timeString &&
+                  isSameDay(day, dropTargetDate)
+                );
                 const timeSlotStripe = getTimeSlotStatusStripe(dayHourActivities);
                 
                 return (
@@ -5230,6 +5407,7 @@ function WeekView({
                      key={`${day.toISOString()}-${hour}`}
                      data-date={day.toISOString()}
                      data-time-slot={timeString}
+                     data-drop-target="time"
                       className={cn(
                         "relative h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
                         isToday(day) && "bg-primary/5",
@@ -5261,7 +5439,13 @@ function WeekView({
                         className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
                       />
                     )}
-                    <div className="flex h-full flex-col justify-center gap-1 px-1">
+                    <div className={cn(
+                      "flex h-full flex-col gap-1 px-1",
+                      showSlotDragPreview || dayHourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
+                    )}>
+                      {showSlotDragPreview && draggedActivity && (
+                        <ActivityDragPreviewCard activity={draggedActivity} variant="week" />
+                      )}
                       {/* Activities for this specific hour */}
                       {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                         <div
@@ -5277,11 +5461,11 @@ function WeekView({
                             onActivityClick(activity);
                           }}
                           className={cn(
-                            "text-xs p-1 rounded border truncate font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                            "text-xs p-1 rounded border truncate font-medium cursor-pointer hover:opacity-80 transition-opacity select-none",
                             getStatusColor(activity.status),
                             "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                             getStatusBorderColor?.(activity.status),
-                            draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                            draggedActivity?.id === activity.id && "opacity-50 scale-95 cursor-move",
                             activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                           )}
                         >
@@ -5461,6 +5645,12 @@ function DayView({
         {hours.map((hour) => {
           const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
+          const showSlotDragPreview = Boolean(
+            draggedActivity &&
+            dropTargetDate &&
+            dropTargetTime === timeString &&
+            isSameDay(dropTargetDate, currentDate)
+          );
           const timeSlotStripe = getTimeSlotStatusStripe(hourActivities);
           
           return (
@@ -5477,6 +5667,7 @@ function DayView({
                   )}
                   data-date={currentDate.toISOString()}
                   data-time-slot={timeString}
+                  data-drop-target="time"
                   onMouseDown={handleCalendarCellMouseDown}
                   onClick={() => onSelectTimeSlot(currentDate, timeString)}
                   onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
@@ -5496,7 +5687,13 @@ function DayView({
                     className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
                   />
                 )}
-                <div className="flex h-full flex-col justify-center gap-1 px-1">
+                <div className={cn(
+                  "flex h-full flex-col gap-1 px-1",
+                  showSlotDragPreview || hourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
+                )}>
+                  {showSlotDragPreview && draggedActivity && (
+                    <ActivityDragPreviewCard activity={draggedActivity} variant="day" />
+                  )}
                   {/* Activities for this specific hour */}
                   {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                     <div
@@ -5512,11 +5709,11 @@ function DayView({
                         onActivityClick(activity);
                       }}
                       className={cn(
-                        "text-sm p-2 rounded-md border mb-1 font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                        "text-sm p-2 rounded-md border mb-1 font-medium cursor-pointer hover:opacity-80 transition-opacity select-none",
                         getStatusColor(activity.status),
                         "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                         getStatusBorderColor?.(activity.status),
-                        draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                        draggedActivity?.id === activity.id && "opacity-50 scale-95 cursor-move",
                         activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                       )}
                     >
