@@ -55,6 +55,9 @@ function SettingsContent() {
 
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+  const [isUpdatingFullName, setIsUpdatingFullName] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   // Initialize username and fullName with current user's values
   useEffect(() => {
@@ -165,11 +168,14 @@ function SettingsContent() {
       return;
     }
 
+    setIsUpdatingUsername(true);
     try {
       await updateUsernameMutation.mutateAsync({ userId: currentUser.id, username: username.trim() });
       setUsername("");
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setIsUpdatingUsername(false);
     }
   };
 
@@ -181,6 +187,7 @@ function SettingsContent() {
       return;
     }
 
+    setIsUpdatingFullName(true);
     try {
       await updateUserMutation.mutateAsync({ 
         userId: currentUser.id, 
@@ -189,6 +196,8 @@ function SettingsContent() {
       setFullName("");
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setIsUpdatingFullName(false);
     }
   };
 
@@ -212,6 +221,7 @@ function SettingsContent() {
 
     setPasswordError("");
 
+    setIsUpdatingPassword(true);
     try {
       await updatePasswordMutation.mutateAsync({
         userId: currentUser.id,
@@ -223,6 +233,8 @@ function SettingsContent() {
       setConfirmPassword("");
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -410,9 +422,8 @@ function SettingsContent() {
                     placeholder="Enter your name"
                   />
                 </div>
-                <Button type="submit" disabled={updateUserMutation.isPending || fullName.trim() === currentUser?.fullName?.trim()} className="">
-                  {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Name
+                <Button type="submit" disabled={isUpdatingFullName || updateUserMutation.isPending || fullName.trim() === currentUser?.fullName?.trim()} className="">
+                  {isUpdatingFullName ? "Updating Name..." : "Update Name"}
                 </Button>
               </form>
 
@@ -427,9 +438,8 @@ function SettingsContent() {
                     placeholder="Enter your username"
                   />
                 </div>
-                <Button type="submit" disabled={updateUsernameMutation.isPending || username.trim() === currentUser?.username?.trim()} className="">
-                  {updateUsernameMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Username
+                <Button type="submit" disabled={isUpdatingUsername || updateUsernameMutation.isPending || username.trim() === currentUser?.username?.trim()} className="">
+                  {isUpdatingUsername ? "Updating Username..." : "Update Username"}
                 </Button>
               </form>
             </CardContent>
@@ -543,6 +553,7 @@ function SettingsContent() {
                 <Button 
                   type="submit" 
                   disabled={
+                    isUpdatingPassword ||
                     updatePasswordMutation.isPending || 
                     !currentPassword || 
                     !newPassword || 
@@ -550,8 +561,7 @@ function SettingsContent() {
                   }
                   className=""
                 >
-                  {updatePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Password
+                  {isUpdatingPassword ? "Updating Password..." : "Update Password"}
                 </Button>
               </form>
             </CardContent>
