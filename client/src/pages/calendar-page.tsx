@@ -92,6 +92,20 @@ const parseDateOnlyString = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
+const getHolidaysForDate = (holidays: any[] | undefined, date: Date) => {
+  return holidays?.filter((holiday) => isSameDay(new Date(holiday.date), date)) || [];
+};
+
+const getHolidayLabelForDate = (holidays: any[] | undefined, date: Date) => {
+  return Array.from(
+    new Set(
+      getHolidaysForDate(holidays, date)
+        .map((holiday) => holiday.name)
+        .filter(Boolean)
+    )
+  ).join(", ");
+};
+
 // Helper function to move a date to the previous working day while preserving time
 const adjustToPreviousWorkingDay = (date: Date): Date => {
   const adjustedDate = new Date(date);
@@ -726,14 +740,7 @@ function CalendarContent() {
   const [location, setLocation] = useLocation();
   const calendarHolidays = [
     ...(holidays || []),
-    ...((showPhilippineHolidays ? philippineHolidays : []) || [])
-      .filter((holiday) => {
-        const holidayDate = parseDateOnlyString(holiday.date);
-        return !(holidays || []).some((existingHoliday) =>
-          isSameDay(new Date(existingHoliday.date), holidayDate)
-        );
-      })
-      .map((holiday, index) => ({
+    ...((showPhilippineHolidays ? philippineHolidays : []) || []).map((holiday, index) => ({
         id: `philippines-${holiday.date}-${index}`,
         name: holiday.name,
         date: parseDateOnlyString(holiday.date),
@@ -2895,30 +2902,6 @@ function CalendarContent() {
                          onClick={async () => {
                            if (!holidayName || !holidayDate) return;
 
-                           // Check if holiday date already exists (only when adding, not when editing)
-                           if (!editingHoliday) {
-                             const holidayExists = holidays?.some(h => isSameDay(new Date(h.date), holidayDate));
-                             if (holidayExists) {
-                               toast({
-                                 title: "Holiday already exists",
-                                 description: "A holiday is already configured for this date.",
-                                 variant: "destructive"
-                               });
-                               return;
-                             }
-                           } else {
-                             // When editing, check if another holiday has this date
-                             const holidayExists = holidays?.some(h => h.id !== editingHoliday.id && isSameDay(new Date(h.date), holidayDate));
-                             if (holidayExists) {
-                               toast({
-                                 title: "Holiday already exists",
-                                 description: "Another holiday is already configured for this date.",
-                                 variant: "destructive"
-                               });
-                               return;
-                             }
-                           }
-
                            setIsAddingHoliday(true);
                            try {
                              if (editingHoliday) {
@@ -3494,7 +3477,7 @@ function CalendarContent() {
                       <div className="w-full max-w-md">
                         <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                           <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                             {isHoliday ? `Holiday: ${calendarHolidays?.find(h => isSameDay(new Date(h.date), dayActivitiesModalDate))?.name}` : 'Weekend'}
+                             {isHoliday ? `Holiday: ${getHolidayLabelForDate(calendarHolidays, dayActivitiesModalDate)}` : 'Weekend'}
                           </p>
                           <p className="text-sm text-amber-700 dark:text-amber-300">
                             Activities cannot be created on {isHoliday ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -3989,7 +3972,7 @@ function CalendarContent() {
                     <div className="w-full max-w-md">
                       <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md text-left">
                         <p className="text-lg text-amber-800 dark:text-amber-200 font-medium mb-2">
-                          {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${calendarHolidays?.find(h => isSameDay(new Date(h.date), timeSlotActivitiesModalData.date))?.name}` : 'Weekend'}
+                          {isDateHoliday(timeSlotActivitiesModalData.date) ? `Holiday: ${getHolidayLabelForDate(calendarHolidays, timeSlotActivitiesModalData.date)}` : 'Weekend'}
                         </p>
                         <p className="text-sm text-amber-700 dark:text-amber-300">
                           Activities cannot be created on {isDateHoliday(timeSlotActivitiesModalData.date) ? 'holidays' : 'weekends'} and will be automatically moved to the next working day.
@@ -4373,10 +4356,10 @@ function CalendarContent() {
           const dayActivities = filteredActivities.filter(a =>
             isSameDay(getCalendarDisplayDate(a), date)
           );
-          const holidayForDate = holidaysEnabledData
-            ? calendarHolidays?.find((holiday: any) => isSameDay(new Date(holiday.date), date))
-            : undefined;
-          const monthVisibleActivitiesLimit = holidayForDate
+          const holidayLabelForDate = holidaysEnabledData
+            ? getHolidayLabelForDate(calendarHolidays, date)
+            : "";
+          const monthVisibleActivitiesLimit = holidayLabelForDate
             ? Math.max(MONTH_VIEW_VISIBLE_ACTIVITIES - 1, 1)
             : MONTH_VIEW_VISIBLE_ACTIVITIES;
           const showMonthDragPreview = Boolean(
@@ -4453,9 +4436,12 @@ function CalendarContent() {
                 {format(date, 'd')}
               </div>
 
-              {holidayForDate?.name && (
-                <div className="mb-1 truncate text-[10px] font-semibold leading-tight text-red-700 dark:text-red-300">
-                  {holidayForDate.name}
+              {holidayLabelForDate && (
+                <div
+                  className="mb-1 overflow-hidden text-[10px] font-semibold leading-tight text-red-700 dark:text-red-300"
+                  title={holidayLabelForDate}
+                >
+                  {holidayLabelForDate}
                 </div>
               )}
 
@@ -5082,30 +5068,6 @@ function CalendarContent() {
                     <Button
                       onClick={async () => {
                         if (!holidayName || !holidayDate) return;
-
-                        // Check if holiday date already exists (only when adding, not when editing)
-                        if (!editingHoliday) {
-                          const holidayExists = holidays?.some(h => isSameDay(new Date(h.date), holidayDate));
-                          if (holidayExists) {
-                            toast({
-                              title: "Holiday already exists",
-                              description: "A holiday is already configured for this date.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                        } else {
-                          // When editing, check if another holiday has this date
-                          const holidayExists = holidays?.some(h => h.id !== editingHoliday.id && isSameDay(new Date(h.date), holidayDate));
-                          if (holidayExists) {
-                            toast({
-                              title: "Holiday already exists",
-                              description: "Another holiday is already configured for this date.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                        }
 
                         setIsAddingHoliday(true);
                         try {
@@ -5973,9 +5935,9 @@ function WeekView({
   const weekDayKeys = weekDays.map(getDayKey);
   const weekDayKeySet = new Set(weekDayKeys);
   const weekHeaderHolidayDate = selectedDate ?? currentDate;
-  const weekHeaderHoliday = holidaysEnabled && weekDays.some((day) => isSameDay(day, weekHeaderHolidayDate))
-    ? holidays?.find((holiday) => isSameDay(new Date(holiday.date), weekHeaderHolidayDate))
-    : undefined;
+  const weekHeaderHolidayLabel = holidaysEnabled && weekDays.some((day) => isSameDay(day, weekHeaderHolidayDate))
+    ? getHolidayLabelForDate(holidays, weekHeaderHolidayDate)
+    : "";
 
   const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
     if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
@@ -6041,9 +6003,9 @@ function WeekView({
           className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-30"
         >
           <div className="flex items-center justify-center border-r px-2 py-2 text-center">
-            {weekHeaderHoliday?.name && (
-              <div className="truncate text-xs font-semibold leading-tight text-red-600 dark:text-red-400">
-                {weekHeaderHoliday.name}
+            {weekHeaderHolidayLabel && (
+              <div className="truncate text-xs font-semibold leading-tight text-red-600 dark:text-red-400" title={weekHeaderHolidayLabel}>
+                {weekHeaderHolidayLabel}
               </div>
             )}
           </div>
@@ -6279,9 +6241,9 @@ function DayView({
 }) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dayActivities = activities.filter(a => isSameDay(getCalendarDisplayDate(a), currentDate));
-  const holidayForCurrentDate = holidaysEnabled
-    ? holidays?.find((holiday) => isSameDay(new Date(holiday.date), currentDate))
-    : undefined;
+  const holidayLabelForCurrentDate = holidaysEnabled
+    ? getHolidayLabelForDate(holidays, currentDate)
+    : "";
 
   const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
     if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
@@ -6330,13 +6292,13 @@ function DayView({
         {/* Day header */}
         <div className={cn(
           "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
-          holidayForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
+          holidayLabelForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
         )}>
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 pl-4">
             <div className="flex flex-col items-center">
               <div className={cn(
                 "text-xs font-bold uppercase tracking-wider",
-                holidayForCurrentDate
+                holidayLabelForCurrentDate
                   ? "text-red-600 dark:text-red-400"
                   : isToday(currentDate)
                     ? "text-primary"
@@ -6344,13 +6306,13 @@ function DayView({
               )}>{format(currentDate, 'EEE')}</div>
               <div className={cn(
                 "text-4xl font-bold",
-                holidayForCurrentDate && "text-red-600 dark:text-red-400"
+                holidayLabelForCurrentDate && "text-red-600 dark:text-red-400"
               )}>{format(currentDate, 'd')}</div>
             </div>
             <div className="min-w-0 text-center">
-              {holidayForCurrentDate?.name && (
-                <div className="truncate text-sm font-semibold text-red-600 dark:text-red-400">
-                  {holidayForCurrentDate.name}
+              {holidayLabelForCurrentDate && (
+                <div className="truncate text-sm font-semibold text-red-600 dark:text-red-400" title={holidayLabelForCurrentDate}>
+                  {holidayLabelForCurrentDate}
                 </div>
               )}
             </div>
