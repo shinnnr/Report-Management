@@ -598,26 +598,26 @@ function DashboardContent() {
                   </div>
                 </div>
 
-                <ScrollArea className="flex-1 min-h-0 pr-4">
-                  <div className="space-y-3">
+                <div className="flex-1 min-h-0 max-h-[360px] overflow-y-auto overflow-x-hidden lg:max-h-none">
+                  <div className="space-y-3 pr-1 sm:pr-2">
                     {priorityActivities.length > 0 ? (
                       priorityActivities.map((activity) => (
                         <button
                           key={activity.id}
                           type="button"
                           onClick={() => setLocation(`/calendar?activityId=${activity.id}`)}
-                          className="w-full text-left p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50 hover:bg-muted/50 transition-colors"
+                          className="w-full min-w-0 overflow-hidden rounded-lg border border-muted/50 bg-muted/30 p-3 text-left transition-colors hover:bg-muted/50 md:rounded-xl"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm text-foreground truncate">{activity.title}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
+                          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-sm font-medium text-foreground">{activity.title}</p>
+                              <p className="mt-1 break-words text-xs text-muted-foreground">
                                 Due {format(new Date(activity.deadlineDate), 'MMM d, yyyy h:mm a')}
                               </p>
                             </div>
                             <span
                               className={cn(
-                                "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize w-fit",
+                                "inline-flex w-fit shrink-0 items-center self-start rounded-full px-2.5 py-1 text-xs font-medium capitalize",
                                 activity.status === 'overdue' && "bg-red-100 text-red-700",
                                 activity.status === 'in-progress' && "bg-blue-100 text-blue-700",
                                 activity.status === 'pending' && "bg-orange-100 text-orange-700"
@@ -634,7 +634,7 @@ function DashboardContent() {
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
 
                 <Button variant="outline" className="self-start" onClick={() => setLocation('/calendar')}>
                   Open Calendar
@@ -746,23 +746,35 @@ function DashboardContent() {
 
       {isAdmin && (
         <div className="mt-8">
-          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg relative group overflow-hidden">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
-                Recent System Activity
+          <Card className="border border-gray-200 dark:border-gray-800 shadow-lg group overflow-hidden">
+            <CardHeader className="relative pr-24 max-[370px]:pr-6">
+              <CardTitle className="min-w-0 leading-tight">
+                <div className="flex min-w-0 items-start gap-2 max-[478px]:hidden">
+                  <Activity className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <span>Recent System Activity</span>
+                </div>
+                <div className="hidden max-[478px]:block">
+                  <div className="flex items-start gap-2">
+                    <Activity className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <span className="whitespace-nowrap">Recent System</span>
+                  </div>
+                  <span className="block">Activity</span>
+                </div>
               </CardTitle>
-              <div className={`absolute top-4 right-4 flex gap-1 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+              <div className={cn(
+                "absolute right-6 top-6 flex gap-1 max-[370px]:static max-[370px]:mt-2 max-[370px]:self-start",
+                !isMobile && "opacity-0 transition-opacity group-hover:opacity-100"
+              )}>
                 <button
                   onClick={() => setShowViewAllLogs(true)}
-                  className="p-1 hover:bg-primary/20 rounded"
+                  className="rounded p-1 hover:bg-primary/20"
                   title="View all logs"
                 >
                   <Eye className="h-4 w-4 text-primary" />
                 </button>
                 <button
                   onClick={() => setShowDeleteLogsConfirm(true)}
-                  className="p-1 hover:bg-destructive/20 rounded"
+                  className="rounded p-1 hover:bg-destructive/20"
                   title="Delete all logs"
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
