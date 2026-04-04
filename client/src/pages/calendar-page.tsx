@@ -3508,97 +3508,106 @@ function CalendarContent() {
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
         {/* Calendar Header */}
-        <div className="flex flex-wrap gap-3 p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(220px,max-content)] lg:items-center lg:gap-4 md:p-6 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-          <div className="flex flex-wrap items-center gap-2 md:gap-4 min-w-0">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGoToToday}
-              className="gap-1"
-            >
-              Today
-            </Button>
-            <div className="flex gap-1">
-              <Button variant="outline" size="icon" onClick={() => {
-                if (view === 'day') {
-                  setCurrentDate(addDays(currentDate, -1));
-                } else if (view === 'week') {
-                  setCurrentDate(addWeeks(currentDate, -1));
-                } else {
-                  setCurrentDate(addMonths(currentDate, -1));
-                }
-              }}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="icon" onClick={() => {
-                if (view === 'day') {
-                  setCurrentDate(addDays(currentDate, 1));
-                } else if (view === 'week') {
-                  setCurrentDate(addWeeks(currentDate, 1));
-                } else {
-                  setCurrentDate(addMonths(currentDate, 1));
-                }
-              }}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-            <h2 className="text-lg md:text-xl font-bold font-display text-primary min-w-0">
-              {view === 'day' ? format(currentDate, 'MMMM d, yyyy') :
-               view === 'week' ? format(currentDate, 'MMMM yyyy') :
-               format(currentDate, 'MMMM yyyy')}
-            </h2>
-          </div>
-          
-          {/* View Toggle Buttons */}
-          <div className="flex items-center gap-2 lg:justify-self-center">
-            <div className="flex bg-muted rounded-lg p-1">
-              <Button
-                variant={view === 'day' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => handleViewChange('day')}
-                className={cn("gap-1", view !== 'day' && "text-muted-foreground")}
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span className="hidden md:inline">Day</span>
-              </Button>
-              <Button
-                variant={view === 'week' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => handleViewChange('week')}
-                className={cn("gap-1", view !== 'week' && "text-muted-foreground")}
-              >
-                <LayoutList className="w-4 h-4" />
-                <span className="hidden md:inline">Week</span>
-              </Button>
-              <Button
-                variant={view === 'month' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => handleViewChange('month')}
-                className={cn("gap-1", view !== 'month' && "text-muted-foreground")}
-              >
-                <Grid3X3 className="w-4 h-4" />
-                <span className="hidden md:inline">Month</span>
-              </Button>
-            </div>
-            
-            {/* Activity Filter */}
-            <Select value={activityFilter} onValueChange={setActivityFilter}>
-              <SelectTrigger className="w-[130px] h-9">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Activities</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
+        <div className="border-b border-gray-200 bg-muted/20 p-4 dark:border-gray-800 md:p-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-4 xl:flex-nowrap">
+              <div className="flex min-w-0 flex-[1_1_30rem] flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGoToToday}
+                    className="gap-1"
+                  >
+                    Today
+                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="icon" onClick={() => {
+                      if (view === 'day') {
+                        setCurrentDate(addDays(currentDate, -1));
+                      } else if (view === 'week') {
+                        setCurrentDate(addWeeks(currentDate, -1));
+                      } else {
+                        setCurrentDate(addMonths(currentDate, -1));
+                      }
+                    }}>
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => {
+                      if (view === 'day') {
+                        setCurrentDate(addDays(currentDate, 1));
+                      } else if (view === 'week') {
+                        setCurrentDate(addWeeks(currentDate, 1));
+                      } else {
+                        setCurrentDate(addMonths(currentDate, 1));
+                      }
+                    }}>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <h2 className="min-w-0 basis-0 grow text-left text-lg font-bold font-display text-primary sm:min-w-[10rem] md:text-xl">
+                  {view === 'day' ? format(currentDate, 'MMMM d, yyyy') :
+                   view === 'week' ? format(currentDate, 'MMMM yyyy') :
+                   format(currentDate, 'MMMM yyyy')}
+                </h2>
+              </div>
+
+              {/* View Toggle Buttons */}
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <div className="flex shrink-0 rounded-lg bg-muted p-1">
+                  <Button
+                    variant={view === 'day' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleViewChange('day')}
+                    aria-label="Day view"
+                    className={cn("gap-1", view !== 'day' && "text-muted-foreground")}
+                  >
+                    <CalendarDays className="w-4 h-4" />
+                    <span className="hidden sm:inline">Day</span>
+                  </Button>
+                  <Button
+                    variant={view === 'week' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleViewChange('week')}
+                    aria-label="Week view"
+                    className={cn("gap-1", view !== 'week' && "text-muted-foreground")}
+                  >
+                    <LayoutList className="w-4 h-4" />
+                    <span className="hidden sm:inline">Week</span>
+                  </Button>
+                  <Button
+                    variant={view === 'month' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleViewChange('month')}
+                    aria-label="Month view"
+                    className={cn("gap-1", view !== 'month' && "text-muted-foreground")}
+                  >
+                    <Grid3X3 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Month</span>
+                  </Button>
+                </div>
+
+                {/* Activity Filter */}
+                <Select value={activityFilter} onValueChange={setActivityFilter}>
+                  <SelectTrigger className="h-9 w-[130px] sm:w-[160px]">
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Activities</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-          {/* Activity counts */}
-          <div className="text-sm text-muted-foreground lg:justify-self-end lg:text-right lg:min-w-[220px]">
-            {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
+            {/* Activity counts */}
+            <div className="w-full text-left text-sm text-muted-foreground xl:text-right">
+              {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
+            </div>
           </div>
         </div>
 
