@@ -3359,7 +3359,7 @@ function CalendarContent() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={isHolidayOrWeekend}
+                        disabled={holidaysEnabledData && isHoliday}
                         onClick={() => {
                           if (dayActivitiesModalDate && !isDateHoliday(dayActivitiesModalDate)) {
                             setHolidayReturnModal('day');
@@ -3851,7 +3851,7 @@ function CalendarContent() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={timeSlotActivitiesModalData ? (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) : false}
+                    disabled={timeSlotActivitiesModalData ? (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date)) : false}
                     onClick={() => {
                       if (timeSlotActivitiesModalData && !isDateHoliday(timeSlotActivitiesModalData.date)) {
                         setHolidayReturnModal('time');
