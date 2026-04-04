@@ -420,6 +420,15 @@ type CalendarDropTarget = {
   time: string | null;
 };
 
+type MouseActivityDragState = {
+  activity: any;
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  hasStarted: boolean;
+};
+
 const getCalendarDropTargetFromElement = (element: Element | null): CalendarDropTarget | null => {
   if (!(element instanceof HTMLElement)) return null;
 
@@ -472,7 +481,7 @@ const findClosestCalendarDropTarget = (clientX: number, clientY: number): Calend
 
 const shouldPreserveCalendarMouseDown = (target: EventTarget | null): boolean => {
   return target instanceof HTMLElement && Boolean(
-    target.closest('[draggable="true"], button, a, input, textarea, select, [role="button"]')
+    target.closest('[data-activity-drag-handle="true"], [draggable="true"], button, a, input, textarea, select, [role="button"]')
   );
 };
 
@@ -676,6 +685,9 @@ function CalendarContent() {
   }>({ direction: null, intervalId: null });
   const transparentDragImageRef = useRef<HTMLCanvasElement | null>(null);
   const dragCursorStyleRef = useRef<HTMLStyleElement | null>(null);
+  const mouseDragRef = useRef<MouseActivityDragState | null>(null);
+  const suppressNextActivityClickRef = useRef<number | null>(null);
+  const [isMouseDragArmed, setIsMouseDragArmed] = useState(false);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -1041,8 +1053,26 @@ function CalendarContent() {
     setIsDraggingOverTimeSlot(Boolean(target?.time));
   }, []);
 
+  const getCalendarDropTargetAtPoint = useCallback((clientX: number, clientY: number): CalendarDropTarget | null => {
+    if (typeof document === "undefined") return null;
+
+    return (
+      getCalendarDropTargetFromElement(document.elementFromPoint(clientX, clientY)) ??
+      findClosestCalendarDropTarget(clientX, clientY)
+    );
+  }, []);
+
+  const consumeSuppressedActivityClick = useCallback((activityId: number) => {
+    if (suppressNextActivityClickRef.current !== activityId) {
+      return false;
+    }
+
+    suppressNextActivityClickRef.current = null;
+    return true;
+  }, []);
+
   const updateAutoScrollForPointer = useCallback((clientX: number, clientY: number) => {
-    if (!draggedActivity) {
+    if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
       stopAutoScroll();
       return;
     }
@@ -1207,6 +1237,112 @@ function CalendarContent() {
       void performActivityReschedule(activityToMove, target.date);
     }
   }, [performActivityReschedule]);
+
+  const handleActivityMouseDown = useCallback((activity: any, e: React.MouseEvent<HTMLElement>) => {
+    if (isMobile) return;
+    if (e.button !== 0) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    mouseDragRef.current = {
+      activity,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+      hasStarted: false,
+    };
+    setIsMouseDragArmed(true);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMouseDragArmed) return;
+
+    const DRAG_START_DISTANCE = 5;
+
+    const finalizeMouseDrag = (shouldDrop: boolean, clientX?: number, clientY?: number) => {
+      const dragContext = mouseDragRef.current;
+      mouseDragRef.current = null;
+      setIsMouseDragArmed(false);
+
+      if (!dragContext) {
+        resetDragInteractionState();
+        return;
+      }
+
+      if (!dragContext.hasStarted) {
+        stopAutoScroll();
+        return;
+      }
+
+      suppressNextActivityClickRef.current = dragContext.activity.id;
+      const target = shouldDrop
+        ? getCalendarDropTargetAtPoint(
+            clientX ?? dragContext.currentX,
+            clientY ?? dragContext.currentY,
+          )
+        : null;
+
+      resetDragInteractionState();
+
+      if (shouldDrop) {
+        rescheduleActivityToDropTarget(dragContext.activity, target);
+      }
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const dragContext = mouseDragRef.current;
+      if (!dragContext) return;
+
+      dragContext.currentX = event.clientX;
+      dragContext.currentY = event.clientY;
+
+      if (!dragContext.hasStarted) {
+        const dragDistance = Math.hypot(
+          event.clientX - dragContext.startX,
+          event.clientY - dragContext.startY,
+        );
+
+        if (dragDistance < DRAG_START_DISTANCE) {
+          return;
+        }
+
+        dragContext.hasStarted = true;
+        setDraggedActivity(dragContext.activity);
+      }
+
+      event.preventDefault();
+      setActiveDropTarget(getCalendarDropTargetAtPoint(event.clientX, event.clientY));
+      updateAutoScrollForPointer(event.clientX, event.clientY);
+    };
+
+    const handleMouseUp = (event: MouseEvent) => {
+      finalizeMouseDrag(true, event.clientX, event.clientY);
+    };
+
+    const handleWindowBlur = () => {
+      finalizeMouseDrag(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [
+    getCalendarDropTargetAtPoint,
+    isMouseDragArmed,
+    rescheduleActivityToDropTarget,
+    resetDragInteractionState,
+    setActiveDropTarget,
+    stopAutoScroll,
+    updateAutoScrollForPointer,
+  ]);
 
   // Handle drop on time slot (Week/Day view)
   const handleTimeSlotDrop = (e: React.DragEvent, date: Date, time: string) => {
@@ -3817,12 +3953,14 @@ function CalendarContent() {
                 {dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES).map((activity) => (
                   <div
                     key={activity.id}
-                    draggable
-                    onDragStart={(e) =>
-                      handleActivityDragStart(e, activity)
-                    }
-                    onDragEnd={handleActivityDragEnd}
+                    data-activity-drag-handle="true"
+                    onMouseDown={(e) => handleActivityMouseDown(activity, e)}
                     onClick={(e) => {
+                      if (consumeSuppressedActivityClick(activity.id)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
                       e.stopPropagation();
                       setSelectedActivity(activity);
                       setStartingActivityId(current => current === activity.id ? current : null);
@@ -3897,6 +4035,9 @@ function CalendarContent() {
             }}
             selectedDate={selectedDate}
             onActivityClick={(activity) => {
+              if (consumeSuppressedActivityClick(activity.id)) {
+                return;
+              }
               setStartingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
@@ -3928,11 +4069,10 @@ function CalendarContent() {
             draggedActivity={draggedActivity}
             dropTargetDate={dropTargetDate}
             dropTargetTime={dropTargetTime}
-            onActivityDragStart={handleActivityDragStart}
+            onActivityMouseDown={handleActivityMouseDown}
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
-            onDragEnd={handleActivityDragEnd}
             onDayClick={handleDayClickInWeekView}
             holidays={holidays}
             holidaysEnabled={holidaysEnabledData}
@@ -3952,6 +4092,9 @@ function CalendarContent() {
             currentDate={currentDate} 
             activities={filteredActivities}
             onActivityClick={(activity) => {
+              if (consumeSuppressedActivityClick(activity.id)) {
+                return;
+              }
               setStartingActivityId(current => current === activity.id ? current : null);
               setSelectedActivity(activity);
               setIsActivityModalOpen(true);
@@ -3983,11 +4126,10 @@ function CalendarContent() {
             draggedActivity={draggedActivity}
             dropTargetDate={dropTargetDate}
             dropTargetTime={dropTargetTime}
-            onActivityDragStart={handleActivityDragStart}
+            onActivityMouseDown={handleActivityMouseDown}
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
-            onDragEnd={handleActivityDragEnd}
             // Touch handlers
             onTouchDragStart={handleTouchDragStart}
             onTouchDragMove={handleTouchDragMove}
@@ -5233,11 +5375,10 @@ function WeekView({
   draggedActivity,
   dropTargetDate,
   dropTargetTime,
-  onActivityDragStart,
+  onActivityMouseDown,
   onTimeSlotDragOver,
   onTimeSlotDragLeave,
   onTimeSlotDrop,
-  onDragEnd,
   // Touch handlers
   onTouchDragStart,
   onTouchDragMove,
@@ -5272,11 +5413,10 @@ function WeekView({
   draggedActivity?: any;
   dropTargetDate?: Date | null;
   dropTargetTime?: string | null;
-  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onActivityMouseDown?: (activity: any, e: React.MouseEvent<HTMLElement>) => void;
   onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
   onTimeSlotDragLeave?: (e: React.DragEvent) => void;
   onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
-  onDragEnd?: () => void;
   // Touch handlers
   onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
   onTouchDragMove?: (e: React.TouchEvent) => void;
@@ -5450,9 +5590,8 @@ function WeekView({
                       {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                         <div
                           key={activity.id}
-                          draggable
-                          onDragStart={(e) => onActivityDragStart?.(e, activity)}
-                          onDragEnd={onDragEnd}
+                          data-activity-drag-handle="true"
+                          onMouseDown={(e) => onActivityMouseDown?.(activity, e)}
                           onTouchStart={(e) => onTouchDragStart?.(activity, e)}
                           onTouchMove={onTouchDragMove}
                           onTouchEnd={(e) => onTouchDragEnd?.(e)}
@@ -5517,11 +5656,10 @@ function DayView({
   draggedActivity,
   dropTargetDate,
   dropTargetTime,
-  onActivityDragStart,
+  onActivityMouseDown,
   onTimeSlotDragOver,
   onTimeSlotDragLeave,
   onTimeSlotDrop,
-  onDragEnd,
   // Touch handlers
   onTouchDragStart,
   onTouchDragMove,
@@ -5551,11 +5689,10 @@ function DayView({
   draggedActivity?: any;
   dropTargetDate?: Date | null;
   dropTargetTime?: string | null;
-  onActivityDragStart?: (e: React.DragEvent, activity: any) => void;
+  onActivityMouseDown?: (activity: any, e: React.MouseEvent<HTMLElement>) => void;
   onTimeSlotDragOver?: (e: React.DragEvent, date: Date, time: string) => void;
   onTimeSlotDragLeave?: (e: React.DragEvent) => void;
   onTimeSlotDrop?: (e: React.DragEvent, date: Date, time: string) => void;
-  onDragEnd?: () => void;
   // Touch handlers
   onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
   onTouchDragMove?: (e: React.TouchEvent) => void;
@@ -5698,9 +5835,8 @@ function DayView({
                   {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                     <div
                       key={activity.id}
-                      draggable
-                      onDragStart={(e) => onActivityDragStart?.(e, activity)}
-                      onDragEnd={onDragEnd}
+                      data-activity-drag-handle="true"
+                      onMouseDown={(e) => onActivityMouseDown?.(activity, e)}
                       onTouchStart={(e) => onTouchDragStart?.(activity, e)}
                       onTouchMove={onTouchDragMove}
                       onTouchEnd={(e) => onTouchDragEnd?.(e)}
