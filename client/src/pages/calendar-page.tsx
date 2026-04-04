@@ -4487,7 +4487,7 @@ function CalendarContent() {
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
           <div
             key={day}
-            className="py-3 text-center text-sm font-semibold text-muted-foreground border-r last:border-r-0 bg-muted/5 dark:bg-muted/20"
+            className="border-r bg-muted/5 py-2 text-center text-[11px] font-semibold text-muted-foreground last:border-r-0 sm:py-3 sm:text-sm dark:bg-muted/20"
           >
             {day}
           </div>
@@ -4496,7 +4496,7 @@ function CalendarContent() {
 
       {/* Grid */}
       <div
-        className="grid grid-cols-7 min-h-[600px] auto-rows-fr select-none"
+        className="grid min-h-0 grid-cols-7 auto-rows-auto select-none sm:min-h-[600px] sm:auto-rows-fr"
         onClick={() => setSelectedDate(null)}
         key={holidaysKey}
       >
@@ -4546,7 +4546,7 @@ function CalendarContent() {
               data-date={date.toISOString()}
               data-drop-target="date"
              className={cn(
-                 "h-[132px] overflow-hidden border-b border-r px-2 py-2 transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 bg-muted/5 dark:bg-muted/10 relative flex flex-col select-none",
+                 "relative flex aspect-square h-auto flex-col overflow-hidden border-b border-r border-gray-200 bg-muted/5 px-1 py-1.5 transition-colors cursor-pointer select-none hover:bg-primary/10 sm:aspect-auto sm:h-[132px] sm:px-2 sm:py-2 dark:border-gray-800 dark:bg-muted/10",
                   !isLastDayOfMonth && "last:border-r-0",
                   selectedDate &&
                     isSameDay(date, selectedDate) &&
@@ -4582,7 +4582,7 @@ function CalendarContent() {
                {/* Date */}
                <div
                 className={cn(
-                  "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
+                  "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium sm:mb-2 sm:h-7 sm:w-7 sm:text-sm",
                   isToday(date)
                     ? "bg-primary text-white shadow-sm"
                     : indicators.isHoliday
@@ -4595,7 +4595,7 @@ function CalendarContent() {
 
               {holidayLabelForDate && (
                 <div
-                  className="mb-1 overflow-hidden text-[10px] font-semibold leading-tight text-red-700 dark:text-red-300"
+                  className="mb-1 truncate whitespace-nowrap text-[10px] font-semibold leading-tight text-red-700 dark:text-red-300"
                   title={holidayLabelForDate}
                 >
                   {holidayLabelForDate}
@@ -4644,7 +4644,7 @@ function CalendarContent() {
                         });
                     }}
                     className={cn(
-                      "mb-1 h-6 text-xs px-1.5 py-1 rounded-md border truncate font-medium text-left cursor-pointer hover:opacity-80 transition-opacity",
+                      "mb-1 hidden h-6 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium transition-opacity hover:opacity-80 sm:block cursor-pointer",
                       getStatusColor(activity.status),
                       "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                       getStatusBorderColor?.(activity.status),
@@ -4655,10 +4655,10 @@ function CalendarContent() {
                     {activity.title}
                   </div>
                 ))}
-                {dayActivities.length > MONTH_VIEW_VISIBLE_ACTIVITIES && (
+                {dayActivities.length > 0 && (
                   <button
                     type="button"
-                    className="block h-5 select-none text-xs text-muted-foreground font-medium hover:text-primary transition-colors"
+                    className="block h-5 select-none truncate text-xs font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -4667,8 +4667,23 @@ function CalendarContent() {
                       setShowDayActivitiesModal(true);
                     }}
                   >
-                    +{dayActivities.length - MONTH_VIEW_VISIBLE_ACTIVITIES} more
+                    +{dayActivities.length}
                   </button>
+                )}
+                {dayActivities.length > MONTH_VIEW_VISIBLE_ACTIVITIES && (
+                  <button
+                    type="button"
+                    className="hidden h-5 select-none text-xs font-medium text-muted-foreground transition-colors hover:text-primary sm:block"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDayActivitiesModalDate(date);
+                      setDayActivitiesPage(1);
+                      setShowDayActivitiesModal(true);
+                    }}
+                    >
+                      +{dayActivities.length - MONTH_VIEW_VISIBLE_ACTIVITIES} more
+                    </button>
                 )}
               </div>
             </div>
@@ -4679,7 +4694,7 @@ function CalendarContent() {
         {trailingPaddingDays.map((_, i) => (
           <div
             key={`trailing-padding-${i}`}
-            className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800"
+            className="aspect-square border-b border-r border-gray-200 bg-muted/5 last:border-r-0 sm:aspect-auto sm:min-h-[132px] dark:border-gray-800 dark:bg-muted/10"
           />
         ))}
       </div>
@@ -6149,9 +6164,9 @@ function WeekView({
         {/* Week header */}
         <div
           data-drop-target-suppress="true"
-          className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-30"
+          className="sticky top-0 z-30 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] border-b border-gray-200 bg-background sm:grid-cols-8 dark:border-gray-800"
         >
-          <div className="flex items-center justify-center border-r px-2 py-2 text-center">
+          <div className="flex items-center justify-center border-r px-1 py-1.5 text-center sm:px-2 sm:py-2">
             {weekHeaderHolidayLabel && (
               <div className="truncate text-xs font-semibold leading-tight text-red-600 dark:text-red-400" title={weekHeaderHolidayLabel}>
                 {weekHeaderHolidayLabel}
@@ -6166,7 +6181,7 @@ function WeekView({
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "p-2 text-center border-r last:border-r-0 cursor-pointer hover:bg-muted/50 transition-colors select-none",
+                  "cursor-pointer border-r p-1 text-center transition-colors select-none hover:bg-muted/50 last:border-r-0 sm:p-2",
                   isToday(day) && "bg-primary/10",
                   isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
@@ -6174,12 +6189,12 @@ function WeekView({
                 onClick={() => onDayClick?.(day)}
               >
                 <div className={cn(
-                  "text-xs font-semibold",
+                  "text-[10px] font-semibold sm:text-xs",
                   isToday(day) ? "text-primary" : isHoliday ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
                 )}>{format(day, 'EEE')}</div>
                 <div className={cn(
-                  "text-lg font-semibold",
-                  isToday(day) && "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto",
+                  "text-sm font-semibold sm:text-lg",
+                  isToday(day) && "mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white sm:h-8 sm:w-8",
                   !isToday(day) && isHoliday && "text-red-600 dark:text-red-400"
                 )}>
                   {format(day, 'd')}
@@ -6203,8 +6218,8 @@ function WeekView({
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
           
           return (
-            <div key={hour} className="grid grid-cols-8 border-b border-gray-100 dark:border-gray-800">
-              <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
+            <div key={hour} className="grid grid-cols-[44px_repeat(7,minmax(0,1fr))] border-b border-gray-100 sm:grid-cols-8 dark:border-gray-800">
+              <div className="border-r p-1.5 pr-1 text-right text-[10px] text-muted-foreground sm:p-2 sm:pr-3 sm:text-xs">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
               {weekDays.map((day, dayIndex) => {
@@ -6224,7 +6239,7 @@ function WeekView({
                      data-time-slot={timeString}
                      data-drop-target="time"
                       className={cn(
-                        "relative h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
+                        "relative h-[44px] overflow-hidden border-r p-0.5 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 last:border-r-0 sm:h-[72px] sm:p-1",
                         isToday(day) && "bg-primary/5",
                         selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
                         selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-primary/5"
@@ -6278,7 +6293,7 @@ function WeekView({
                             onActivityClick(activity);
                           }}
                           className={cn(
-                            "text-xs p-1 rounded border truncate font-medium cursor-pointer hover:opacity-80 transition-opacity select-none",
+                            "hidden truncate rounded border p-1 text-xs font-medium transition-opacity hover:opacity-80 select-none sm:block cursor-pointer",
                             getStatusColor(activity.status),
                             "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                             getStatusBorderColor?.(activity.status),
@@ -6289,9 +6304,22 @@ function WeekView({
                           {activity.title}
                         </div>
                       ))}
+                      {dayHourActivities.length > 0 && (
+                        <div 
+                          className="flex h-full items-center justify-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowTimeSlotActivitiesModal?.(true);
+                            setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
+                          }}
+                        >
+                          +{dayHourActivities.length}
+                        </div>
+                      )}
                       {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
                         <div 
-                          className="select-none text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
+                          className="hidden select-none cursor-pointer px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-primary sm:block"
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -6300,7 +6328,7 @@ function WeekView({
                             setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
                           }}
                         >
-                          +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
+                          +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES}
                         </div>
                       )}
                     </div>
