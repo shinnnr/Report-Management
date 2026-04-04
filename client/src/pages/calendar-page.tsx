@@ -324,6 +324,12 @@ const TIME_SLOT_VISIBLE_ACTIVITIES = 1;
 const MONTH_VIEW_GRID_MIN_HEIGHT = 600;
 const MONTH_VIEW_DAY_CELL_HEIGHT = 132;
 const MONTH_VIEW_WEEK_HEADER_HEIGHT = 48;
+const MONTH_DRAG_AUTO_SCROLL_THRESHOLD = 108;
+const MONTH_DRAG_AUTO_SCROLL_MIN_SPEED = 64;
+const MONTH_DRAG_AUTO_SCROLL_MAX_SPEED = 360;
+const MONTH_DRAG_AUTO_SCROLL_START_STRENGTH_FACTOR = 0.32;
+const MONTH_DRAG_AUTO_SCROLL_BLEND_BASE = 0.52;
+const MONTH_DRAG_AUTO_SCROLL_REVERSE_THRESHOLD = 0.14;
 
 const clampAutoScrollValue = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -336,10 +342,22 @@ const getAutoScrollStrength = (distanceIntoThreshold: number, threshold: number)
 const getAutoScrollVelocity = (strength: number, useSmoothMonthSpeed: boolean) => {
   if (strength <= 0) return 0;
 
-  const minSpeed = useSmoothMonthSpeed ? 80 : 240;
-  const maxSpeed = useSmoothMonthSpeed ? 520 : 1200;
+  const minSpeed = useSmoothMonthSpeed ? MONTH_DRAG_AUTO_SCROLL_MIN_SPEED : 240;
+  const maxSpeed = useSmoothMonthSpeed ? MONTH_DRAG_AUTO_SCROLL_MAX_SPEED : 1200;
 
   return minSpeed + (maxSpeed - minSpeed) * strength;
+};
+
+const smoothAutoScrollStrength = (
+  currentStrength: number,
+  nextStrength: number,
+  useSmoothMonthSpeed: boolean,
+  deltaMs: number,
+) => {
+  if (!useSmoothMonthSpeed) return nextStrength;
+
+  const blend = 1 - Math.pow(MONTH_DRAG_AUTO_SCROLL_BLEND_BASE, deltaMs / 16);
+  return currentStrength + (nextStrength - currentStrength) * blend;
 };
 
 const getCalendarDisplayDate = (activity: any): Date => {
@@ -720,9 +738,26 @@ function CalendarContent() {
     frameId: number | null;
     lastTimestamp: number | null;
     strength: number;
+    targetStrength: number;
+    pendingDirection: 'left' | 'right' | 'up' | 'down' | null;
+    pendingTargetStrength: number;
     targetType: 'window' | 'viewport' | null;
     targetElement: HTMLElement | null;
-  }>({ direction: null, frameId: null, lastTimestamp: null, strength: 0, targetType: null, targetElement: null });
+    pendingTargetType: 'window' | 'viewport' | null;
+    pendingTargetElement: HTMLElement | null;
+  }>({
+    direction: null,
+    frameId: null,
+    lastTimestamp: null,
+    strength: 0,
+    targetStrength: 0,
+    pendingDirection: null,
+    pendingTargetStrength: 0,
+    targetType: null,
+    targetElement: null,
+    pendingTargetType: null,
+    pendingTargetElement: null,
+  });
   const transparentDragImageRef = useRef<HTMLCanvasElement | null>(null);
   const dragCursorStyleRef = useRef<HTMLStyleElement | null>(null);
   const mouseDragRef = useRef<MouseActivityDragState | null>(null);
@@ -1051,8 +1086,13 @@ function CalendarContent() {
     autoScrollRef.current.direction = null;
     autoScrollRef.current.lastTimestamp = null;
     autoScrollRef.current.strength = 0;
+    autoScrollRef.current.targetStrength = 0;
+    autoScrollRef.current.pendingDirection = null;
+    autoScrollRef.current.pendingTargetStrength = 0;
     autoScrollRef.current.targetType = null;
     autoScrollRef.current.targetElement = null;
+    autoScrollRef.current.pendingTargetType = null;
+    autoScrollRef.current.pendingTargetElement = null;
     setAutoScrollEnabled(false);
   }, []);
 
@@ -1188,7 +1228,7 @@ function CalendarContent() {
       return;
     }
 
-    const scrollThreshold = 60;
+    const scrollThreshold = view === 'month' ? MONTH_DRAG_AUTO_SCROLL_THRESHOLD : 60;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const pageScrollContainer = getCalendarPageScrollContainer();
@@ -1287,34 +1327,70 @@ function CalendarContent() {
     }
 
     if (!scrollDirection) {
+      if (autoScrollRef.current.frameId !== null) {
+        autoScrollRef.current.pendingDirection = null;
+        autoScrollRef.current.pendingTargetStrength = 0;
+        autoScrollRef.current.pendingTargetType = null;
+        autoScrollRef.current.pendingTargetElement = null;
+        autoScrollRef.current.targetStrength = 0;
+        return;
+      }
+
       stopAutoScroll();
       return;
     }
 
-    if (
-      autoScrollRef.current.frameId !== null &&
-      autoScrollRef.current.direction === scrollDirection &&
-      autoScrollRef.current.targetType === targetType &&
-      autoScrollRef.current.targetElement === targetElement
-    ) {
-      autoScrollRef.current.strength = scrollStrength;
-      setAutoScrollEnabled(true);
-      return;
-    }
+    const useSmoothMonthSpeed = view === 'month' && targetType === 'viewport' && targetElement === pageScrollContainer;
 
     if (autoScrollRef.current.frameId !== null) {
-      cancelAnimationFrame(autoScrollRef.current.frameId);
-      autoScrollRef.current.frameId = null;
+      const shouldQueueSmoothTransition =
+        useSmoothMonthSpeed &&
+        (
+          autoScrollRef.current.direction !== scrollDirection ||
+          autoScrollRef.current.targetType !== targetType ||
+          autoScrollRef.current.targetElement !== targetElement
+        );
+
+      if (shouldQueueSmoothTransition) {
+        autoScrollRef.current.pendingDirection = scrollDirection;
+        autoScrollRef.current.pendingTargetStrength = scrollStrength;
+        autoScrollRef.current.pendingTargetType = targetType;
+        autoScrollRef.current.pendingTargetElement = targetElement;
+        autoScrollRef.current.targetStrength = 0;
+        setAutoScrollEnabled(true);
+        return;
+      }
+
+      autoScrollRef.current.direction = scrollDirection;
+      autoScrollRef.current.targetStrength = scrollStrength;
+      autoScrollRef.current.targetType = targetType;
+      autoScrollRef.current.targetElement = targetElement;
+      autoScrollRef.current.pendingDirection = null;
+      autoScrollRef.current.pendingTargetStrength = 0;
+      autoScrollRef.current.pendingTargetType = null;
+      autoScrollRef.current.pendingTargetElement = null;
+
+      if (!useSmoothMonthSpeed) {
+        autoScrollRef.current.strength = scrollStrength;
+      }
+
+      setAutoScrollEnabled(true);
+      return;
     }
 
     setAutoScrollEnabled(true);
     autoScrollRef.current.direction = scrollDirection;
     autoScrollRef.current.lastTimestamp = null;
-    autoScrollRef.current.strength = scrollStrength;
+    autoScrollRef.current.strength = useSmoothMonthSpeed
+      ? scrollStrength * MONTH_DRAG_AUTO_SCROLL_START_STRENGTH_FACTOR
+      : scrollStrength;
+    autoScrollRef.current.targetStrength = scrollStrength;
+    autoScrollRef.current.pendingDirection = null;
+    autoScrollRef.current.pendingTargetStrength = 0;
     autoScrollRef.current.targetType = targetType;
     autoScrollRef.current.targetElement = targetElement;
-
-    const useSmoothMonthSpeed = view === 'month' && targetType === 'viewport' && targetElement === pageScrollContainer;
+    autoScrollRef.current.pendingTargetType = null;
+    autoScrollRef.current.pendingTargetElement = null;
 
     const stepAutoScroll = (timestamp: number) => {
       if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
@@ -1322,11 +1398,12 @@ function CalendarContent() {
         return;
       }
 
-      if (
-        autoScrollRef.current.direction !== scrollDirection ||
-        autoScrollRef.current.targetType !== targetType ||
-        autoScrollRef.current.targetElement !== targetElement
-      ) {
+      const currentDirection = autoScrollRef.current.direction;
+      const currentTargetType = autoScrollRef.current.targetType;
+      const currentTargetElement = autoScrollRef.current.targetElement;
+
+      if (!currentDirection || !currentTargetType) {
+        stopAutoScroll();
         return;
       }
 
@@ -1334,20 +1411,66 @@ function CalendarContent() {
         ? 16
         : Math.min(timestamp - autoScrollRef.current.lastTimestamp, 32);
       autoScrollRef.current.lastTimestamp = timestamp;
-      const scrollVelocity = getAutoScrollVelocity(autoScrollRef.current.strength, useSmoothMonthSpeed);
+      let activeDirection = currentDirection;
+      let activeTargetType = currentTargetType;
+      let activeTargetElement = currentTargetElement;
+      let useSmoothMonthSpeedForFrame =
+        view === 'month' &&
+        activeTargetType === 'viewport' &&
+        activeTargetElement === pageScrollContainer;
+
+      autoScrollRef.current.strength = smoothAutoScrollStrength(
+        autoScrollRef.current.strength,
+        autoScrollRef.current.targetStrength,
+        useSmoothMonthSpeedForFrame,
+        deltaMs,
+      );
+
+      const hasPendingTransition =
+        autoScrollRef.current.pendingDirection !== null &&
+        autoScrollRef.current.pendingTargetType !== null;
+
+      if (hasPendingTransition && autoScrollRef.current.strength <= MONTH_DRAG_AUTO_SCROLL_REVERSE_THRESHOLD) {
+        activeDirection = autoScrollRef.current.pendingDirection!;
+        activeTargetType = autoScrollRef.current.pendingTargetType!;
+        activeTargetElement = autoScrollRef.current.pendingTargetElement;
+        useSmoothMonthSpeedForFrame =
+          view === 'month' &&
+          activeTargetType === 'viewport' &&
+          activeTargetElement === pageScrollContainer;
+
+        autoScrollRef.current.direction = activeDirection;
+        autoScrollRef.current.targetType = activeTargetType;
+        autoScrollRef.current.targetElement = activeTargetElement;
+        autoScrollRef.current.strength = useSmoothMonthSpeedForFrame
+          ? autoScrollRef.current.pendingTargetStrength * MONTH_DRAG_AUTO_SCROLL_START_STRENGTH_FACTOR
+          : autoScrollRef.current.pendingTargetStrength;
+        autoScrollRef.current.targetStrength = autoScrollRef.current.pendingTargetStrength;
+        autoScrollRef.current.pendingDirection = null;
+        autoScrollRef.current.pendingTargetStrength = 0;
+        autoScrollRef.current.pendingTargetType = null;
+        autoScrollRef.current.pendingTargetElement = null;
+      }
+
+      if (!hasPendingTransition && autoScrollRef.current.targetStrength <= 0 && autoScrollRef.current.strength < 0.02) {
+        stopAutoScroll();
+        return;
+      }
+
+      const scrollVelocity = getAutoScrollVelocity(autoScrollRef.current.strength, useSmoothMonthSpeedForFrame);
       const scrollDistance = (scrollVelocity * deltaMs) / 1000;
 
-      if (targetType === 'viewport' && targetElement) {
-        if (view === 'month' && targetElement === pageScrollContainer) {
+      if (activeTargetType === 'viewport' && activeTargetElement) {
+        if (view === 'month' && activeTargetElement === pageScrollContainer) {
           const currentMonthContainerRect = monthCalendarContainerRef.current?.getBoundingClientRect();
-          const currentScrollContainerRect = targetElement.getBoundingClientRect();
+          const currentScrollContainerRect = activeTargetElement.getBoundingClientRect();
           const visibleTop = Math.max(currentScrollContainerRect.top, 0);
           const visibleBottom = Math.min(currentScrollContainerRect.bottom, window.innerHeight);
-          const canScrollUp = targetElement.scrollTop > 0;
+          const canScrollUp = activeTargetElement.scrollTop > 0;
           const canScrollDown =
-            targetElement.scrollTop + targetElement.clientHeight < targetElement.scrollHeight - 1;
+            activeTargetElement.scrollTop + activeTargetElement.clientHeight < activeTargetElement.scrollHeight - 1;
           const canContinueScrolling = currentMonthContainerRect
-            ? scrollDirection === 'down'
+            ? activeDirection === 'down'
               ? currentMonthContainerRect.bottom > visibleBottom && canScrollDown
               : currentMonthContainerRect.top < visibleTop && canScrollUp
             : false;
@@ -1358,33 +1481,33 @@ function CalendarContent() {
           }
         }
 
-        switch (scrollDirection) {
+        switch (activeDirection) {
           case 'up':
-            targetElement.scrollBy({ top: -scrollDistance, behavior: 'auto' });
+            activeTargetElement.scrollBy({ top: -scrollDistance, behavior: 'auto' });
             break;
           case 'down':
-            targetElement.scrollBy({ top: scrollDistance, behavior: 'auto' });
+            activeTargetElement.scrollBy({ top: scrollDistance, behavior: 'auto' });
             break;
           case 'left':
-            targetElement.scrollBy({ left: -scrollDistance, behavior: 'auto' });
+            activeTargetElement.scrollBy({ left: -scrollDistance, behavior: 'auto' });
             break;
           case 'right':
-            targetElement.scrollBy({ left: scrollDistance, behavior: 'auto' });
+            activeTargetElement.scrollBy({ left: scrollDistance, behavior: 'auto' });
             break;
         }
 
-        if (scrollDirection === 'up' || scrollDirection === 'down') {
-          syncCalendarPageAutoScroll(scrollDirection, scrollDistance, targetElement);
+        if (activeDirection === 'up' || activeDirection === 'down') {
+          syncCalendarPageAutoScroll(activeDirection, scrollDistance, activeTargetElement);
         }
 
         autoScrollRef.current.frameId = requestAnimationFrame(stepAutoScroll);
         return;
       }
 
-      if (view === 'month' && (scrollDirection === 'up' || scrollDirection === 'down')) {
+      if (view === 'month' && (activeDirection === 'up' || activeDirection === 'down')) {
         const currentMonthContainerRect = monthCalendarContainerRef.current?.getBoundingClientRect();
         const canContinueScrolling = currentMonthContainerRect
-          ? scrollDirection === 'down'
+          ? activeDirection === 'down'
             ? currentMonthContainerRect.bottom > window.innerHeight
             : currentMonthContainerRect.top < 0
           : false;
@@ -1395,7 +1518,7 @@ function CalendarContent() {
         }
       }
 
-      switch (scrollDirection) {
+      switch (activeDirection) {
         case 'left':
           window.scrollBy({ left: -scrollDistance, behavior: 'auto' });
           break;
