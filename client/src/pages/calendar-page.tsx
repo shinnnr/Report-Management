@@ -3009,51 +3009,55 @@ function CalendarContent() {
               </div>
 
               {/* Existing Holidays - Right Column */}
-              <div className="border rounded-lg p-4 flex flex-col">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
-                  <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                  EXISTING HOLIDAYS
-                </h4>
+              <div className="border rounded-lg overflow-hidden flex self-start flex-col">
+                <div className="shrink-0 p-4 pb-0">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                    EXISTING HOLIDAYS
+                  </h4>
+                </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                      <div className="space-y-2 pr-4">
-                        {paginatedHolidays.map((holiday: any) => (
-                          <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <div>
-                              <p className="font-medium">{holiday.name}</p>
-                              <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                    <div className="px-4">
+                      <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
+                        <div className="space-y-2 pr-4 pb-2">
+                          {paginatedHolidays.map((holiday: any) => (
+                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <p className="font-medium">{holiday.name}</p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingHoliday(holiday);
+                                    setHolidayName(holiday.name);
+                                    setHolidayDate(new Date(holiday.date));
+                                    scrollHolidayModalToForm();
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    setHolidayToDelete(holiday);
+                                    setShowDeleteHolidayConfirm(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingHoliday(holiday);
-                                  setHolidayName(holiday.name);
-                                  setHolidayDate(new Date(holiday.date));
-                                  scrollHolidayModalToForm();
-                                }}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setHolidayToDelete(holiday);
-                                  setShowDeleteHolidayConfirm(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
                     {showHolidayPagination && (
-                      <div className="mt-6 flex items-center justify-between pl-0 pr-4 py-2 bg-muted/10">
+                      <div className="flex items-center justify-between bg-muted/10 p-4">
                         <p className="text-sm text-muted-foreground">
                           Page {holidayPage} of {totalHolidayPages}
                         </p>
@@ -5207,50 +5211,54 @@ function CalendarContent() {
               </div>
 
               {/* Edit Existing Holiday - Right Column */}
-              <div className="border rounded-lg p-4 flex flex-col">
+              <div className="border rounded-lg overflow-hidden flex self-start flex-col">
+                <div className="shrink-0 p-4 pb-0">
                   <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
                     <span className="w-1 h-4 bg-green-500 rounded-full"></span>
                     EXISTING HOLIDAYS
                   </h4>
+                </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                      <div className="space-y-2 pr-4">
-                        {paginatedHolidays.map((holiday: any) => (
-                          <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                            <div>
-                              <p className="font-medium">{holiday.name}</p>
-                              <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                    <div className="px-4">
+                      <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
+                        <div className="space-y-2 pr-4 pb-2">
+                          {paginatedHolidays.map((holiday: any) => (
+                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <p className="font-medium">{holiday.name}</p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                 <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingHoliday(holiday);
+                                      setHolidayName(holiday.name);
+                                      setHolidayDate(new Date(holiday.date));
+                                    }}
+                                  >
+                                    Edit
+                                 </Button>
+                                 <Button
+                                   variant="destructive"
+                                   size="sm"
+                                   onClick={() => {
+                                     setHolidayToDelete(holiday);
+                                     setShowDeleteHolidayConfirm(true);
+                                   }}
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                               <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingHoliday(holiday);
-                                    setHolidayName(holiday.name);
-                                    setHolidayDate(new Date(holiday.date));
-                                  }}
-                                >
-                                  Edit
-                               </Button>
-                               <Button
-                                 variant="destructive"
-                                 size="sm"
-                                 onClick={() => {
-                                   setHolidayToDelete(holiday);
-                                   setShowDeleteHolidayConfirm(true);
-                                 }}
-                               >
-                                 <Trash2 className="w-4 h-4" />
-                               </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
                     {showHolidayPagination && (
-                      <div className="mt-6 flex items-center justify-between pl-0 pr-4 py-2 bg-muted/10">
+                      <div className="flex items-center justify-between bg-muted/10 p-4">
                         <p className="text-sm text-muted-foreground">
                           Page {holidayPage} of {totalHolidayPages}
                         </p>
