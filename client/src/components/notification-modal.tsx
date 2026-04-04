@@ -65,7 +65,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
       }
       onClose();
     }}>
-      <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+      <DialogContent className="flex max-h-[80vh] max-w-none flex-col sm:max-w-lg">
         <DialogHeader className="pb-4 shrink-0">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>
@@ -134,11 +134,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           <div className="mt-2 shrink-0 py-2">
             <div className="flex min-h-9 w-full items-center justify-between gap-2">
               {selectedNotifications.length > 0 ? (
-                <>
-                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:w-auto sm:min-w-0 sm:justify-start sm:gap-3">
                     {notifications && notifications.length >= notificationsPerPage ? (
                       <>
-                        <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                        <span className="whitespace-nowrap text-sm text-muted-foreground">
                           Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
                         </span>
                         <div className="flex shrink-0 gap-1">
@@ -162,27 +162,29 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                       </>
                     ) : null}
                   </div>
-                  <div className="flex min-h-9 shrink-0 items-center justify-end gap-2">
+                  <div className="flex min-h-9 w-full items-center justify-start gap-2 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
                     <span className="hidden text-sm text-muted-foreground sm:inline">
                       {selectedNotifications.length} selected
                     </span>
                     <Button
                       variant="destructive"
                       size="sm"
+                      className="whitespace-nowrap"
                       onClick={handleDeleteSelected}
                       disabled={deleteMutation.isPending || selectedNotifications.length === 0}
+                      aria-label="Delete selected notifications"
+                      title="Delete selected notifications"
                     >
-                      <span className="sm:hidden">Delete Selected</span>
-                      <span className="hidden sm:inline">Delete Selected</span>
+                      Delete Selected
                     </Button>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
-                    {notifications && notifications.length >= notificationsPerPage
-                      ? `Page ${currentPage} of ${Math.ceil(notifications.length / notificationsPerPage)}`
-                      : ""}
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">
+                    {notifications && notifications.length >= notificationsPerPage ? (
+                      <>Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}</>
+                    ) : ""}
                   </span>
                   {notifications && notifications.length >= notificationsPerPage ? (
                     <div className="flex shrink-0 gap-1">
