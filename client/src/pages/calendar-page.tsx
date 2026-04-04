@@ -2705,8 +2705,8 @@ function CalendarContent() {
                     Total: {dayActs.length} {dayActs.length === 1 ? "activity" : "activities"}
                   </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="h-[300px] pr-4">
-                  <div className="space-y-2 py-4 px-4">
+                <div className="h-[300px] overflow-y-auto overflow-x-hidden">
+                  <div className="box-border w-full space-y-2 py-4 pl-4 pr-4">
                   {paginatedActivities.length === 0 && !isHolidayOrWeekend ? (
                     <p className="text-center text-muted-foreground py-8">No activities for this day</p>
                   ) : paginatedActivities.length === 0 && isHolidayOrWeekend ? (
@@ -2727,7 +2727,7 @@ function CalendarContent() {
                       <div
                         key={activity.id}
                         className={cn(
-                          "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                          "w-full min-w-0 overflow-hidden p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
                           getStatusBorderColor(activity.status)
                         )}
                         onClick={() => {
@@ -2751,7 +2751,7 @@ function CalendarContent() {
                             });
                         }}
                       >
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             {canDeleteActivities && (
                               <Checkbox
@@ -2761,7 +2761,7 @@ function CalendarContent() {
                                 className="shrink-0"
                               />
                             )}
-                            <span className="font-medium truncate">{activity.title}</span>
+                            <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
                           </div>
                           <span className={cn(
                             "px-2 py-0.5 rounded-full text-xs shrink-0",
@@ -2782,7 +2782,7 @@ function CalendarContent() {
                     ))
                   )}
                 </div>
-                </ScrollArea>
+                </div>
                 <div className="shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-4 border-t bg-muted/10">
                   <div className="flex items-center gap-2">
                     {dayActs.length > dayActivitiesPerPage && (
@@ -3200,8 +3200,8 @@ function CalendarContent() {
                 {timeSlotActivitiesModalData ? format(timeSlotActivitiesModalData.date, 'MMMM d, yyyy') : ''} - {timeSlotActivitiesModalData?.activities.length} {timeSlotActivitiesModalData?.activities.length === 1 ? 'activity' : 'activities'}
               </DialogDescription>
             </DialogHeader>
-            <ScrollArea className="h-[300px] pr-4">
-              <div className="space-y-2 py-4 px-4">
+            <div className="h-[300px] overflow-y-auto overflow-x-hidden">
+              <div className="box-border w-full space-y-2 py-4 pl-4 pr-4">
                 {timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && !(isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
                   <p className="text-center text-muted-foreground py-8">No activities at this time</p>
                 ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
@@ -3230,7 +3230,7 @@ function CalendarContent() {
                           <div
                             key={activity.id}
                             className={cn(
-                              "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                              "w-full min-w-0 overflow-hidden p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
                               getStatusBorderColor(activity.status)
                             )}
                             onClick={() => {
@@ -3253,7 +3253,7 @@ function CalendarContent() {
                                 });
                             }}
                           >
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0 flex-1">
                                 {canDeleteActivities && (
                                   <Checkbox
@@ -3263,7 +3263,7 @@ function CalendarContent() {
                                     className="shrink-0"
                                   />
                                 )}
-                                <span className="font-medium truncate">{activity.title}</span>
+                                <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
                               </div>
                               <span className={cn(
                                 "px-2 py-0.5 rounded-full text-xs shrink-0",
@@ -3287,7 +3287,7 @@ function CalendarContent() {
                   })()
                 )}
               </div>
-            </ScrollArea>
+            </div>
             {timeSlotActivitiesModalData && (() => {
               const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
               return (
