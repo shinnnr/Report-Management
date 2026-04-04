@@ -72,13 +72,20 @@ import { Calendar } from "@/components/ui/calendar";
 // Helper functions defined outside component for accessibility
 let holidaysData: any[] = [];
 let holidaysEnabledDataData: boolean = true;
+let holidayDateKeysData = new Set<string>();
+let holidayLabelsByDateKeyData = new Map<string, string>();
+
+const getDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // Helper function to check if a date is a holiday
 const isDateHoliday = (date: Date) => {
   if (!holidaysEnabledDataData) return false;
-  return holidaysData?.some(holiday =>
-    isSameDay(new Date(holiday.date), date)
-  ) || false;
+  return holidayDateKeysData.has(getDateKey(date));
 };
 
 // Helper function to check if a date is a weekend
@@ -92,18 +99,23 @@ const parseDateOnlyString = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
-const getHolidaysForDate = (holidays: any[] | undefined, date: Date) => {
-  return holidays?.filter((holiday) => isSameDay(new Date(holiday.date), date)) || [];
+const getHolidayLabelForDate = (_holidays: any[] | undefined, date: Date) => {
+  return holidayLabelsByDateKeyData.get(getDateKey(date)) || "";
 };
 
-const getHolidayLabelForDate = (holidays: any[] | undefined, date: Date) => {
-  return Array.from(
-    new Set(
-      getHolidaysForDate(holidays, date)
-        .map((holiday) => holiday.name)
-        .filter(Boolean)
-    )
-  ).join(", ");
+const getRecurrenceLabel = (recurrence: string | null | undefined) => {
+  switch (recurrence) {
+    case "monthly":
+      return "Monthly";
+    case "quarterly":
+      return "Quarterly";
+    case "semi-annual":
+      return "Semi-Annual";
+    case "yearly":
+      return "Yearly";
+    default:
+      return "None";
+  }
 };
 
 // Helper function to move a date to the previous working day while preserving time
@@ -380,7 +392,7 @@ const smoothAutoScrollStrength = (
 };
 
 const getCalendarDisplayDate = (activity: any): Date => {
-  return new Date(activity.deadlineDate);
+  return getEffectiveActivityDate(activity);
 };
 
 // Helper function to get the effective display date for an activity (adjusted for holidays/weekends)
@@ -798,6 +810,32 @@ function CalendarContent() {
   const [holidaysKey, setHolidaysKey] = useState(0);
   useEffect(() => {
     holidaysData = calendarHolidays;
+    holidayDateKeysData = new Set();
+    holidayLabelsByDateKeyData = new Map();
+
+    calendarHolidays.forEach((holiday) => {
+      const holidayDate = new Date(holiday.date);
+      const dateKey = getDateKey(holidayDate);
+      const holidayName = typeof holiday.name === "string" ? holiday.name.trim() : "";
+
+      holidayDateKeysData.add(dateKey);
+
+      if (!holidayName) {
+        return;
+      }
+
+      const existingLabel = holidayLabelsByDateKeyData.get(dateKey);
+      if (!existingLabel) {
+        holidayLabelsByDateKeyData.set(dateKey, holidayName);
+        return;
+      }
+
+      const existingNames = new Set(existingLabel.split(", ").filter(Boolean));
+      if (!existingNames.has(holidayName)) {
+        holidayLabelsByDateKeyData.set(dateKey, `${existingLabel}, ${holidayName}`);
+      }
+    });
+
     holidaysEnabledDataData = holidaysEnabledData;
     setHolidaysKey(k => k + 1); // Force re-render when holidays update
   }, [holidays, philippineHolidays, showPhilippineHolidays, holidaysEnabledData]);
@@ -1085,7 +1123,7 @@ function CalendarContent() {
             setIsLoadingSubmissions(false);
           });
         // Navigate to the month of the activity's deadline
-        const activityDate = new Date(activity.deadlineDate);
+        const activityDate = getCalendarDisplayDate(activity);
         setCurrentDate(activityDate);
         // Auto-switch to month view when navigating from notification
         setView('month');
@@ -1714,10 +1752,11 @@ function CalendarContent() {
     if (!activityToMove || !target) return;
 
     const currentDeadline = new Date(activityToMove.deadlineDate);
+    const currentDisplayDate = getCalendarDisplayDate(activityToMove);
 
     if (target.time) {
       const [hours, minutes] = target.time.split(':').map(Number);
-      const hasDateChanged = !isSameDay(currentDeadline, target.date);
+      const hasDateChanged = !isSameDay(currentDisplayDate, target.date);
       const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
 
       if (hasDateChanged || hasTimeChanged) {
@@ -1726,7 +1765,7 @@ function CalendarContent() {
       return;
     }
 
-    if (!isSameDay(currentDeadline, target.date)) {
+    if (!isSameDay(currentDisplayDate, target.date)) {
       void performActivityReschedule(activityToMove, target.date);
     }
   }, [performActivityReschedule]);
@@ -3630,44 +3669,45 @@ function CalendarContent() {
 
             <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] px-3">
               {/* Activity Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Description</h4>
-                  <p className="text-sm">{selectedActivity?.description || 'No description provided'}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-1">Deadline</h4>
-                  <div className="flex items-start gap-2 flex-col">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {selectedActivity ? format(new Date(selectedActivity.deadlineDate), 'PPP') : ''}
-                    </span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 bg-muted/30 rounded-lg">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Description</h4>
+                    <p className="text-sm">{selectedActivity?.description || 'No description provided'}</p>
                   </div>
-                </div>
-                {selectedActivity?.regulatoryAgency && (
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Regulatory Agency</h4>
-                    <p className="text-sm">{selectedActivity.regulatoryAgency}</p>
+                    <p className="text-sm">{selectedActivity?.regulatoryAgency || 'Not provided'}</p>
                   </div>
-                )}
-                {selectedActivity?.concernDepartment && (
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Concern Department</h4>
-                    <p className="text-sm">{selectedActivity.concernDepartment}</p>
+                    <p className="text-sm">{selectedActivity?.concernDepartment || 'Not provided'}</p>
                   </div>
-                )}
-                {selectedActivity?.reportDetails && (
-                  <div className="md:col-span-2">
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Recurrence</h4>
+                    <p className="text-sm">
+                      {selectedActivity
+                        ? getRecurrenceLabel(selectedActivity.recurrence)
+                        : 'None'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Reports Detail</h4>
-                    <p className="text-sm">{selectedActivity.reportDetails}</p>
+                    <p className="text-sm">{selectedActivity?.reportDetails || 'No reports detail provided'}</p>
                   </div>
-                )}
-                {selectedActivity?.remarks && (
-                  <div className="md:col-span-2">
+                  <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Remarks</h4>
-                    <p className="text-sm">{selectedActivity.remarks}</p>
+                    <p className="text-sm">{selectedActivity?.remarks || 'No remarks provided'}</p>
                   </div>
-                )}
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Deadline</h4>
+                    <p className="text-sm">
+                      {selectedActivity ? format(getCalendarDisplayDate(selectedActivity), 'PPP') : ''}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Status Badge */}
@@ -4686,7 +4726,7 @@ function CalendarContent() {
                       <button
                         key={activity.id}
                         onClick={() => {
-                          const activityDate = new Date(activity.deadlineDate);
+                          const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
                           setStartingActivityId(current => current === activity.id ? current : null);
@@ -4715,7 +4755,7 @@ function CalendarContent() {
                       >
                         <div className="font-medium text-sm">{activity.title}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                          Due: {format(getCalendarDisplayDate(activity), 'MMM d, yyyy')}
                         </div>
                       </button>
                     ))}
@@ -4738,7 +4778,7 @@ function CalendarContent() {
                       <button
                         key={activity.id}
                         onClick={() => {
-                          const activityDate = new Date(activity.deadlineDate);
+                          const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
                           setStartingActivityId(current => current === activity.id ? current : null);
@@ -4767,7 +4807,7 @@ function CalendarContent() {
                       >
                         <div className="font-medium text-sm">{activity.title}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(activity.deadlineDate), 'EEE, MMM d')}
+                          {format(getCalendarDisplayDate(activity), 'EEE, MMM d')}
                         </div>
                       </button>
                     ))}
@@ -4910,7 +4950,7 @@ function CalendarContent() {
                       <button
                         key={activity.id}
                         onClick={() => {
-                          const activityDate = new Date(activity.deadlineDate);
+                          const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
                           setSelectedActivity(activity);
                           setStartingActivityId(current => current === activity.id ? current : null);
@@ -4952,7 +4992,7 @@ function CalendarContent() {
                             )}
                           </div>
                           <div className="shrink-0 pt-0.5 text-right text-xs text-muted-foreground">
-                            Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
+                            Due: {format(getCalendarDisplayDate(activity), 'MMM d, yyyy')}
                           </div>
                         </div>
                       </button>
@@ -6010,7 +6050,7 @@ function WeekView({
             )}
           </div>
           {weekDays.map((day) => {
-            const isHoliday = holidaysEnabled && holidays?.some(holiday => isSameDay(new Date(holiday.date), day));
+            const isHoliday = Boolean(holidaysEnabled && isDateHoliday(day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
 
             return (
