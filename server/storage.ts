@@ -41,6 +41,7 @@ export interface IStorage {
   createActivity(activity: InsertActivity): Promise<Activity>;
   generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
+  rescheduleRecurringActivitySeries(id: number, deadlineDate: Date): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
   startActivity(id: number, userId: number): Promise<void>;
   completeActivity(id: number, userId: number): Promise<void>;
@@ -832,6 +833,55 @@ export class DatabaseStorage implements IStorage {
     
     const [activity] = await db.update(activities).set(updates).where(eq(activities.id, id)).returning();
     return activity;
+  }
+
+  async rescheduleRecurringActivitySeries(id: number, deadlineDate: Date): Promise<Activity> {
+    const currentActivity = await this.getActivity(id);
+    if (!currentActivity) {
+      throw new Error("Activity not found");
+    }
+
+    if (!currentActivity.recurrence || currentActivity.recurrence === 'none') {
+      return this.updateActivity(id, { deadlineDate });
+    }
+
+    const sourceDeadline = new Date(currentActivity.deadlineDate);
+    const targetDeadline = new Date(deadlineDate);
+    const timeDeltaMs = targetDeadline.getTime() - sourceDeadline.getTime();
+    const now = new Date();
+    const restrictedStatuses = new Set(['completed', 'late', 'in-progress']);
+
+    const seriesCandidates = await db.select().from(activities).where(
+      and(
+        eq(activities.title, currentActivity.title),
+        eq(activities.recurrence, currentActivity.recurrence)
+      )
+    );
+
+    const seriesActivities = seriesCandidates.filter((activity) =>
+      activity.userId === currentActivity.userId &&
+      activity.regulatoryAgency === currentActivity.regulatoryAgency &&
+      activity.concernDepartment === currentActivity.concernDepartment
+    );
+
+    const movableActivities = seriesActivities.filter((activity) => !restrictedStatuses.has(activity.status || ''));
+
+    await db.transaction(async (tx) => {
+      for (const seriesActivity of movableActivities) {
+        const currentDeadline = new Date(seriesActivity.deadlineDate);
+        const nextDeadline = seriesActivity.id === currentActivity.id
+          ? new Date(targetDeadline)
+          : new Date(currentDeadline.getTime() + timeDeltaMs);
+
+        await tx.update(activities).set({
+          deadlineDate: nextDeadline,
+          status: nextDeadline > now ? 'pending' : 'overdue',
+        }).where(eq(activities.id, seriesActivity.id));
+      }
+    });
+
+    const [updatedActivity] = await db.select().from(activities).where(eq(activities.id, id));
+    return updatedActivity;
   }
 
   async deleteActivity(id: number): Promise<void> {

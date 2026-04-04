@@ -821,12 +821,19 @@ export async function registerRoutes(
 
   app.patch(api.activities.update.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    const updates = api.activities.update.input.parse(req.body);
-    const activity = await storage.updateActivity(id, updates);
+    const parsedInput = api.activities.update.input.parse(req.body);
+    const { applyToSeries, ...updates } = parsedInput;
+    const activity = applyToSeries && updates.deadlineDate
+      ? await storage.rescheduleRecurringActivitySeries(id, updates.deadlineDate)
+      : await storage.updateActivity(id, updates);
     
     // Check if deadlineDate was changed - this is a reschedule operation
     if (updates.deadlineDate) {
-      await storage.createLog((req.user as any).id, "MOVE_ACTIVITY", `Moved activity: ${activity.title} to ${new Date(activity.deadlineDate).toLocaleDateString()}`);
+      await storage.createLog(
+        (req.user as any).id,
+        "MOVE_ACTIVITY",
+        `${applyToSeries ? 'Moved recurring activity series' : 'Moved activity'}: ${activity.title} to ${new Date(activity.deadlineDate).toLocaleDateString()}`
+      );
     } else {
       await storage.createLog((req.user as any).id, "UPDATE_ACTIVITY", `Updated activity: ${activity.title}`);
     }

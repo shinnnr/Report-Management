@@ -1183,7 +1183,10 @@ function CalendarContent() {
         // based on the new deadline date/time
         await updateActivity.mutateAsync({
           id: draggedActivity.id,
-          data: { deadlineDate: deadlineDateStr }
+          data: {
+            deadlineDate: deadlineDateStr,
+            applyToSeries: Boolean(draggedActivity.recurrence && draggedActivity.recurrence !== 'none'),
+          }
         });
         
         // Stop auto-scroll if active
@@ -1207,8 +1210,12 @@ function CalendarContent() {
         const statusChangedToOverdue = updatedActivity && updatedActivity.status === 'overdue';
         const statusChangeMsg = statusChangedToOverdue ? ' Status changed to Overdue.' : '';
         toast({
-          title: "Activity rescheduled",
-          description: `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
+          title: draggedActivity.recurrence && draggedActivity.recurrence !== 'none'
+            ? "Recurring activity rescheduled"
+            : "Activity rescheduled",
+          description: draggedActivity.recurrence && draggedActivity.recurrence !== 'none'
+            ? `Moved this recurring series to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
+            : `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
         });
       } catch (error) {
         // Error handled by mutation
@@ -2409,7 +2416,7 @@ function CalendarContent() {
                             {regulatoryAgency === 'NEA-WEB PORTAL' && (
                               <>
                                 <div className="text-xs font-medium text-muted-foreground px-2 py-1">NEA-WEB PORTAL Departments</div>
-                                {["TSD-DAMD", "ISD-MSD", "FSD-GAD", "ZONE-ZOS", "OGM", "TSD-DNOD", "CITET-ETS"].map((dept) => (
+                                {["TSD-DAMD", "ISD-MSD", "ISD-HRADD", "FSD-GAD", "ZONE-ZOS", "OGM", "TSD-DNOD", "CITET-ETS"].map((dept) => (
                                   <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
                                     <Checkbox
                                       checked={concernDepartment.includes(dept)}
@@ -4148,6 +4155,7 @@ function CalendarContent() {
                       <>
                         <SelectItem value="TSD-DAMD">TSD-DAMD</SelectItem>
                         <SelectItem value="ISD-MSD">ISD-MSD</SelectItem>
+                        <SelectItem value="ISD-HRADD">ISD-HRADD</SelectItem>
                         <SelectItem value="FSD-GAD">FSD-GAD</SelectItem>
                         <SelectItem value="ZONE-ZOS">ZONE-ZOS</SelectItem>
                         <SelectItem value="OGM">OGM</SelectItem>

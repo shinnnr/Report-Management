@@ -194,7 +194,13 @@ export function useUpdateActivity() {
 
   return useMutation({
     retry: false,
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ title: string; description: string; deadlineDate: Date; status: string }> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<{ title: string; description: string; deadlineDate: Date; status: string; applyToSeries: boolean }>;
+    }) => {
       const url = buildUrl(api.activities.update.path, { id });
       const res = await fetch(url, {
         method: api.activities.update.method,

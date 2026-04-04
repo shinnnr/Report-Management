@@ -274,7 +274,9 @@ export const api = {
     update: {
       method: 'PATCH' as const,
       path: '/api/activities/:id',
-      input: insertActivitySchema.partial(),
+      input: insertActivitySchema.partial().extend({
+        applyToSeries: z.boolean().optional(),
+      }),
       responses: {
         200: z.custom<typeof activities.$inferSelect>(),
         404: errorSchemas.notFound,
