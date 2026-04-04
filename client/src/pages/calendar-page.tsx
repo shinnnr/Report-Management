@@ -1096,6 +1096,27 @@ function CalendarContent() {
     return scrollAreaRoot.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]');
   }, []);
 
+  const getMonthScrollContainer = useCallback(() => {
+    if (typeof window === "undefined") return null;
+
+    let currentElement = monthCalendarContainerRef.current?.parentElement ?? null;
+
+    while (currentElement) {
+      const { overflowY } = window.getComputedStyle(currentElement);
+      const canScrollVertically =
+        /(auto|scroll|overlay)/.test(overflowY) &&
+        currentElement.scrollHeight > currentElement.clientHeight;
+
+      if (canScrollVertically) {
+        return currentElement;
+      }
+
+      currentElement = currentElement.parentElement;
+    }
+
+    return document.scrollingElement instanceof HTMLElement ? document.scrollingElement : null;
+  }, []);
+
   const updateAutoScrollForPointer = useCallback((clientX: number, clientY: number) => {
     if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
       stopAutoScroll();
@@ -1106,6 +1127,7 @@ function CalendarContent() {
     const scrollSpeed = 20;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const monthScrollContainer = view === 'month' ? getMonthScrollContainer() : null;
     const monthContainerRect =
       view === 'month' ? monthCalendarContainerRef.current?.getBoundingClientRect() ?? null : null;
 
@@ -1140,6 +1162,33 @@ function CalendarContent() {
       }
     }
 
+    if (!scrollDirection && monthScrollContainer) {
+      const rect = monthScrollContainer.getBoundingClientRect();
+      const visibleTop = Math.max(rect.top, 0);
+      const visibleBottom = Math.min(rect.bottom, viewportHeight);
+      const canScrollUp = monthScrollContainer.scrollTop > 0;
+      const canScrollDown =
+        monthScrollContainer.scrollTop + monthScrollContainer.clientHeight < monthScrollContainer.scrollHeight - 1;
+      const hasVisibleVerticalArea = visibleBottom > visibleTop;
+      const monthTopAboveVisibleArea = monthContainerRect ? monthContainerRect.top < visibleTop : false;
+      const monthBottomBelowVisibleArea = monthContainerRect ? monthContainerRect.bottom > visibleBottom : false;
+
+      if (hasVisibleVerticalArea && clientY < visibleTop + scrollThreshold && canScrollUp && monthTopAboveVisibleArea) {
+        scrollDirection = 'up';
+        targetType = 'viewport';
+        targetElement = monthScrollContainer;
+      } else if (
+        hasVisibleVerticalArea &&
+        clientY > visibleBottom - scrollThreshold &&
+        canScrollDown &&
+        monthBottomBelowVisibleArea
+      ) {
+        scrollDirection = 'down';
+        targetType = 'viewport';
+        targetElement = monthScrollContainer;
+      }
+    }
+
     if (!scrollDirection) {
       if (clientX < scrollThreshold) {
         scrollDirection = 'left';
@@ -1147,12 +1196,14 @@ function CalendarContent() {
         scrollDirection = 'right';
       }
 
+      const allowWindowVerticalScroll = view !== 'month' || !monthScrollContainer;
+
       if (clientY < scrollThreshold) {
-        if (!monthContainerRect || monthContainerRect.top < 0) {
+        if (allowWindowVerticalScroll && (!monthContainerRect || monthContainerRect.top < 0)) {
           scrollDirection = 'up';
         }
       } else if (clientY > viewportHeight - scrollThreshold) {
-        if (!monthContainerRect || monthContainerRect.bottom > viewportHeight) {
+        if (allowWindowVerticalScroll && (!monthContainerRect || monthContainerRect.bottom > viewportHeight)) {
           scrollDirection = 'down';
         }
       }
@@ -1189,12 +1240,31 @@ function CalendarContent() {
 
     const intervalId = setInterval(() => {
       if (!draggedActivity && !mouseDragRef.current?.hasStarted) {
-        clearInterval(intervalId);
-        autoScrollRef.current.intervalId = null;
+        stopAutoScroll();
         return;
       }
 
       if (targetType === 'viewport' && targetElement) {
+        if (view === 'month' && targetElement === monthScrollContainer) {
+          const currentMonthContainerRect = monthCalendarContainerRef.current?.getBoundingClientRect();
+          const currentScrollContainerRect = targetElement.getBoundingClientRect();
+          const visibleTop = Math.max(currentScrollContainerRect.top, 0);
+          const visibleBottom = Math.min(currentScrollContainerRect.bottom, window.innerHeight);
+          const canScrollUp = targetElement.scrollTop > 0;
+          const canScrollDown =
+            targetElement.scrollTop + targetElement.clientHeight < targetElement.scrollHeight - 1;
+          const canContinueScrolling = currentMonthContainerRect
+            ? scrollDirection === 'down'
+              ? currentMonthContainerRect.bottom > visibleBottom && canScrollDown
+              : currentMonthContainerRect.top < visibleTop && canScrollUp
+            : false;
+
+          if (!canContinueScrolling) {
+            stopAutoScroll();
+            return;
+          }
+        }
+
         switch (scrollDirection) {
           case 'up':
             targetElement.scrollBy({ top: -scrollSpeed, behavior: 'auto' });
@@ -1248,7 +1318,7 @@ function CalendarContent() {
     }, 16);
 
     autoScrollRef.current.intervalId = intervalId;
-  }, [draggedActivity, getScrollAreaViewport, stopAutoScroll, view]);
+  }, [draggedActivity, getMonthScrollContainer, getScrollAreaViewport, stopAutoScroll, view]);
 
   // Handle drag over for time slot (Week/Day view)
   const handleTimeSlotDragOver = (e: React.DragEvent, date: Date, time: string) => {
