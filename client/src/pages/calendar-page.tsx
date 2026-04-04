@@ -265,7 +265,7 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
 };
 
 const MONTH_VIEW_VISIBLE_ACTIVITIES = 2;
-const TIME_SLOT_VISIBLE_ACTIVITIES = 2;
+const TIME_SLOT_VISIBLE_ACTIVITIES = 1;
 
 const getCalendarDisplayDate = (activity: any): Date => {
   return new Date(activity.deadlineDate);
@@ -584,6 +584,9 @@ function CalendarContent() {
     holidayName !== editingHoliday.name || 
     (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
   );
+  const selectedSubmissionHoliday = holidaysEnabledData
+    ? holidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
+    : undefined;
 
   const scrollHolidayModalToForm = () => {
     requestAnimationFrame(() => {
@@ -1270,6 +1273,8 @@ function CalendarContent() {
   // Calculate padding days for grid alignment
   const startDay = startOfMonth(currentDate).getDay();
   const paddingDays = Array.from({ length: startDay });
+  const trailingPaddingCount = (7 - ((paddingDays.length + daysInMonth.length) % 7)) % 7;
+  const trailingPaddingDays = Array.from({ length: trailingPaddingCount });
 
   // Handle single/double click detection for mobile
   const handleDateClick = useCallback((date: Date) => {
@@ -1453,45 +1458,73 @@ function CalendarContent() {
     }
   };
 
-  // Get multi-colored border for a day cell with multiple activities
-  const getMultiStatusBorderColor = (activities: any[]): { borderClass: string; style?: React.CSSProperties } => {
-    if (!activities || activities.length === 0) return { borderClass: '', style: undefined };
-    
-    // Get unique statuses from activities
+  // Get the left stripe style for a day cell with one or more activities
+  const getDayCellStatusStripe = (activities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
+    if (!activities || activities.length === 0) return { stripeClass: '', style: undefined };
+
     const statuses = Array.from(new Set(activities.map(a => a.status)));
-    
-    if (statuses.length === 0) return { borderClass: '', style: undefined };
-    if (statuses.length === 1) {
-      // Single status - use the regular border color
-      return { borderClass: getStatusBorderColor(statuses[0]), style: undefined };
-    }
-    
-    // Multiple statuses - create a striped gradient border effect
-    // Map statuses to hex colors
-    const colorMap: Record<string, string> = {
-      'completed': '#10b981', // emerald-500
-      'overdue': '#ef4444', // red-500
-      'late': '#f97316', // orange-500
-      'in-progress': '#3b82f6', // blue-500
-      'pending': '#f59e0b', // amber-500
+
+    if (statuses.length === 0) return { stripeClass: '', style: undefined };
+
+    const colorMap: Record<string, { className: string; hex: string }> = {
+      'completed': { className: 'bg-emerald-500', hex: '#10b981' },
+      'overdue': { className: 'bg-red-500', hex: '#ef4444' },
+      'late': { className: 'bg-orange-500', hex: '#f97316' },
+      'in-progress': { className: 'bg-blue-500', hex: '#3b82f6' },
+      'pending': { className: 'bg-amber-500', hex: '#f59e0b' },
     };
-    
-    // Build gradient colors for the border
-    const colors = statuses.map(status => colorMap[status] || colorMap['pending']);
-    
-    // Create a repeating linear gradient for striped effect
+
+    if (statuses.length === 1) {
+      const stripe = colorMap[statuses[0]] || colorMap.pending;
+      return { stripeClass: stripe.className, style: undefined };
+    }
+
+    const colors = statuses.map(status => (colorMap[status] || colorMap.pending).hex);
     const stripeWidth = 100 / colors.length;
-    const gradientStops = colors.map((color, i) => 
+    const gradientStops = colors.map((color, i) =>
       `${color} ${i * stripeWidth}% ${(i + 1) * stripeWidth}%`
     ).join(', ');
-    
-    return { 
-      borderClass: 'border-l-4', 
-      style: { 
+
+    return {
+      stripeClass: '',
+      style: {
+        background: `linear-gradient(to bottom, ${gradientStops})`,
+      }
+    };
+  };
+
+  // Get multi-colored border for week/day time slots with multiple activities
+  const getMultiStatusBorderColor = (activities: any[]): { borderClass: string; style?: React.CSSProperties } => {
+    if (!activities || activities.length === 0) return { borderClass: '', style: undefined };
+
+    const statuses = Array.from(new Set(activities.map(a => a.status)));
+
+    if (statuses.length === 0) return { borderClass: '', style: undefined };
+    if (statuses.length === 1) {
+      return { borderClass: getStatusBorderColor(statuses[0]), style: undefined };
+    }
+
+    const colorMap: Record<string, string> = {
+      'completed': '#10b981',
+      'overdue': '#ef4444',
+      'late': '#f97316',
+      'in-progress': '#3b82f6',
+      'pending': '#f59e0b',
+    };
+
+    const colors = statuses.map(status => colorMap[status] || colorMap.pending);
+    const stripeWidth = 100 / colors.length;
+    const gradientStops = colors.map((color, i) =>
+      `${color} ${i * stripeWidth}% ${(i + 1) * stripeWidth}%`
+    ).join(', ');
+
+    return {
+      borderClass: 'border-l-4',
+      style: {
         borderImage: `linear-gradient(to bottom, ${gradientStops}) 1`,
         borderLeftWidth: '4px',
         borderLeftStyle: 'solid'
-      } 
+      }
     };
   };
 
@@ -1673,6 +1706,14 @@ function CalendarContent() {
 
   const handleSubmit = async () => {
     if (!selectedActivity || selectedFiles.length === 0) return;
+    if (selectedSubmissionHoliday) {
+      toast({
+        title: "Invalid submission date",
+        description: `Submission date falls on ${selectedSubmissionHoliday.name}. Choose a different date while holidays are enabled.`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Calculate deadline year/month from activity (before file reading)
     const deadlineDate = new Date(selectedActivity.deadlineDate);
@@ -1711,6 +1752,7 @@ function CalendarContent() {
           deadlineYear,
           deadlineMonth,
           submissionDate: submissionDate.toISOString(),
+          submissionDateKey: format(submissionDate, 'yyyy-MM-dd'),
         }),
       });
 
@@ -2938,9 +2980,16 @@ function CalendarContent() {
                         selected={submissionDate}
                         onSelect={(date) => date && setSubmissionDate(date)}
                         initialFocus
+                        holidays={holidays}
+                        holidaysEnabled={holidaysEnabledData}
                       />
                     </PopoverContent>
                   </Popover>
+                  {selectedSubmissionHoliday && (
+                    <p className="text-sm text-destructive">
+                      Submission date falls on {selectedSubmissionHoliday.name}. Choose a different date while holidays are enabled.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -3587,10 +3636,10 @@ function CalendarContent() {
 
           const indicators = getDateIndicators(date);
 
-          const multiBorder =
+          const dayCellStripe =
             dayActivities.length > 0
-              ? getMultiStatusBorderColor(dayActivities)
-              : { borderClass: '', style: undefined };
+              ? getDayCellStatusStripe(dayActivities)
+              : { stripeClass: '', style: undefined };
 
           const isLastDayOfMonth = isSameDay(date, endOfMonth(date));
 
@@ -3598,32 +3647,43 @@ function CalendarContent() {
             <div
               key={date.toISOString()}
              className={cn(
-                 "h-[132px] overflow-hidden border-b border-r px-2 py-2 transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 relative flex flex-col select-none",
-                 !isLastDayOfMonth && "last:border-r-0",
-                 selectedDate &&
-                   isSameDay(date, selectedDate) &&
-                   "ring-2 ring-primary ring-inset bg-primary/5",
-                 dropTargetDate &&
-                   isSameDay(date, dropTargetDate) &&
-                   "bg-primary/20 ring-2 ring-primary",
-                 dayActivities.length > 0 && multiBorder.borderClass,
-                 indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
-               )}
-               style={multiBorder.style}
-               onMouseDown={(e) => e.preventDefault()}
-               onClick={(e) => {
-                 e.stopPropagation();
-                 handleDateClick(date);
-               }}
-               onDragOver={(e) => handleDateDragOver(e, date)}
+                 "h-[132px] overflow-hidden border-b border-r px-2 py-2 transition-colors cursor-pointer hover:bg-primary/10 border-gray-200 dark:border-gray-800 bg-muted/5 dark:bg-muted/10 relative flex flex-col select-none",
+                  !isLastDayOfMonth && "last:border-r-0",
+                  selectedDate &&
+                    isSameDay(date, selectedDate) &&
+                    "bg-primary/5",
+                  dropTargetDate &&
+                    isSameDay(date, dropTargetDate) &&
+                    "bg-primary/20 ring-2 ring-primary",
+                  indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDateClick(date);
+                }}
+                onDragOver={(e) => handleDateDragOver(e, date)}
                onDragLeave={() => {
                  setDropTargetDate(null);
                  stopAutoScroll();
-               }}
-               onDrop={(e) => handleDateDrop(e, date)}
-             >
-              {/* Date */}
-              <div
+                }}
+                onDrop={(e) => handleDateDrop(e, date)}
+              >
+               {dayActivities.length > 0 && (
+                 <div
+                   aria-hidden="true"
+                   className={cn("pointer-events-none absolute inset-y-0 left-0 w-1", dayCellStripe.stripeClass)}
+                   style={dayCellStripe.style}
+                 />
+               )}
+               {selectedDate && isSameDay(date, selectedDate) && (
+                 <div
+                   aria-hidden="true"
+                   className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
+                 />
+               )}
+               {/* Date */}
+               <div
                 className={cn(
                   "w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-2",
                   isToday(date)
@@ -3668,9 +3728,8 @@ function CalendarContent() {
                     className={cn(
                       "mb-1 h-6 text-xs px-1.5 py-1 rounded-md border truncate font-medium text-left cursor-move hover:opacity-80 transition-opacity",
                       getStatusColor(activity.status),
+                      "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                       getStatusBorderColor?.(activity.status),
-                      selectedActivity?.id === activity.id &&
-                        "ring-2 ring-primary ring-offset-1",
                       draggedActivity?.id === activity.id &&
                         "opacity-50"
                     )}
@@ -3697,6 +3756,14 @@ function CalendarContent() {
             </div>
           );
         })}
+
+        {/* Trailing Padding */}
+        {trailingPaddingDays.map((_, i) => (
+          <div
+            key={`trailing-padding-${i}`}
+            className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800"
+          />
+        ))}
       </div>
   </>
 )}
@@ -3881,11 +3948,12 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                           getStatusBorderColor(activity.status)
                         )}
                       >
                         <div className="font-medium text-sm">{activity.title}</div>
-                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           Due: {format(new Date(activity.deadlineDate), 'MMM d, yyyy')}
                         </div>
                       </button>
@@ -3932,6 +4000,7 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                           getStatusBorderColor(activity.status)
                         )}
                       >
@@ -4139,6 +4208,7 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                           getStatusBorderColor(activity.status)
                         )}
                       >
@@ -5152,6 +5222,40 @@ function WeekView({
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
+  const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
+    if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
+
+    const statuses = Array.from(new Set(slotActivities.map(a => a.status)));
+
+    if (statuses.length === 0) return { stripeClass: '', style: undefined };
+
+    const colorMap: Record<string, { className: string; hex: string }> = {
+      'completed': { className: 'bg-emerald-500', hex: '#10b981' },
+      'overdue': { className: 'bg-red-500', hex: '#ef4444' },
+      'late': { className: 'bg-orange-500', hex: '#f97316' },
+      'in-progress': { className: 'bg-blue-500', hex: '#3b82f6' },
+      'pending': { className: 'bg-amber-500', hex: '#f59e0b' },
+    };
+
+    if (statuses.length === 1) {
+      const stripe = colorMap[statuses[0]] || colorMap.pending;
+      return { stripeClass: stripe.className, style: undefined };
+    }
+
+    const colors = statuses.map(status => (colorMap[status] || colorMap.pending).hex);
+    const stripeWidth = 100 / colors.length;
+    const gradientStops = colors.map((color, i) =>
+      `${color} ${i * stripeWidth}% ${(i + 1) * stripeWidth}%`
+    ).join(', ');
+
+    return {
+      stripeClass: '',
+      style: {
+        background: `linear-gradient(to bottom, ${gradientStops})`,
+      }
+    };
+  };
+
   // Helper to get activity's scheduled hour (default to 23 if no specific time)
   const getActivityHour = (activity: any): number => {
     const deadlineDate = new Date(activity.deadlineDate);
@@ -5217,22 +5321,21 @@ function WeekView({
                 // Filter activities for this specific day AND hour
                 const dayHourActivities = activities
                   .filter(a => isSameDay(getCalendarDisplayDate(a), day) && getActivityHour(a) === hour);
+                const timeSlotStripe = getTimeSlotStatusStripe(dayHourActivities);
                 
                 return (
                    <div 
                      key={`${day.toISOString()}-${hour}`}
                      data-date={day.toISOString()}
                      data-time-slot={timeString}
-                     className={cn(
-                       "h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
-                       isToday(day) && "bg-primary/5",
-                       selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
-                       selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
-                       // Drag over visual feedback
-                       dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
-                       dayHourActivities.length > 0 && getMultiStatusBorderColor?.(dayHourActivities)?.borderClass
-                     )}
-                     style={getMultiStatusBorderColor?.(dayHourActivities)?.style}
+                      className={cn(
+                        "relative h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
+                        isToday(day) && "bg-primary/5",
+                        selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
+                        selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-primary/5",
+                        // Drag over visual feedback
+                        dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                      )}
                      onMouseDown={(e) => e.preventDefault()}
                      onClick={() => {
                        onDateSelect(day);
@@ -5242,47 +5345,62 @@ function WeekView({
                      onDragOver={(e) => onTimeSlotDragOver?.(e, day, timeString)}
                      onDragLeave={onTimeSlotDragLeave}
                      onDrop={(e) => onTimeSlotDrop?.(e, day, timeString)}
-                   >
-                    {/* Activities for this specific hour - show max 2 */}
-                    {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
+                    >
+                     {dayHourActivities.length > 0 && (
                       <div
-                        key={activity.id}
-                        draggable
-                        onDragStart={(e) => onActivityDragStart?.(e, activity)}
-                        onDragEnd={onDragEnd}
-                        onTouchStart={(e) => onTouchDragStart?.(activity, e)}
-                        onTouchMove={onTouchDragMove}
-                        onTouchEnd={(e) => onTouchDragEnd?.(e)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onActivityClick(activity);
-                        }}
-                        className={cn(
-                          "text-xs p-1 rounded border truncate font-medium cursor-move hover:opacity-80 transition-opacity select-none",
-                          getStatusColor(activity.status),
-                          getStatusBorderColor?.(activity.status),
-                          draggedActivity?.id === activity.id && "opacity-50 scale-95",
-                          activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
-                        )}
-                      >
-                        {activity.title}
-                      </div>
-                    ))}
-                    {/* Show +X more if there are more than 2 activities */}
-                    {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                      <div 
-                        className="select-none text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Open a modal showing all activities for this time slot
-                          setShowTimeSlotActivitiesModal?.(true);
-                          setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
-                        }}
-                      >
-                        +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
-                      </div>
+                        aria-hidden="true"
+                        className={cn("pointer-events-none absolute inset-y-0 left-0 w-1", timeSlotStripe.stripeClass)}
+                        style={timeSlotStripe.style}
+                      />
                     )}
+                    {selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && (
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
+                      />
+                    )}
+                    <div className="flex h-full flex-col justify-center gap-1 px-1">
+                      {/* Activities for this specific hour */}
+                      {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
+                        <div
+                          key={activity.id}
+                          draggable
+                          onDragStart={(e) => onActivityDragStart?.(e, activity)}
+                          onDragEnd={onDragEnd}
+                          onTouchStart={(e) => onTouchDragStart?.(activity, e)}
+                          onTouchMove={onTouchDragMove}
+                          onTouchEnd={(e) => onTouchDragEnd?.(e)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onActivityClick(activity);
+                          }}
+                          className={cn(
+                            "text-xs p-1 rounded border truncate font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                            getStatusColor(activity.status),
+                            "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                            getStatusBorderColor?.(activity.status),
+                            draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                            activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+                          )}
+                        >
+                          {activity.title}
+                        </div>
+                      ))}
+                      {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
+                        <div 
+                          className="select-none text-xs text-muted-foreground font-medium cursor-pointer hover:text-primary px-1 py-0.5"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Open a modal showing all activities for this time slot
+                            setShowTimeSlotActivitiesModal?.(true);
+                            setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
+                          }}
+                        >
+                          +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -5368,6 +5486,40 @@ function DayView({
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const dayActivities = activities.filter(a => isSameDay(getCalendarDisplayDate(a), currentDate));
 
+  const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
+    if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
+
+    const statuses = Array.from(new Set(slotActivities.map(a => a.status)));
+
+    if (statuses.length === 0) return { stripeClass: '', style: undefined };
+
+    const colorMap: Record<string, { className: string; hex: string }> = {
+      'completed': { className: 'bg-emerald-500', hex: '#10b981' },
+      'overdue': { className: 'bg-red-500', hex: '#ef4444' },
+      'late': { className: 'bg-orange-500', hex: '#f97316' },
+      'in-progress': { className: 'bg-blue-500', hex: '#3b82f6' },
+      'pending': { className: 'bg-amber-500', hex: '#f59e0b' },
+    };
+
+    if (statuses.length === 1) {
+      const stripe = colorMap[statuses[0]] || colorMap.pending;
+      return { stripeClass: stripe.className, style: undefined };
+    }
+
+    const colors = statuses.map(status => (colorMap[status] || colorMap.pending).hex);
+    const stripeWidth = 100 / colors.length;
+    const gradientStops = colors.map((color, i) =>
+      `${color} ${i * stripeWidth}% ${(i + 1) * stripeWidth}%`
+    ).join(', ');
+
+    return {
+      stripeClass: '',
+      style: {
+        background: `linear-gradient(to bottom, ${gradientStops})`,
+      }
+    };
+  };
+
   // Helper to get activity's scheduled hour (default to 23 if no time)
   const getActivityHour = (activity: any): number => {
     const deadlineDate = new Date(activity.deadlineDate);
@@ -5407,6 +5559,7 @@ function DayView({
         {hours.map((hour) => {
           const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
+          const timeSlotStripe = getTimeSlotStatusStripe(hourActivities);
           
           return (
             <div key={hour} className="grid grid-cols-[80px_1fr] border-b border-gray-100 dark:border-gray-800">
@@ -5415,63 +5568,76 @@ function DayView({
               </div>
                <div 
                  className={cn(
-                   "h-[88px] overflow-hidden p-1 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
-                   selectedTimeSlot === timeString && "bg-blue-200 dark:bg-blue-800 ring-2 ring-blue-500",
-                   // Drag over visual feedback
-                   dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset",
-                   hourActivities.length > 0 && getMultiStatusBorderColor?.(hourActivities)?.borderClass
-                 )}
-                 style={getMultiStatusBorderColor?.(hourActivities)?.style}
-                 data-date={currentDate.toISOString()}
-                 data-time-slot={timeString}
-                 onMouseDown={(e) => e.preventDefault()}
-                 onClick={() => onSelectTimeSlot(currentDate, timeString)}
-                 onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
-                 onDragLeave={onTimeSlotDragLeave}
-                 onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
-               >
-                {/* Activities for this specific hour - show max 2 */}
-                {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
+                    "relative h-[88px] overflow-hidden p-1 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
+                    selectedTimeSlot === timeString && "bg-primary/5",
+                    // Drag over visual feedback
+                    dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                  )}
+                  data-date={currentDate.toISOString()}
+                  data-time-slot={timeString}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onSelectTimeSlot(currentDate, timeString)}
+                  onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
+                  onDragLeave={onTimeSlotDragLeave}
+                  onDrop={(e) => onTimeSlotDrop?.(e, currentDate, timeString)}
+                >
+                 {hourActivities.length > 0 && (
                   <div
-                    key={activity.id}
-                    draggable
-                    onDragStart={(e) => onActivityDragStart?.(e, activity)}
-                    onDragEnd={onDragEnd}
-                    onTouchStart={(e) => onTouchDragStart?.(activity, e)}
-                    onTouchMove={onTouchDragMove}
-                    onTouchEnd={(e) => onTouchDragEnd?.(e)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onActivityClick(activity);
-                    }}
-                    className={cn(
-                      "text-sm p-2 rounded-md border mb-1 font-medium cursor-move hover:opacity-80 transition-opacity select-none",
-                      getStatusColor(activity.status),
-                      getStatusBorderColor?.(activity.status),
-                      draggedActivity?.id === activity.id && "opacity-50 scale-95",
-                      activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
-                    )}
-                  >
-                    <div className="font-semibold">{activity.title}</div>
-                    {activity.description && (
-                      <div className="text-xs mt-1 opacity-80">{activity.description}</div>
-                    )}
-                  </div>
-                ))}
-                {/* Show +X more if there are more than 2 activities */}
-                {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                  <div 
-                    className="select-none text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowTimeSlotActivitiesModal?.(true);
-                      setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
-                    }}
-                  >
-                    +{hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
-                  </div>
+                    aria-hidden="true"
+                    className={cn("pointer-events-none absolute inset-y-0 left-0 w-1", timeSlotStripe.stripeClass)}
+                    style={timeSlotStripe.style}
+                  />
                 )}
+                {selectedTimeSlot === timeString && (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
+                  />
+                )}
+                <div className="flex h-full flex-col justify-center gap-1 px-1">
+                  {/* Activities for this specific hour */}
+                  {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
+                    <div
+                      key={activity.id}
+                      draggable
+                      onDragStart={(e) => onActivityDragStart?.(e, activity)}
+                      onDragEnd={onDragEnd}
+                      onTouchStart={(e) => onTouchDragStart?.(activity, e)}
+                      onTouchMove={onTouchDragMove}
+                      onTouchEnd={(e) => onTouchDragEnd?.(e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onActivityClick(activity);
+                      }}
+                      className={cn(
+                        "text-sm p-2 rounded-md border mb-1 font-medium cursor-move hover:opacity-80 transition-opacity select-none",
+                        getStatusColor(activity.status),
+                        "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                        getStatusBorderColor?.(activity.status),
+                        draggedActivity?.id === activity.id && "opacity-50 scale-95",
+                        activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+                      )}
+                    >
+                      <div className="font-semibold">{activity.title}</div>
+                      {activity.description && (
+                        <div className="text-xs mt-1 opacity-80">{activity.description}</div>
+                      )}
+                    </div>
+                  ))}
+                  {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
+                    <div 
+                      className="select-none text-sm text-muted-foreground font-medium cursor-pointer hover:text-primary px-2 py-1"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTimeSlotActivitiesModal?.(true);
+                        setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
+                      }}
+                    >
+                      +{hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );

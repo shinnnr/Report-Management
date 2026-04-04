@@ -86,6 +86,19 @@ async function comparePassword(supplied: string, stored: string) {
   return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
 }
 
+async function getSubmissionHolidayConflict(date: Date, submissionDateKey?: string) {
+  const holidaysEnabled = await storage.getSetting('holidays_enabled');
+  if (holidaysEnabled === 'false') return null;
+
+  const targetDateKey = submissionDateKey || format(date, 'yyyy-MM-dd');
+  const holidays = await storage.getHolidays();
+
+  return holidays.find((holiday) => {
+    const holidayDateKey = format(new Date(holiday.date), 'yyyy-MM-dd');
+    return holidayDateKey === targetDateKey;
+  }) || null;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -979,7 +992,7 @@ export async function registerRoutes(
       // Allow multiple submissions to the same activity (user can upload additional files)
       // No check needed here as we want to allow multiple files per activity
 
-      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth, submissionDate } = req.body;
+      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth, submissionDate, submissionDateKey } = req.body;
 
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -997,6 +1010,12 @@ export async function registerRoutes(
 
       const deadline = new Date(activity.deadlineDate);
       const now = submissionDate ? new Date(submissionDate) : new Date();
+      const holidayConflict = await getSubmissionHolidayConflict(now, submissionDateKey);
+      if (holidayConflict) {
+        return res.status(400).json({
+          message: `Submission date falls on ${holidayConflict.name}. Choose a different date while holidays are enabled.`
+        });
+      }
       const isLate = now > deadline;
 
       // Create organized folder structure: {Activity Year}/{Activity Month}/(files uploaded)
@@ -1145,7 +1164,7 @@ export async function registerRoutes(
     try {
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
-      const { files, activityTitle, suppressNotification, deadlineYear, deadlineMonth, submissionDate } = req.body;
+      const { files, activityTitle, suppressNotification, deadlineYear, deadlineMonth, submissionDate, submissionDateKey } = req.body;
 
       if (!files || !Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ message: "No files provided" });
@@ -1159,6 +1178,12 @@ export async function registerRoutes(
 
       const deadline = new Date(activity.deadlineDate);
       const now = submissionDate ? new Date(submissionDate) : new Date();
+      const holidayConflict = await getSubmissionHolidayConflict(now, submissionDateKey);
+      if (holidayConflict) {
+        return res.status(400).json({
+          message: `Submission date falls on ${holidayConflict.name}. Choose a different date while holidays are enabled.`
+        });
+      }
       const isLate = now > deadline;
 
       // Calculate year/month (use client-provided values or extract from deadline)

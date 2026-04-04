@@ -131,7 +131,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0 border-t">
+          <div className="mt-2 flex min-h-[88px] shrink-0 flex-col items-start justify-between gap-2 border-t py-2 sm:min-h-[56px] sm:flex-row sm:items-center sm:gap-0">
             <div className="flex items-center gap-2">
               {notifications && notifications.length >= notificationsPerPage && (
                 <>
@@ -157,22 +157,23 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-4">
-              {selectedNotifications.length > 0 && (
-                <>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedNotifications.length} selected
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteSelected}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Delete Selected
-                  </Button>
-                </>
-              )}
+            <div className="flex min-h-9 items-center gap-4">
+              <span
+                className={`text-sm text-muted-foreground ${
+                  selectedNotifications.length > 0 ? "" : "invisible"
+                }`}
+              >
+                {selectedNotifications.length > 0 ? `${selectedNotifications.length} selected` : "0 selected"}
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                disabled={selectedNotifications.length === 0 || deleteMutation.isPending}
+                className={selectedNotifications.length > 0 ? "" : "invisible pointer-events-none"}
+              >
+                Delete Selected
+              </Button>
             </div>
           </div>
       </DialogContent>
