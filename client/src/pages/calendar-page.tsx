@@ -700,6 +700,7 @@ function CalendarContent() {
   const [isMouseDragArmed, setIsMouseDragArmed] = useState(false);
   const weekScrollAreaRef = useRef<HTMLDivElement>(null);
   const dayScrollAreaRef = useRef<HTMLDivElement>(null);
+  const monthCalendarContainerRef = useRef<HTMLDivElement>(null);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -1105,6 +1106,8 @@ function CalendarContent() {
     const scrollSpeed = 20;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const monthContainerRect =
+      view === 'month' ? monthCalendarContainerRef.current?.getBoundingClientRect() ?? null : null;
 
     const activeScrollViewport =
       view === 'week'
@@ -1145,9 +1148,13 @@ function CalendarContent() {
       }
 
       if (clientY < scrollThreshold) {
-        scrollDirection = 'up';
+        if (!monthContainerRect || monthContainerRect.top < 0) {
+          scrollDirection = 'up';
+        }
       } else if (clientY > viewportHeight - scrollThreshold) {
-        scrollDirection = 'down';
+        if (!monthContainerRect || monthContainerRect.bottom > viewportHeight) {
+          scrollDirection = 'down';
+        }
       }
 
       if (scrollDirection) {
@@ -1203,6 +1210,25 @@ function CalendarContent() {
             break;
         }
         return;
+      }
+
+      if (view === 'month' && (scrollDirection === 'up' || scrollDirection === 'down')) {
+        const currentMonthContainerRect = monthCalendarContainerRef.current?.getBoundingClientRect();
+        const canContinueScrolling = currentMonthContainerRect
+          ? scrollDirection === 'down'
+            ? currentMonthContainerRect.bottom > window.innerHeight
+            : currentMonthContainerRect.top < 0
+          : false;
+
+        if (!canContinueScrolling) {
+          clearInterval(intervalId);
+          autoScrollRef.current.intervalId = null;
+          autoScrollRef.current.direction = null;
+          autoScrollRef.current.targetType = null;
+          autoScrollRef.current.targetElement = null;
+          setAutoScrollEnabled(false);
+          return;
+        }
       }
 
       switch (scrollDirection) {
@@ -3822,7 +3848,10 @@ function CalendarContent() {
         */}
       </div>
 
-      <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div
+        ref={monthCalendarContainerRef}
+        className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden"
+      >
         {/* Calendar Header */}
         <div className="border-b border-gray-200 bg-muted/20 p-4 dark:border-gray-800 md:p-6">
           <div className="flex flex-col gap-4">
@@ -5598,7 +5627,7 @@ function WeekView({
   });
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="h-[600px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[500px] pr-4">
       <div className="h-full">
         {/* Week header */}
         <div className="grid grid-cols-8 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-background z-10">
@@ -5876,7 +5905,7 @@ function DayView({
   };
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="h-[600px] pr-4">
+    <ScrollArea ref={scrollAreaRef} className="h-[500px] pr-4">
       <div className="h-full">
         {/* Day header */}
         <div className={cn(
