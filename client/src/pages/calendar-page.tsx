@@ -391,23 +391,23 @@ function ActivityDragPreviewCard({
 
   const baseClasses =
     variant === 'month'
-      ? "mb-1 h-6 px-1.5 py-1 text-xs truncate"
+      ? "mb-1 h-6 px-1.5 py-1 text-xs truncate rounded-md"
       : variant === 'week'
-        ? "p-1 text-xs truncate"
-        : "mb-1 p-2 text-sm";
+        ? "w-full p-1 text-xs truncate rounded"
+        : "w-full mb-1 p-2 text-sm rounded-md";
 
   return (
     <div
       aria-hidden="true"
       className={cn(
-        "pointer-events-none rounded-md border font-medium text-left opacity-60 cursor-move select-none",
+        "pointer-events-none border font-medium text-left opacity-50 cursor-move select-none",
         baseClasses,
         getActivityPreviewStatusColor(activity.status),
         "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
         getActivityPreviewBorderColor(activity.status),
       )}
     >
-      <div className="truncate">{activity.title}</div>
+      <div className={cn("truncate", variant === 'day' && "font-semibold")}>{activity.title}</div>
       {variant === 'day' && activity.description && (
         <div className="mt-1 truncate text-xs opacity-80">{activity.description}</div>
       )}
@@ -427,6 +427,13 @@ type MouseActivityDragState = {
   currentX: number;
   currentY: number;
   hasStarted: boolean;
+};
+
+const areSameCalendarDropTarget = (a: CalendarDropTarget | null, b: CalendarDropTarget | null) => {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+
+  return a.time === b.time && isSameDay(a.date, b.date);
 };
 
 const getCalendarDropTargetFromElement = (element: Element | null): CalendarDropTarget | null => {
@@ -686,6 +693,7 @@ function CalendarContent() {
   const transparentDragImageRef = useRef<HTMLCanvasElement | null>(null);
   const dragCursorStyleRef = useRef<HTMLStyleElement | null>(null);
   const mouseDragRef = useRef<MouseActivityDragState | null>(null);
+  const activeDropTargetRef = useRef<CalendarDropTarget | null>(null);
   const suppressNextActivityClickRef = useRef<number | null>(null);
   const [isMouseDragArmed, setIsMouseDragArmed] = useState(false);
   
@@ -1048,6 +1056,11 @@ function CalendarContent() {
   };
 
   const setActiveDropTarget = useCallback((target: CalendarDropTarget | null) => {
+    if (areSameCalendarDropTarget(activeDropTargetRef.current, target)) {
+      return;
+    }
+
+    activeDropTargetRef.current = target;
     setDropTargetDate(target?.date ?? null);
     setDropTargetTime(target?.time ?? null);
     setIsDraggingOverTimeSlot(Boolean(target?.time));
@@ -1153,6 +1166,7 @@ function CalendarContent() {
   };
 
   const resetDragInteractionState = useCallback(() => {
+    activeDropTargetRef.current = null;
     setDraggedActivity(null);
     setDropTargetDate(null);
     setDropTargetTime(null);
@@ -1297,6 +1311,7 @@ function CalendarContent() {
 
       dragContext.currentX = event.clientX;
       dragContext.currentY = event.clientY;
+      const nextDropTarget = getCalendarDropTargetAtPoint(event.clientX, event.clientY);
 
       if (!dragContext.hasStarted) {
         const dragDistance = Math.hypot(
@@ -1310,10 +1325,12 @@ function CalendarContent() {
 
         dragContext.hasStarted = true;
         setDraggedActivity(dragContext.activity);
+        setActiveDropTarget(nextDropTarget);
+      } else {
+        setActiveDropTarget(nextDropTarget);
       }
 
       event.preventDefault();
-      setActiveDropTarget(getCalendarDropTargetAtPoint(event.clientX, event.clientY));
       updateAutoScrollForPointer(event.clientX, event.clientY);
     };
 
@@ -3879,6 +3896,11 @@ function CalendarContent() {
             !dropTargetTime &&
             isSameDay(date, dropTargetDate)
           );
+          const visibleMonthActivities = dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES);
+          const monthPreviewIndex = draggedActivity
+            ? Math.max(visibleMonthActivities.findIndex((activity) => activity.id === draggedActivity.id), 0)
+            : 0;
+          const monthPreviewTopOffset = monthPreviewIndex * 28;
 
           const indicators = getDateIndicators(date);
 
@@ -3900,9 +3922,6 @@ function CalendarContent() {
                   selectedDate &&
                     isSameDay(date, selectedDate) &&
                     "bg-primary/5",
-                  dropTargetDate &&
-                    isSameDay(date, dropTargetDate) &&
-                    "bg-primary/20 ring-2 ring-primary",
                   indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
                 )}
                 onMouseDown={handleCalendarCellMouseDown}
@@ -3946,11 +3965,17 @@ function CalendarContent() {
               </div>
 
               {/* Activities */}
-              <div className="mt-1 flex-1 overflow-hidden">
+              <div className="relative mt-1 flex-1 overflow-hidden">
                 {showMonthDragPreview && draggedActivity && (
-                  <ActivityDragPreviewCard activity={draggedActivity} variant="month" />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 z-20"
+                    style={{ top: `${monthPreviewTopOffset}px` }}
+                  >
+                    <ActivityDragPreviewCard activity={draggedActivity} variant="month" />
+                  </div>
                 )}
-                {dayActivities.slice(0, MONTH_VIEW_VISIBLE_ACTIVITIES).map((activity) => (
+                {visibleMonthActivities.map((activity) => (
                   <div
                     key={activity.id}
                     data-activity-drag-handle="true"
@@ -5434,6 +5459,9 @@ function WeekView({
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 24 }, (_, i) => i);
+  const getDayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const weekDayKeys = weekDays.map(getDayKey);
+  const weekDayKeySet = new Set(weekDayKeys);
 
   const getTimeSlotStatusStripe = (slotActivities: any[]): { stripeClass: string; style?: React.CSSProperties } => {
     if (!slotActivities || slotActivities.length === 0) return { stripeClass: '', style: undefined };
@@ -5474,6 +5502,21 @@ function WeekView({
     const deadlineDate = new Date(activity.deadlineDate);
     return deadlineDate.getHours();
   };
+
+  const activitiesByWeekSlot = new Map<string, any[]>();
+  activities.forEach((activity) => {
+    const displayDate = getCalendarDisplayDate(activity);
+    const dayKey = getDayKey(displayDate);
+    if (!weekDayKeySet.has(dayKey)) return;
+
+    const slotKey = `${dayKey}-${getActivityHour(activity)}`;
+    const existingActivities = activitiesByWeekSlot.get(slotKey);
+    if (existingActivities) {
+      existingActivities.push(activity);
+    } else {
+      activitiesByWeekSlot.set(slotKey, [activity]);
+    }
+  });
 
   return (
     <ScrollArea className="h-[700px] pr-4">
@@ -5530,10 +5573,8 @@ function WeekView({
               <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
-              {weekDays.map((day) => {
-                // Filter activities for this specific day AND hour
-                const dayHourActivities = activities
-                  .filter(a => isSameDay(getCalendarDisplayDate(a), day) && getActivityHour(a) === hour);
+              {weekDays.map((day, dayIndex) => {
+                const dayHourActivities = activitiesByWeekSlot.get(`${weekDayKeys[dayIndex]}-${hour}`) ?? [];
                 const showSlotDragPreview = Boolean(
                   draggedActivity &&
                   dropTargetDate &&
@@ -5552,9 +5593,7 @@ function WeekView({
                         "relative h-[72px] overflow-hidden border-r last:border-r-0 p-1 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
                         isToday(day) && "bg-primary/5",
                         selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
-                        selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-primary/5",
-                        // Drag over visual feedback
-                        dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                        selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-primary/5"
                       )}
                      onMouseDown={handleCalendarCellMouseDown}
                      onClick={() => {
@@ -5579,13 +5618,18 @@ function WeekView({
                         className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
                       />
                     )}
+                    {showSlotDragPreview && draggedActivity && (
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-x-2 top-2 z-20"
+                      >
+                        <ActivityDragPreviewCard activity={draggedActivity} variant="week" />
+                      </div>
+                    )}
                     <div className={cn(
                       "flex h-full flex-col gap-1 px-1",
-                      showSlotDragPreview || dayHourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
+                      dayHourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
                     )}>
-                      {showSlotDragPreview && draggedActivity && (
-                        <ActivityDragPreviewCard activity={draggedActivity} variant="week" />
-                      )}
                       {/* Activities for this specific hour */}
                       {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                         <div
@@ -5604,7 +5648,7 @@ function WeekView({
                             getStatusColor(activity.status),
                             "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                             getStatusBorderColor?.(activity.status),
-                            draggedActivity?.id === activity.id && "opacity-50 scale-95 cursor-move",
+                            draggedActivity?.id === activity.id && "opacity-50 cursor-move",
                             activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                           )}
                         >
@@ -5798,9 +5842,7 @@ function DayView({
                <div 
                  className={cn(
                     "relative h-[88px] overflow-hidden p-1 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
-                    selectedTimeSlot === timeString && "bg-primary/5",
-                    // Drag over visual feedback
-                    dropTargetDate && isSameDay(dropTargetDate, currentDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
+                    selectedTimeSlot === timeString && "bg-primary/5"
                   )}
                   data-date={currentDate.toISOString()}
                   data-time-slot={timeString}
@@ -5824,13 +5866,18 @@ function DayView({
                     className="pointer-events-none absolute inset-0 z-10 border-2 border-primary"
                   />
                 )}
+                {showSlotDragPreview && draggedActivity && (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-2 top-2 z-20"
+                  >
+                    <ActivityDragPreviewCard activity={draggedActivity} variant="day" />
+                  </div>
+                )}
                 <div className={cn(
                   "flex h-full flex-col gap-1 px-1",
-                  showSlotDragPreview || hourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
+                  hourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
                 )}>
-                  {showSlotDragPreview && draggedActivity && (
-                    <ActivityDragPreviewCard activity={draggedActivity} variant="day" />
-                  )}
                   {/* Activities for this specific hour */}
                   {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
                     <div
@@ -5849,7 +5896,7 @@ function DayView({
                         getStatusColor(activity.status),
                         "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                         getStatusBorderColor?.(activity.status),
-                        draggedActivity?.id === activity.id && "opacity-50 scale-95 cursor-move",
+                        draggedActivity?.id === activity.id && "opacity-50 cursor-move",
                         activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                       )}
                     >
