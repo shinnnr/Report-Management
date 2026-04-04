@@ -845,11 +845,28 @@ export class DatabaseStorage implements IStorage {
       return this.updateActivity(id, { deadlineDate });
     }
 
-    const sourceDeadline = new Date(currentActivity.deadlineDate);
     const targetDeadline = new Date(deadlineDate);
-    const timeDeltaMs = targetDeadline.getTime() - sourceDeadline.getTime();
     const now = new Date();
     const restrictedStatuses = new Set(['completed', 'late', 'in-progress']);
+    const currentSeriesSlotDate = new Date(currentActivity.startDate);
+
+    const getMonthDifference = (from: Date, to: Date) =>
+      ((to.getFullYear() - from.getFullYear()) * 12) + (to.getMonth() - from.getMonth());
+
+    const buildRecurringDeadlineForSlot = (slotDate: Date, sourceDate: Date) => {
+      const maxDayInMonth = new Date(slotDate.getFullYear(), slotDate.getMonth() + 1, 0).getDate();
+      const clampedDay = Math.min(sourceDate.getDate(), maxDayInMonth);
+      const nextDeadline = new Date(slotDate.getFullYear(), slotDate.getMonth(), clampedDay);
+
+      nextDeadline.setHours(
+        sourceDate.getHours(),
+        sourceDate.getMinutes(),
+        sourceDate.getSeconds(),
+        sourceDate.getMilliseconds(),
+      );
+
+      return nextDeadline;
+    };
 
     const seriesCandidates = await db.select().from(activities).where(
       and(
@@ -868,12 +885,17 @@ export class DatabaseStorage implements IStorage {
 
     await db.transaction(async (tx) => {
       for (const seriesActivity of movableActivities) {
-        const currentDeadline = new Date(seriesActivity.deadlineDate);
-        const nextDeadline = seriesActivity.id === currentActivity.id
-          ? new Date(targetDeadline)
-          : new Date(currentDeadline.getTime() + timeDeltaMs);
+        const seriesSlotDate = new Date(seriesActivity.startDate);
+        const monthOffset = getMonthDifference(currentSeriesSlotDate, seriesSlotDate);
+        const nextSlotDate = new Date(
+          targetDeadline.getFullYear(),
+          targetDeadline.getMonth() + monthOffset,
+          1,
+        );
+        const nextDeadline = buildRecurringDeadlineForSlot(nextSlotDate, targetDeadline);
 
         await tx.update(activities).set({
+          startDate: new Date(nextDeadline),
           deadlineDate: nextDeadline,
           status: nextDeadline > now ? 'pending' : 'overdue',
         }).where(eq(activities.id, seriesActivity.id));

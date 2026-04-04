@@ -197,9 +197,11 @@ export function useUpdateActivity() {
     mutationFn: async ({
       id,
       data,
+      suppressSuccessToast,
     }: {
       id: number;
       data: Partial<{ title: string; description: string; deadlineDate: Date; status: string; applyToSeries: boolean }>;
+      suppressSuccessToast?: boolean;
     }) => {
       const url = buildUrl(api.activities.update.path, { id });
       const res = await fetch(url, {
@@ -211,11 +213,14 @@ export function useUpdateActivity() {
         const data = await res.json().catch(() => ({}));
         return Promise.reject(new Error(data.message || "Failed to update activity"));
       }
-      return api.activities.update.responses[200].parse(await res.json());
+      const activity = api.activities.update.responses[200].parse(await res.json());
+      return { activity, suppressSuccessToast };
     },
-    onSuccess: () => {
+    onSuccess: ({ suppressSuccessToast }) => {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-      toast({ title: "Success", description: "Activity updated" });
+      if (!suppressSuccessToast) {
+        toast({ title: "Success", description: "Activity updated" });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

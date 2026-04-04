@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { format, isSameDay, isSameMonth, eachDayOfInterval, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, startOfWeek, differenceInDays, isPast, isToday } from "date-fns";
+import { format, isSameDay, isSameMonth, eachDayOfInterval, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, startOfWeek, differenceInDays, isToday } from "date-fns";
 import {
   Menu,
   CalendarDays,
@@ -360,6 +360,20 @@ const getEffectiveActivityDate = (activity: any): Date => {
   return deadlineDate;
 };
 
+const shouldPreserveCalendarMouseDown = (target: EventTarget | null): boolean => {
+  return target instanceof HTMLElement && Boolean(
+    target.closest('[draggable="true"], button, a, input, textarea, select, [role="button"]')
+  );
+};
+
+const handleCalendarCellMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+  if (shouldPreserveCalendarMouseDown(e.target)) {
+    return;
+  }
+
+  e.preventDefault();
+};
+
 export default function CalendarPage() {
   return (
     <LayoutWrapper>
@@ -542,9 +556,6 @@ function CalendarContent() {
   const [draggedActivity, setDraggedActivity] = useState<any>(null);
   const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null);
   const [dropTargetTime, setDropTargetTime] = useState<string | null>(null);
-  const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
-  const [rescheduleTargetDate, setRescheduleTargetDate] = useState<Date | null>(null);
-  const [rescheduleTargetTime, setRescheduleTargetTime] = useState<string | null>(null);
   const [isDraggingOverTimeSlot, setIsDraggingOverTimeSlot] = useState(false);
   
   // Auto-scroll state for drag-and-drop
@@ -863,22 +874,6 @@ function CalendarContent() {
     };
   };
 
-  // Helper function to check if target date/time is in the past
-  const isTargetDateTimePast = (targetDate: Date, targetTime?: string | null): boolean => {
-    const now = new Date();
-    const target = new Date(targetDate);
-    
-    if (targetTime) {
-      const [hours, minutes] = targetTime.split(':').map(Number);
-      target.setHours(hours, minutes, 0, 0);
-    } else {
-      // If no time specified, check if the entire day is past
-      target.setHours(23, 59, 59, 999);
-    }
-    
-    return isPast(target);
-  };
-
   // Stop auto-scroll on drag end
   const stopAutoScroll = useCallback(() => {
     if (autoScrollRef.current.intervalId) {
@@ -1006,17 +1001,87 @@ function CalendarContent() {
     setIsDraggingOverTimeSlot(false);
   };
 
+  const resetDragInteractionState = useCallback(() => {
+    setDraggedActivity(null);
+    setDropTargetDate(null);
+    setDropTargetTime(null);
+    setIsDraggingOverTimeSlot(false);
+    stopAutoScroll();
+  }, [stopAutoScroll]);
+
+  const performActivityReschedule = useCallback(async (
+    activityToMove: any,
+    targetDate: Date,
+    targetTime?: string | null,
+  ) => {
+    const restrictedStatuses = ['completed', 'late', 'in-progress'];
+    if (restrictedStatuses.includes(activityToMove.status)) {
+      toast({
+        title: "Cannot reschedule",
+        description: `Activities with status "${activityToMove.status}" cannot be rescheduled.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (holidaysEnabledData && isDateHoliday(targetDate)) {
+      toast({
+        title: "Cannot reschedule to a holiday",
+        description: "Disable holidays first if you want to allow moving activities onto holiday dates.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const deadlineDateStr = new Date(targetDate);
+      if (targetTime) {
+        const [hours, minutes] = targetTime.split(':').map(Number);
+        deadlineDateStr.setHours(hours, minutes, 0, 0);
+      } else {
+        const originalDate = new Date(activityToMove.deadlineDate);
+        deadlineDateStr.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
+      }
+
+      const { activity: updatedActivity } = await updateActivity.mutateAsync({
+        id: activityToMove.id,
+        data: {
+          deadlineDate: deadlineDateStr,
+          applyToSeries: Boolean(activityToMove.recurrence && activityToMove.recurrence !== 'none'),
+        },
+        suppressSuccessToast: true,
+      });
+
+      if (selectedActivity?.id === activityToMove.id) {
+        setSelectedActivity(updatedActivity);
+      }
+
+      const timeStr = targetTime ? ` at ${targetTime}` : '';
+      const statusChangeMsg = updatedActivity.status === 'overdue' ? ' Status changed to Overdue.' : '';
+      toast({
+        title: activityToMove.recurrence && activityToMove.recurrence !== 'none'
+          ? "Recurring activity rescheduled"
+          : "Activity rescheduled",
+        description: activityToMove.recurrence && activityToMove.recurrence !== 'none'
+          ? `Moved this recurring series to ${format(targetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
+          : `Moved to ${format(targetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
+      });
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [holidaysEnabledData, selectedActivity, toast, updateActivity]);
+
   // Handle drop on time slot (Week/Day view)
   const handleTimeSlotDrop = (e: React.DragEvent, date: Date, time: string) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOverTimeSlot(false);
-    
-    // Stop auto-scroll
-    stopAutoScroll();
-    
-    if (draggedActivity) {
-      const currentDeadline = new Date(draggedActivity.deadlineDate);
+
+    const activityToMove = draggedActivity;
+    resetDragInteractionState();
+
+    if (activityToMove) {
+      const currentDeadline = new Date(activityToMove.deadlineDate);
       const targetDateTime = new Date(date);
       const [hours, minutes] = time.split(':').map(Number);
       targetDateTime.setHours(hours, minutes, 0, 0);
@@ -1025,16 +1090,10 @@ function CalendarContent() {
       const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
       
       if (hasDateChanged || hasTimeChanged) {
-        setRescheduleTargetDate(date);
-        setRescheduleTargetTime(time);
-        setShowRescheduleConfirm(true);
+        void performActivityReschedule(activityToMove, date, time);
         return;
       }
     }
-    
-    setDraggedActivity(null);
-    setDropTargetDate(null);
-    setDropTargetTime(null);
   };
 
   // Touch-based drag handlers
@@ -1090,21 +1149,17 @@ function CalendarContent() {
         
         const hasDateChanged = !isSameDay(currentDeadline, targetDate);
         const hasTimeChanged = currentDeadline.getHours() !== hours || currentDeadline.getMinutes() !== minutes;
-        
         if (hasDateChanged || hasTimeChanged) {
-          // Set the dragged activity first so the modal can display it
-          setDraggedActivity(activity);
-          setRescheduleTargetDate(targetDate);
-          setRescheduleTargetTime(targetTimeStr);
-          setShowRescheduleConfirm(true);
+          resetDragInteractionState();
           setIsTouchDragging(false);
           touchDragRef.current = null;
+          void performActivityReschedule(activity, targetDate, targetTimeStr);
           return;
         }
       }
     }
     
-    setDraggedActivity(null);
+    resetDragInteractionState();
     setIsTouchDragging(false);
     touchDragRef.current = null;
   };
@@ -1183,106 +1238,22 @@ function CalendarContent() {
   const handleDateDrop = (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Stop auto-scroll
-    stopAutoScroll();
-    
-    if (draggedActivity) {
-      const currentDeadline = new Date(draggedActivity.deadlineDate);
+
+    const activityToMove = draggedActivity;
+    resetDragInteractionState();
+
+    if (activityToMove) {
+      const currentDeadline = new Date(activityToMove.deadlineDate);
       if (!isSameDay(currentDeadline, date)) {
-        setRescheduleTargetDate(date);
-        setShowRescheduleConfirm(true);
-        // Don't clear draggedActivity here - it's needed for the modal display
+        void performActivityReschedule(activityToMove, date);
         return;
       }
     }
-    
-    setDraggedActivity(null);
-    setDropTargetDate(null);
   };
 
-  // Confirm reschedule
-  const handleConfirmReschedule = async () => {
-    if (draggedActivity && rescheduleTargetDate) {
-      // Check if activity has a restricted status
-      const restrictedStatuses = ['completed', 'late', 'in-progress'];
-      if (restrictedStatuses.includes(draggedActivity.status)) {
-        toast({
-          title: "Cannot reschedule",
-          description: `Activities with status "${draggedActivity.status}" cannot be rescheduled.`,
-          variant: "destructive"
-        });
-        setShowRescheduleConfirm(false);
-        setDraggedActivity(null);
-        setRescheduleTargetDate(null);
-        setRescheduleTargetTime(null);
-        setDropTargetDate(null);
-        setDropTargetTime(null);
-        return;
-      }
-      
-      try {
-        // Convert Date to ISO string for the API
-        // If time is provided, use it; otherwise preserve original time
-        const deadlineDateStr = new Date(rescheduleTargetDate);
-        if (rescheduleTargetTime) {
-          const [hours, minutes] = rescheduleTargetTime.split(':').map(Number);
-          deadlineDateStr.setHours(hours, minutes, 0, 0);
-        } else {
-          // Preserve original time
-          const originalDate = new Date(draggedActivity.deadlineDate);
-          deadlineDateStr.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
-        }
-        
-        // Update the activity - server will automatically calculate the correct status
-        // based on the new deadline date/time
-        await updateActivity.mutateAsync({
-          id: draggedActivity.id,
-          data: {
-            deadlineDate: deadlineDateStr,
-            applyToSeries: Boolean(draggedActivity.recurrence && draggedActivity.recurrence !== 'none'),
-          }
-        });
-        
-        // Stop auto-scroll if active
-        stopAutoScroll();
-        
-        // Force refresh to get the updated status
-        await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-        
-        // Fetch the latest activity data to get the recalculated status
-        const response = await fetch(api.activities.list.path);
-        const allActivities = await response.json();
-        const updatedActivity = allActivities.find((a: any) => a.id === draggedActivity.id);
-        
-        // Update selectedActivity if it's the same activity
-        if (updatedActivity && selectedActivity && selectedActivity.id === draggedActivity.id) {
-          setSelectedActivity(updatedActivity);
-        }
-        
-        const timeStr = rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : '';
-        // Check if status changed to overdue
-        const statusChangedToOverdue = updatedActivity && updatedActivity.status === 'overdue';
-        const statusChangeMsg = statusChangedToOverdue ? ' Status changed to Overdue.' : '';
-        toast({
-          title: draggedActivity.recurrence && draggedActivity.recurrence !== 'none'
-            ? "Recurring activity rescheduled"
-            : "Activity rescheduled",
-          description: draggedActivity.recurrence && draggedActivity.recurrence !== 'none'
-            ? `Moved this recurring series to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
-            : `Moved to ${format(rescheduleTargetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
-        });
-      } catch (error) {
-        // Error handled by mutation
-      }
-    }
-    setShowRescheduleConfirm(false);
-    setDraggedActivity(null);
-    setRescheduleTargetDate(null);
-    setRescheduleTargetTime(null);
-    setDropTargetDate(null);
-    setDropTargetTime(null);
-  };
+  const handleActivityDragEnd = useCallback(() => {
+    resetDragInteractionState();
+  }, [resetDragInteractionState]);
 
   // Handle clearing all selections (date and time slot)
   const handleClearSelection = () => {
@@ -3458,41 +3429,15 @@ function CalendarContent() {
           </DialogContent>
         </Dialog>
 
-        {/* Reschedule Confirmation Modal */}
-        <Dialog open={showRescheduleConfirm} onOpenChange={setShowRescheduleConfirm}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Reschedule Activity</DialogTitle>
-              <DialogDescription>
+        {/*
+        
                 Are you sure you want to move "{draggedActivity?.title}" to {rescheduleTargetDate ? format(rescheduleTargetDate, 'MMMM d, yyyy') : ''}{rescheduleTargetTime ? ` at ${rescheduleTargetTime}` : ''}?
                 {draggedActivity?.status === 'pending' && rescheduleTargetDate && isTargetDateTimePast(rescheduleTargetDate, rescheduleTargetTime) && (
                   <span className="block mt-2 text-red-600 font-medium">
                     ⚠️ This will automatically change the status to Overdue because the target date/time has already passed.
                   </span>
                 )}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setShowRescheduleConfirm(false);
-                setDraggedActivity(null);
-                setRescheduleTargetDate(null);
-                setRescheduleTargetTime(null);
-                setDropTargetDate(null);
-                setDropTargetTime(null);
-                stopAutoScroll();
-              }}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleConfirmReschedule}
-                disabled={updateActivity.isPending}
-              >
-                {updateActivity.isPending ? "Moving..." : "Confirm"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        */}
       </div>
 
       <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -3662,7 +3607,7 @@ function CalendarContent() {
                     "bg-primary/20 ring-2 ring-primary",
                   indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
                 )}
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={handleCalendarCellMouseDown}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDateClick(date);
@@ -3710,6 +3655,7 @@ function CalendarContent() {
                     onDragStart={(e) =>
                       handleActivityDragStart(e, activity)
                     }
+                    onDragEnd={handleActivityDragEnd}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedActivity(activity);
@@ -3820,6 +3766,7 @@ function CalendarContent() {
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
+            onDragEnd={handleActivityDragEnd}
             onDayClick={handleDayClickInWeekView}
             holidays={holidays}
             holidaysEnabled={holidaysEnabledData}
@@ -3874,16 +3821,7 @@ function CalendarContent() {
             onTimeSlotDragOver={handleTimeSlotDragOver}
             onTimeSlotDragLeave={handleTimeSlotDragLeave}
             onTimeSlotDrop={handleTimeSlotDrop}
-            onDragEnd={() => {
-              stopAutoScroll();
-              // Only clear if not showing reschedule confirmation
-              if (!showRescheduleConfirm) {
-                setDraggedActivity(null);
-                setDropTargetDate(null);
-                setDropTargetTime(null);
-                setIsDraggingOverTimeSlot(false);
-              }
-            }}
+            onDragEnd={handleActivityDragEnd}
             // Touch handlers
             onTouchDragStart={handleTouchDragStart}
             onTouchDragMove={handleTouchDragMove}
@@ -5305,7 +5243,7 @@ function WeekView({
                         // Drag over visual feedback
                         dropTargetDate && isSameDay(day, dropTargetDate) && dropTargetTime === timeString && "bg-primary/20 ring-2 ring-primary ring-inset"
                       )}
-                     onMouseDown={(e) => e.preventDefault()}
+                     onMouseDown={handleCalendarCellMouseDown}
                      onClick={() => {
                        onDateSelect(day);
                        // Select time slot (highlight) instead of opening modal
@@ -5544,7 +5482,7 @@ function DayView({
                   )}
                   data-date={currentDate.toISOString()}
                   data-time-slot={timeString}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseDown={handleCalendarCellMouseDown}
                   onClick={() => onSelectTimeSlot(currentDate, timeString)}
                   onDragOver={(e) => onTimeSlotDragOver?.(e, currentDate, timeString)}
                   onDragLeave={onTimeSlotDragLeave}
