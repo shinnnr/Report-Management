@@ -36,10 +36,39 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import type { Activity as DashboardActivity } from "@shared/schema";
+
+type ActivityStatusOverviewKey = "pending" | "in-progress" | "completed";
+
+const STATUS_OVERVIEW_MODAL_PAGE_SIZE = 10;
+
+const ACTIVITY_STATUS_OVERVIEW_CONFIG: Record<
+  ActivityStatusOverviewKey,
+  {
+    title: string;
+    description: string;
+    emptyMessage: string;
+  }
+> = {
+  pending: {
+    title: "Pending Activities",
+    description: "Activities waiting to be started.",
+    emptyMessage: "No pending activities found.",
+  },
+  "in-progress": {
+    title: "In Progress Activities",
+    description: "Activities currently being worked on.",
+    emptyMessage: "No in progress activities found.",
+  },
+  completed: {
+    title: "Completed Activities",
+    description: "Finished activities, including late submissions.",
+    emptyMessage: "No completed activities found.",
+  },
+};
 
 export default function DashboardPage() {
   return (
@@ -78,6 +107,8 @@ function DashboardContent() {
     const [showViewAllLogs, setShowViewAllLogs] = useState(false);
     const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedActivityStatusOverview, setSelectedActivityStatusOverview] = useState<ActivityStatusOverviewKey | null>(null);
+    const [activityStatusOverviewPage, setActivityStatusOverviewPage] = useState(1);
     const logsPerPage = 10;
     const deleteAllLogsMutation = useDeleteAllLogs();
     const deleteLogMutation = useDeleteLog();
@@ -151,6 +182,55 @@ function DashboardContent() {
         return new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime();
       })
       .slice(0, 10);
+
+    const getActivityStatusOverviewActivities = (status: ActivityStatusOverviewKey): DashboardActivity[] => {
+        const filteredActivities = (activities || []).filter((activity) => {
+            if (status === "completed") {
+                return activity.status === "completed" || activity.status === "late";
+            }
+
+            return activity.status === status;
+        });
+
+        return filteredActivities.sort(
+            (a, b) => new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime()
+        );
+    };
+
+    const selectedActivityStatusConfig = selectedActivityStatusOverview
+        ? ACTIVITY_STATUS_OVERVIEW_CONFIG[selectedActivityStatusOverview]
+        : null;
+    const selectedActivityStatusActivities = selectedActivityStatusOverview
+        ? getActivityStatusOverviewActivities(selectedActivityStatusOverview)
+        : [];
+    const activityStatusOverviewTotalPages = Math.max(
+        1,
+        Math.ceil(selectedActivityStatusActivities.length / STATUS_OVERVIEW_MODAL_PAGE_SIZE)
+    );
+    const safeActivityStatusOverviewPage = Math.min(activityStatusOverviewPage, activityStatusOverviewTotalPages);
+    const paginatedActivityStatusOverviewActivities = selectedActivityStatusActivities.slice(
+        (safeActivityStatusOverviewPage - 1) * STATUS_OVERVIEW_MODAL_PAGE_SIZE,
+        safeActivityStatusOverviewPage * STATUS_OVERVIEW_MODAL_PAGE_SIZE
+    );
+
+    const openActivityStatusOverviewModal = (status: ActivityStatusOverviewKey) => {
+        setSelectedActivityStatusOverview(status);
+        setActivityStatusOverviewPage(1);
+    };
+
+    const getActivityStatusBadgeClasses = (status: string) => cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium w-fit",
+        (status === "completed" || status === "late") && "bg-green-100 text-green-700",
+        status === "in-progress" && "bg-blue-100 text-blue-700",
+        status === "pending" && "bg-orange-100 text-orange-700",
+        status === "overdue" && "bg-red-100 text-red-700"
+    );
+
+    const formatActivityStatusLabel = (status: string) => {
+        if (status === "in-progress") return "In Progress";
+        if (status === "late") return "Late Submitted";
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    };
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
         const data: { items: any[]; total: number } = getPreviewData(type);
@@ -261,11 +341,15 @@ function DashboardContent() {
         return null;
     };
 
-    const getActivityIcon = (action: string) => {
+    const getActivityIcon = (action: string, description?: string) => {
         const lowerAction = action.toLowerCase();
+        const lowerDescription = description?.toLowerCase() ?? "";
+        if (lowerAction.includes('activity_submit') || lowerDescription.includes('submitted report for activity') || lowerDescription.includes('submitted 1 report(s) for activity') || lowerDescription.includes('submitted ') && lowerDescription.includes('report(s) for activity')) return FileText;
+        if (lowerAction.includes('activity_completed') || lowerDescription.includes('marked as completed via report upload')) return Check;
+        if (lowerAction.includes('activity_started')) return Play;
         if (lowerAction.includes('create_report') || lowerAction.includes('upload_report')) return File;
         if (lowerAction.includes('update_report')) return FileText;
-        if (lowerAction.includes('create_folder')) return Folder;
+        if (lowerAction.includes('create_folder')) return Plus;
         if (lowerAction.includes('update_folder')) return Folder;
         if (lowerAction.includes('archive_report')) return Archive;
         if (lowerAction.includes('archive_folder')) return Archive;
@@ -572,7 +656,7 @@ function DashboardContent() {
             <CardContent className="space-y-3">
               <button
                 type="button"
-                onClick={() => setLocation('/calendar')}
+                onClick={() => openActivityStatusOverviewModal('pending')}
                 className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -586,7 +670,7 @@ function DashboardContent() {
 
               <button
                 type="button"
-                onClick={() => setLocation('/calendar')}
+                onClick={() => openActivityStatusOverviewModal('in-progress')}
                 className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -600,7 +684,7 @@ function DashboardContent() {
 
               <button
                 type="button"
-                onClick={() => setLocation('/calendar')}
+                onClick={() => openActivityStatusOverviewModal('completed')}
                 className="w-full rounded-xl border bg-muted/30 p-4 text-left transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -690,22 +774,20 @@ function DashboardContent() {
                 <div className="space-y-4">
                   {logs?.slice(0, 10).map((log) => {
                     const toggleVisual = getSettingToggleVisual(log.action);
-                    const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
+                    const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action, log.description);
                     return (
                       <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
                         <div
                           className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                            toggleVisual?.enabled === true && "bg-emerald-500/15 dark:bg-emerald-500/10",
-                            toggleVisual?.enabled === false && "bg-muted",
+                            toggleVisual != null && "bg-gray-200 dark:bg-gray-400",
                             toggleVisual == null && "bg-primary/10"
                           )}
                         >
                           <IconComponent
                             className={cn(
                               "w-4 h-4",
-                              toggleVisual?.enabled === true && "text-emerald-600 dark:text-emerald-400",
-                              toggleVisual?.enabled === false && "text-muted-foreground",
+                              toggleVisual != null && "text-black",
                               toggleVisual == null && "text-primary"
                             )}
                           />
@@ -861,7 +943,7 @@ function DashboardContent() {
                 .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
                 .map((log) => {
                   const toggleVisual = getSettingToggleVisual(log.action);
-                  const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action);
+                  const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action, log.description);
                   return (
                     <div 
                       key={log.id} 
@@ -971,6 +1053,96 @@ function DashboardContent() {
                 </>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={selectedActivityStatusOverview !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedActivityStatusOverview(null);
+            setActivityStatusOverviewPage(1);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg flex flex-col max-h-[80vh]">
+          <DialogHeader className="pb-4 shrink-0">
+            <DialogTitle className="flex items-center justify-between pr-8">
+              <span>{selectedActivityStatusConfig?.title ?? "Activities"}</span>
+            </DialogTitle>
+            <DialogDescription className="text-left">
+              {selectedActivityStatusConfig?.description ?? "View activities by status."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-4 pr-4 pb-4">
+              {paginatedActivityStatusOverviewActivities.length > 0 ? (
+                paginatedActivityStatusOverviewActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="rounded-lg border border-muted/50 bg-muted/30 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <p className="text-sm font-medium text-foreground break-words">
+                          {activity.title}
+                        </p>
+                        {(activity.regulatoryAgency || activity.concernDepartment) && (
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {activity.regulatoryAgency && <span>{activity.regulatoryAgency}</span>}
+                            {activity.concernDepartment && (
+                              <span>{activity.concernDepartment}</span>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Due {format(new Date(activity.deadlineDate), "MMM d, yyyy h:mm a")}
+                        </p>
+                      </div>
+                      <span className={getActivityStatusBadgeClasses(activity.status ?? "pending")}>
+                        {formatActivityStatusLabel(activity.status ?? "pending")}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  {selectedActivityStatusConfig?.emptyMessage ?? "No activities found."}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          <div className="mt-2 flex min-h-[56px] shrink-0 items-center gap-2 border-t py-2">
+            {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE && (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  Page {safeActivityStatusOverviewPage} of {activityStatusOverviewTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setActivityStatusOverviewPage((page) => Math.max(1, page - 1))}
+                  disabled={safeActivityStatusOverviewPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setActivityStatusOverviewPage((page) =>
+                      Math.min(activityStatusOverviewTotalPages, page + 1)
+                    )
+                  }
+                  disabled={safeActivityStatusOverviewPage >= activityStatusOverviewTotalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
