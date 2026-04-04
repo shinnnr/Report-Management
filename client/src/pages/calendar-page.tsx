@@ -74,6 +74,7 @@ let holidaysData: any[] = [];
 let holidaysEnabledDataData: boolean = true;
 let holidayDateKeysData = new Set<string>();
 let holidayLabelsByDateKeyData = new Map<string, string>();
+const SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY = "calendar-show-philippine-holidays";
 
 const getDateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -739,7 +740,13 @@ function CalendarContent() {
   const startActivity = useStartActivity();
   const updateActivity = useUpdateActivity();
   const { data: holidays } = useHolidays();
-  const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(false);
+  const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.localStorage.getItem(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) === "true";
+  });
   const {
     data: philippineHolidays,
     isLoading: isLoadingPhilippineHolidays,
@@ -758,6 +765,17 @@ function CalendarContent() {
         date: parseDateOnlyString(holiday.date),
       })),
   ];
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY,
+      showPhilippineHolidays.toString(),
+    );
+  }, [showPhilippineHolidays]);
 
   // Calendar view state
   type CalendarView = 'day' | 'week' | 'month';
