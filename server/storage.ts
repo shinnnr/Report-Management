@@ -814,11 +814,20 @@ export class DatabaseStorage implements IStorage {
   async updateActivity(id: number, updates: Partial<Activity>): Promise<Activity> {
     // If deadlineDate is being updated, recalculate status based on new deadline
     if (updates.deadlineDate) {
+      const requestedDeadline = new Date(updates.deadlineDate);
+      const adjustedDeadline = await this.adjustDateForWeekendOrHoliday(requestedDeadline);
       const now = new Date();
-      const newDeadline = new Date(updates.deadlineDate);
+      const newDeadline = new Date(adjustedDeadline);
       
       // Get current activity to check its status
       const [currentActivity] = await db.select().from(activities).where(eq(activities.id, id));
+
+      updates.deadlineDate = newDeadline;
+
+      // Preserve the requested slot date when rescheduling recurring items.
+      if (currentActivity?.recurrence && currentActivity.recurrence !== 'none') {
+        updates.startDate = requestedDeadline;
+      }
       
       if (currentActivity && !['completed', 'late', 'in-progress'].includes(currentActivity.status || '')) {
         // If new deadline is in the future (including future time today), keep as pending
@@ -849,9 +858,41 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const restrictedStatuses = new Set(['completed', 'late', 'in-progress']);
     const currentSeriesSlotDate = new Date(currentActivity.startDate);
+    const holidaysEnabled = await this.getSetting('holidays_enabled') !== 'false';
+    const holidayList = holidaysEnabled ? await this.getHolidays() : [];
 
     const getMonthDifference = (from: Date, to: Date) =>
       ((to.getFullYear() - from.getFullYear()) * 12) + (to.getMonth() - from.getMonth());
+
+    const isHolidayDate = (date: Date) =>
+      holidayList.some((holiday) =>
+        holiday.date.getFullYear() === date.getFullYear() &&
+        holiday.date.getMonth() === date.getMonth() &&
+        holiday.date.getDate() === date.getDate()
+      );
+
+    const adjustDateForWeekendOrHolidaySync = (date: Date): Date => {
+      let adjustedDate = new Date(date);
+      let isAdjusted = true;
+
+      while (isAdjusted) {
+        isAdjusted = false;
+        const dayOfWeek = adjustedDate.getDay();
+
+        if (dayOfWeek === 6) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+          isAdjusted = true;
+        } else if (dayOfWeek === 0) {
+          adjustedDate.setDate(adjustedDate.getDate() - 2);
+          isAdjusted = true;
+        } else if (holidaysEnabled && isHolidayDate(adjustedDate)) {
+          adjustedDate.setDate(adjustedDate.getDate() - 1);
+          isAdjusted = true;
+        }
+      }
+
+      return adjustedDate;
+    };
 
     const buildRecurringDeadlineForSlot = (slotDate: Date, sourceDate: Date) => {
       const maxDayInMonth = new Date(slotDate.getFullYear(), slotDate.getMonth() + 1, 0).getDate();
@@ -892,10 +933,11 @@ export class DatabaseStorage implements IStorage {
           targetDeadline.getMonth() + monthOffset,
           1,
         );
-        const nextDeadline = buildRecurringDeadlineForSlot(nextSlotDate, targetDeadline);
+        const requestedSlotDeadline = buildRecurringDeadlineForSlot(nextSlotDate, targetDeadline);
+        const nextDeadline = adjustDateForWeekendOrHolidaySync(requestedSlotDeadline);
 
         await tx.update(activities).set({
-          startDate: new Date(nextDeadline),
+          startDate: requestedSlotDeadline,
           deadlineDate: nextDeadline,
           status: nextDeadline > now ? 'pending' : 'overdue',
         }).where(eq(activities.id, seriesActivity.id));

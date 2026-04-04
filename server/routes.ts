@@ -824,25 +824,6 @@ export async function registerRoutes(
     const parsedInput = api.activities.update.input.parse(req.body);
     const { applyToSeries, ...updates } = parsedInput;
 
-    if (updates.deadlineDate) {
-      const holidaysEnabled = await storage.getSetting('holidays_enabled');
-      if (holidaysEnabled !== 'false') {
-        const holidays = await storage.getHolidays();
-        const targetDate = new Date(updates.deadlineDate);
-        const isHoliday = holidays.some((holiday) =>
-          holiday.date.getFullYear() === targetDate.getFullYear() &&
-          holiday.date.getMonth() === targetDate.getMonth() &&
-          holiday.date.getDate() === targetDate.getDate()
-        );
-
-        if (isHoliday) {
-          return res.status(400).json({
-            message: "Cannot move activities to a holiday while holidays are enabled"
-          });
-        }
-      }
-    }
-
     const activity = applyToSeries && updates.deadlineDate
       ? await storage.rescheduleRecurringActivitySeries(id, updates.deadlineDate)
       : await storage.updateActivity(id, updates);

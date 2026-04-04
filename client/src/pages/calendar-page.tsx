@@ -1024,15 +1024,6 @@ function CalendarContent() {
       return;
     }
 
-    if (holidaysEnabledData && isDateHoliday(targetDate)) {
-      toast({
-        title: "Cannot reschedule to a holiday",
-        description: "Disable holidays first if you want to allow moving activities onto holiday dates.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       const deadlineDateStr = new Date(targetDate);
       if (targetTime) {
@@ -1056,20 +1047,24 @@ function CalendarContent() {
         setSelectedActivity(updatedActivity);
       }
 
-      const timeStr = targetTime ? ` at ${targetTime}` : '';
+      const finalDeadline = new Date(updatedActivity.deadlineDate);
+      const finalDateLabel = format(finalDeadline, 'MMMM d, yyyy');
+      const timeStr = targetTime ? ` at ${format(finalDeadline, 'HH:mm')}` : '';
       const statusChangeMsg = updatedActivity.status === 'overdue' ? ' Status changed to Overdue.' : '';
+      const wasAdjustedToPreviousWorkingDay = !isSameDay(finalDeadline, targetDate);
+      const adjustmentMsg = wasAdjustedToPreviousWorkingDay ? ' Adjusted to the previous working day.' : '';
       toast({
         title: activityToMove.recurrence && activityToMove.recurrence !== 'none'
-          ? "Recurring activity rescheduled"
+          ? "Reschedule all activities"
           : "Activity rescheduled",
         description: activityToMove.recurrence && activityToMove.recurrence !== 'none'
-          ? `Moved this recurring series to ${format(targetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
-          : `Moved to ${format(targetDate, 'MMMM d, yyyy')}${timeStr}.${statusChangeMsg}`
+          ? "Moved all recurring activities"
+          : `Moved to ${finalDateLabel}${timeStr}.${statusChangeMsg}${adjustmentMsg}`
       });
     } catch (error) {
       // Error handled by mutation
     }
-  }, [holidaysEnabledData, selectedActivity, toast, updateActivity]);
+  }, [selectedActivity, toast, updateActivity]);
 
   // Handle drop on time slot (Week/Day view)
   const handleTimeSlotDrop = (e: React.DragEvent, date: Date, time: string) => {
