@@ -3510,7 +3510,7 @@ function CalendarContent() {
         {/* Calendar Header */}
         <div className="border-b border-gray-200 bg-muted/20 p-4 dark:border-gray-800 md:p-6">
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-4 xl:flex-nowrap">
+            <div className="flex flex-wrap items-start justify-between gap-4 2xl:grid 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] 2xl:items-center">
               <div className="flex min-w-0 flex-[1_1_30rem] flex-wrap items-center gap-x-4 gap-y-2">
                 <div className="flex shrink-0 items-center gap-2">
                   <Button
@@ -3554,7 +3554,7 @@ function CalendarContent() {
               </div>
 
               {/* View Toggle Buttons */}
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 2xl:justify-self-center">
                 <div className="flex shrink-0 rounded-lg bg-muted p-1">
                   <Button
                     variant={view === 'day' ? 'default' : 'ghost'}
@@ -3602,10 +3602,14 @@ function CalendarContent() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="hidden min-w-0 text-right text-sm text-muted-foreground 2xl:block 2xl:justify-self-end 2xl:whitespace-nowrap">
+                {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
+              </div>
             </div>
 
             {/* Activity counts */}
-            <div className="w-full text-left text-sm text-muted-foreground xl:text-right">
+            <div className="w-full text-left text-sm text-muted-foreground 2xl:hidden">
               {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
             </div>
           </div>
