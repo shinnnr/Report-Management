@@ -1019,7 +1019,7 @@ function DashboardContent() {
           </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0 border-t">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0">
             <div className="flex items-center gap-2">
               {logs && logs.length >= logsPerPage && (
                 <>
