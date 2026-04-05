@@ -380,6 +380,7 @@ const TIME_SLOT_VISIBLE_ACTIVITIES = 1;
 const MONTH_VIEW_GRID_MIN_HEIGHT = 600;
 const MONTH_VIEW_DAY_CELL_HEIGHT = 132;
 const MONTH_VIEW_WEEK_HEADER_HEIGHT = 48;
+const WEEK_VIEW_TIME_SLOT_HEIGHT = 72;
 const MONTH_DRAG_AUTO_SCROLL_THRESHOLD = 108;
 const MONTH_DRAG_AUTO_SCROLL_MIN_SPEED = 64;
 const MONTH_DRAG_AUTO_SCROLL_MAX_SPEED = 360;
@@ -4570,15 +4571,16 @@ function CalendarContent() {
 
       {/* Grid */}
       <div
-        className="grid min-h-0 grid-cols-7 auto-rows-auto select-none sm:min-h-[600px] sm:auto-rows-fr"
+        className="grid min-h-0 grid-cols-7 select-none"
         onClick={() => setSelectedDate(null)}
         key={holidaysKey}
+        style={{ gridAutoRows: `${MONTH_VIEW_DAY_CELL_HEIGHT}px` }}
       >
         {/* Padding */}
         {paddingDays.map((_, i) => (
           <div
             key={`padding-${i}`}
-            className="bg-muted/5 dark:bg-muted/10 border-b border-r last:border-r-0 border-gray-200 dark:border-gray-800"
+            className="h-full border-b border-r border-gray-200 bg-muted/5 last:border-r-0 dark:border-gray-800 dark:bg-muted/10"
           />
         ))}
 
@@ -4620,7 +4622,7 @@ function CalendarContent() {
               data-date={date.toISOString()}
               data-drop-target="date"
              className={cn(
-                 "relative flex aspect-square h-auto flex-col overflow-hidden border-b border-r border-gray-200 bg-muted/5 px-1 py-1.5 transition-colors cursor-pointer select-none hover:bg-primary/10 sm:aspect-auto sm:h-[132px] sm:px-2 sm:py-2 dark:border-gray-800 dark:bg-muted/10",
+                 "relative flex h-full flex-col overflow-hidden border-b border-r border-gray-200 bg-muted/5 px-1 py-1.5 transition-colors cursor-pointer select-none hover:bg-primary/10 sm:px-2 sm:py-2 dark:border-gray-800 dark:bg-muted/10",
                   !isLastDayOfMonth && "last:border-r-0",
                   selectedDate &&
                     isSameDay(date, selectedDate) &&
@@ -4741,7 +4743,7 @@ function CalendarContent() {
                       setShowDayActivitiesModal(true);
                     }}
                     >
-                      +{dayActivities.length - MONTH_VIEW_VISIBLE_ACTIVITIES} more
+                      {dayActivities.length - MONTH_VIEW_VISIBLE_ACTIVITIES} more
                     </button>
                 )}
               </div>
@@ -4753,7 +4755,7 @@ function CalendarContent() {
         {trailingPaddingDays.map((_, i) => (
           <div
             key={`trailing-padding-${i}`}
-            className="aspect-square border-b border-r border-gray-200 bg-muted/5 last:border-r-0 sm:aspect-auto sm:min-h-[132px] dark:border-gray-800 dark:bg-muted/10"
+            className="h-full border-b border-r border-gray-200 bg-muted/5 last:border-r-0 dark:border-gray-800 dark:bg-muted/10"
           />
         ))}
       </div>
@@ -6298,11 +6300,12 @@ function WeekView({
                      data-time-slot={timeString}
                      data-drop-target="time"
                       className={cn(
-                        "relative h-[44px] overflow-hidden border-r p-0.5 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 last:border-r-0 sm:h-[72px] sm:p-1",
+                        "relative overflow-hidden border-r p-0.5 cursor-pointer transition-colors select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 last:border-r-0 sm:p-1",
                         isToday(day) && "bg-primary/5",
                         selectedDate && isSameDay(day, selectedDate) && "bg-primary/10",
                         selectedTimeSlot === timeString && selectedDate && isSameDay(day, selectedDate) && "bg-primary/5"
                       )}
+                      style={{ height: `${WEEK_VIEW_TIME_SLOT_HEIGHT}px` }}
                      onMouseDown={handleCalendarCellMouseDown}
                      onClick={() => {
                        onDateSelect(day);
@@ -6374,7 +6377,7 @@ function WeekView({
                             setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
                           }}
                         >
-                          +{dayHourActivities.length}
+                          {dayHourActivities.length}
                         </button>
                       )}
                       {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
@@ -6389,7 +6392,7 @@ function WeekView({
                             setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
                           }}
                         >
-                          +{dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES}
+                          {dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES}
                         </button>
                       )}
                     </div>
@@ -6659,7 +6662,7 @@ function DayView({
                         setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
                       }}
                     >
-                      +{hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
+                      {hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
                     </button>
                   )}
                 </div>
