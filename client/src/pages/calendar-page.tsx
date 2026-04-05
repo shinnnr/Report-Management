@@ -107,10 +107,14 @@ const getDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const hasHolidayDate = (date: Date) => {
+  return holidayDateKeysData.has(getDateKey(date));
+};
+
 // Helper function to check if a date is a holiday
 const isDateHoliday = (date: Date) => {
   if (!holidaysEnabledDataData) return false;
-  return holidayDateKeysData.has(getDateKey(date));
+  return hasHolidayDate(date);
 };
 
 // Helper function to check if a date is a weekend
@@ -790,6 +794,7 @@ function CalendarContent() {
         date: parseDateOnlyString(holiday.date),
       })),
   ];
+  const showHolidayIndicators = holidaysEnabledData || showPhilippineHolidays;
 
   useEffect(() => {
     writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, showPhilippineHolidays);
@@ -1252,7 +1257,7 @@ function CalendarContent() {
       hasDueSoon: dayActivities.some(a => isDueSoon(a.deadlineDate)),
       hasActivities: dayActivities.length > 0,
       activityCount: dayActivities.length,
-      isHoliday: isDateHoliday(date),
+      isHoliday: showHolidayIndicators && hasHolidayDate(date),
       isWeekend: isDateWeekend(date),
       isHolidayOrWeekend: isDateHolidayOrWeekend(date)
     };
@@ -4589,7 +4594,7 @@ function CalendarContent() {
           const dayActivities = filteredActivities.filter(a =>
             isSameDay(getCalendarDisplayDate(a), date)
           );
-          const holidayLabelForDate = holidaysEnabledData
+          const holidayLabelForDate = showHolidayIndicators
             ? getHolidayLabelForDate(calendarHolidays, date)
             : "";
           const monthVisibleActivitiesLimit = holidayLabelForDate
@@ -4814,7 +4819,7 @@ function CalendarContent() {
             onTimeSlotDrop={handleTimeSlotDrop}
             onDayClick={handleDayClickInWeekView}
             holidays={calendarHolidays}
-            holidaysEnabled={holidaysEnabledData}
+            holidaysEnabled={showHolidayIndicators}
             scrollAreaRef={weekScrollAreaRef}
             contentHeight={calendarViewContentHeight}
             // New activity modal handlers
@@ -4884,7 +4889,7 @@ function CalendarContent() {
             setSelectedDate={setSelectedDate}
             setActivityTime={setActivityTime}
             holidays={calendarHolidays}
-            holidaysEnabled={holidaysEnabledData}
+            holidaysEnabled={showHolidayIndicators}
           />
         )}
             </motion.div>
@@ -6235,7 +6240,7 @@ function WeekView({
             )}
           </div>
           {weekDays.map((day) => {
-            const isHoliday = Boolean(holidaysEnabled && isDateHoliday(day));
+            const isHoliday = Boolean(holidaysEnabled && getHolidayLabelForDate(holidays, day));
             const isWeekend = day.getDay() === 0 || day.getDay() === 6; // Sunday = 0, Saturday = 6
 
             return (
@@ -6531,14 +6536,17 @@ function DayView({
     <ScrollArea ref={scrollAreaRef} className="mr-3 pr-4" style={{ height: `${contentHeight}px` }}>
       <div className="h-full">
         {/* Day header */}
-        <div className={cn(
-          "p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20",
-          holidayLabelForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
-        )}>
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 pl-4">
-            <div className="flex flex-col items-center">
+        <div
+          data-drop-target-suppress="true"
+          className={cn(
+            "border-b border-gray-200 bg-muted/20 dark:border-gray-800",
+            holidayLabelForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
+          )}
+        >
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-1 pr-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,7fr)_auto] sm:py-2">
+            <div className="flex flex-col items-center justify-center pl-4 leading-none text-center sm:pl-5">
               <div className={cn(
-                "text-xs font-bold uppercase tracking-wider",
+                "text-[10px] font-semibold uppercase sm:text-xs",
                 holidayLabelForCurrentDate
                   ? "text-red-600 dark:text-red-400"
                   : isToday(currentDate)
@@ -6546,7 +6554,7 @@ function DayView({
                     : "text-muted-foreground"
               )}>{format(currentDate, 'EEE')}</div>
               <div className={cn(
-                "text-4xl font-bold",
+                "mt-0.5 text-sm font-semibold sm:text-lg",
                 holidayLabelForCurrentDate && "text-red-600 dark:text-red-400"
               )}>{format(currentDate, 'd')}</div>
             </div>
@@ -6557,7 +6565,9 @@ function DayView({
                 </div>
               )}
             </div>
-            <div className="text-muted-foreground text-sm">{dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}</div>
+            <div className="text-sm text-muted-foreground">
+              {dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}
+            </div>
           </div>
         </div>
       
@@ -6583,15 +6593,20 @@ function DayView({
           const timeSlotStripe = getTimeSlotStatusStripe(hourActivities);
           
           return (
-            <div key={hour} className="grid grid-cols-[80px_1fr] border-b border-gray-100 dark:border-gray-800">
-              <div className="p-2 text-xs text-muted-foreground text-right pr-3 border-r">
+            <div
+              key={hour}
+              className="grid grid-cols-[44px_minmax(0,1fr)] border-b border-gray-100 sm:grid-cols-[minmax(0,1fr)_minmax(0,7fr)] dark:border-gray-800"
+              style={{ height: `${WEEK_VIEW_TIME_SLOT_HEIGHT}px` }}
+            >
+              <div className="flex h-full items-start justify-end border-r p-1.5 pr-1 text-right text-[10px] text-muted-foreground sm:p-2 sm:pr-3 sm:text-xs">
                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
               </div>
                <div 
                  className={cn(
-                    "relative h-[88px] overflow-hidden p-1 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30",
+                    "relative overflow-hidden p-0.5 transition-colors cursor-pointer select-none hover:bg-primary/10 hover:ring-1 hover:ring-primary/30 sm:p-1",
                     selectedTimeSlot === timeString && "bg-primary/5"
                   )}
+                  style={{ height: `${WEEK_VIEW_TIME_SLOT_HEIGHT}px` }}
                   data-date={currentDate.toISOString()}
                   data-time-slot={timeString}
                   data-drop-target="time"
@@ -6640,7 +6655,7 @@ function DayView({
                         onActivityClick(activity);
                       }}
                       className={cn(
-                        "text-sm p-2 rounded-md border mb-1 font-medium cursor-pointer hover:opacity-80 transition-opacity select-none",
+                        "hidden truncate rounded border p-1 text-xs font-medium transition-opacity hover:opacity-80 select-none sm:block cursor-pointer",
                         getStatusColor(activity.status),
                         "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
                         getStatusBorderColor?.(activity.status),
@@ -6648,13 +6663,27 @@ function DayView({
                         activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
                       )}
                     >
-                      <div className="font-semibold">{activity.title}</div>
+                      {activity.title}
                     </div>
                   ))}
+                  {hourActivities.length > 0 && (
+                    <button
+                      type="button"
+                      className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTimeSlotActivitiesModal?.(true);
+                        setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
+                      }}
+                    >
+                      {hourActivities.length}
+                    </button>
+                  )}
                   {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
                     <button
                       type="button"
-                      className="self-start select-none text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                      className="hidden self-start select-none text-xs font-medium text-muted-foreground transition-colors hover:text-primary sm:block"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => {
                         e.stopPropagation();
