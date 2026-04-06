@@ -73,6 +73,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 // Helper functions defined outside component for accessibility
 const HOLIDAYS_ENABLED_STORAGE_KEY = "calendar-holidays-enabled";
 const SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY = "calendar-show-philippine-holidays";
+const PHILIPPINE_HOLIDAY_RESTORE_DATES_STORAGE_KEY = "calendar-philippine-holiday-restore-dates";
 
 const readStoredBoolean = (key: string): boolean | null => {
   if (typeof window === "undefined") {
@@ -93,6 +94,43 @@ const writeStoredBoolean = (key: string, value: boolean) => {
   }
 
   window.localStorage.setItem(key, value.toString());
+};
+
+const readStoredPhilippineHolidayRestoreDates = (): Record<string, string> => {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const storedValue = window.localStorage.getItem(PHILIPPINE_HOLIDAY_RESTORE_DATES_STORAGE_KEY);
+  if (!storedValue) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(storedValue);
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+  } catch {
+    return {};
+  }
+};
+
+const writeStoredPhilippineHolidayRestoreDates = (value: Record<string, string>) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (Object.keys(value).length === 0) {
+    window.localStorage.removeItem(PHILIPPINE_HOLIDAY_RESTORE_DATES_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(PHILIPPINE_HOLIDAY_RESTORE_DATES_STORAGE_KEY, JSON.stringify(value));
 };
 
 let holidaysData: any[] = [];
@@ -799,7 +837,9 @@ function CalendarContent() {
   ];
   const showHolidayIndicators = holidaysEnabledData || showPhilippineHolidays;
   const pendingPhilippineHolidayAdjustmentRef = useRef(false);
+  const pendingPhilippineHolidayRestoreRef = useRef(false);
   const isApplyingPhilippineHolidayAdjustmentRef = useRef(false);
+  const philippineHolidayRestoreDatesRef = useRef<Record<string, string>>(readStoredPhilippineHolidayRestoreDates());
 
   useEffect(() => {
     writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, showPhilippineHolidays);
@@ -809,8 +849,10 @@ function CalendarContent() {
   const handleShowPhilippineHolidaysChange = useCallback((checked: boolean) => {
     if (checked && !showPhilippineHolidays) {
       pendingPhilippineHolidayAdjustmentRef.current = true;
-    } else if (!checked) {
+      pendingPhilippineHolidayRestoreRef.current = false;
+    } else if (!checked && showPhilippineHolidays) {
       pendingPhilippineHolidayAdjustmentRef.current = false;
+      pendingPhilippineHolidayRestoreRef.current = true;
     }
 
     setShowPhilippineHolidays(checked);
@@ -1869,6 +1911,7 @@ function CalendarContent() {
 
     try {
       const deadlineDateStr = new Date(targetDate);
+      const isRecurringSeriesMove = Boolean(activityToMove.recurrence && activityToMove.recurrence !== 'none');
       if (targetTime) {
         const [hours, minutes] = targetTime.split(':').map(Number);
         deadlineDateStr.setHours(hours, minutes, 0, 0);
@@ -1878,12 +1921,13 @@ function CalendarContent() {
       }
 
       const adjustedDeadlineDate = adjustToPreviousWorkingDay(deadlineDateStr);
+      const deadlineToPersist = isRecurringSeriesMove ? deadlineDateStr : adjustedDeadlineDate;
 
       const { activity: updatedActivity } = await updateActivity.mutateAsync({
         id: activityToMove.id,
         data: {
-          deadlineDate: adjustedDeadlineDate,
-          applyToSeries: Boolean(activityToMove.recurrence && activityToMove.recurrence !== 'none'),
+          deadlineDate: deadlineToPersist,
+          applyToSeries: isRecurringSeriesMove,
         },
         suppressSuccessToast: true,
       });
@@ -1896,13 +1940,13 @@ function CalendarContent() {
       const finalDateLabel = format(finalDeadline, 'MMMM d, yyyy');
       const timeStr = targetTime ? ` at ${format(finalDeadline, 'HH:mm')}` : '';
       const statusChangeMsg = updatedActivity.status === 'overdue' ? ' Status changed to Overdue.' : '';
-      const wasAdjustedToPreviousWorkingDay = adjustedDeadlineDate.getTime() !== deadlineDateStr.getTime();
+      const wasAdjustedToPreviousWorkingDay = finalDeadline.getTime() !== deadlineDateStr.getTime();
       const adjustmentMsg = wasAdjustedToPreviousWorkingDay ? ' Adjusted to the previous working day.' : '';
       toast({
-        title: activityToMove.recurrence && activityToMove.recurrence !== 'none'
+        title: isRecurringSeriesMove
           ? "Reschedule all activities"
           : "Activity rescheduled",
-        description: activityToMove.recurrence && activityToMove.recurrence !== 'none'
+        description: isRecurringSeriesMove
           ? "Moved all recurring activities"
           : `Moved to ${finalDateLabel}${timeStr}.${statusChangeMsg}${adjustmentMsg}`
       });
@@ -2471,6 +2515,7 @@ function CalendarContent() {
       return;
     }
 
+    const restoreDates = { ...philippineHolidayRestoreDatesRef.current };
     const activitiesToAdjust = activities
       .map((activity) => {
         const currentDeadline = new Date(activity.deadlineDate);
@@ -2482,10 +2527,11 @@ function CalendarContent() {
 
         return {
           id: activity.id,
+          originalDeadline: currentDeadline,
           adjustedDeadline,
         };
       })
-      .filter((activity): activity is { id: number; adjustedDeadline: Date } => activity !== null);
+      .filter((activity): activity is { id: number; originalDeadline: Date; adjustedDeadline: Date } => activity !== null);
 
     if (activitiesToAdjust.length === 0) {
       toast({
@@ -2531,6 +2577,12 @@ function CalendarContent() {
       throw new Error(errors[0]);
     }
 
+    activitiesToAdjust.forEach((activity) => {
+      restoreDates[String(activity.id)] = activity.originalDeadline.toISOString();
+    });
+    philippineHolidayRestoreDatesRef.current = restoreDates;
+    writeStoredPhilippineHolidayRestoreDates(restoreDates);
+
     await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
 
     toast({
@@ -2538,6 +2590,72 @@ function CalendarContent() {
       description: `${activitiesToAdjust.length} existing ${activitiesToAdjust.length === 1 ? "activity was" : "activities were"} moved to the previous working day.`,
     });
   }, [activities, queryClient, toast]);
+
+  const restoreExistingActivitiesFromPhilippineHolidayAdjustment = useCallback(async () => {
+    const restoreDates = { ...philippineHolidayRestoreDatesRef.current };
+    const entriesToRestore = Object.entries(restoreDates);
+
+    if (entriesToRestore.length === 0) {
+      toast({
+        title: "No activity changes needed",
+        description: "There are no saved Philippines holiday date adjustments to restore.",
+      });
+      return;
+    }
+
+    const errors: string[] = [];
+    const restoredIds = new Set<string>();
+
+    for (const restoreBatch of chunkArray(entriesToRestore, 10)) {
+      const results = await Promise.allSettled(
+        restoreBatch.map(async ([activityId, originalDeadline]) => {
+          const url = buildUrl(api.activities.update.path, { id: Number(activityId) });
+          const response = await fetch(url, {
+            method: api.activities.update.method,
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              deadlineDate: new Date(originalDeadline),
+              applyToSeries: false,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: "Failed to update activity" }));
+            throw new Error(errorData?.message || "Failed to update activity");
+          }
+
+          restoredIds.add(activityId);
+          return api.activities.update.responses[200].parse(await response.json());
+        }),
+      );
+
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          errors.push(result.reason instanceof Error ? result.reason.message : "Failed to update activity");
+        }
+      });
+    }
+
+    if (errors.length > 0) {
+      const remainingRestoreDates = Object.fromEntries(
+        Object.entries(restoreDates).filter(([activityId]) => !restoredIds.has(activityId)),
+      );
+      philippineHolidayRestoreDatesRef.current = remainingRestoreDates;
+      writeStoredPhilippineHolidayRestoreDates(remainingRestoreDates);
+      throw new Error(errors[0]);
+    }
+
+    philippineHolidayRestoreDatesRef.current = {};
+    writeStoredPhilippineHolidayRestoreDates({});
+
+    await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+
+    toast({
+      title: "Activities restored",
+      description: `${entriesToRestore.length} ${entriesToRestore.length === 1 ? "activity was" : "activities were"} returned to the original date from before Philippines holiday adjustment.`,
+    });
+  }, [queryClient, toast]);
 
   useEffect(() => {
     if (!pendingPhilippineHolidayAdjustmentRef.current) {
@@ -2574,6 +2692,35 @@ function CalendarContent() {
     showPhilippineHolidays,
     toast,
   ]);
+
+  useEffect(() => {
+    if (!pendingPhilippineHolidayRestoreRef.current) {
+      return;
+    }
+
+    if (showPhilippineHolidays) {
+      return;
+    }
+
+    if (isApplyingPhilippineHolidayAdjustmentRef.current) {
+      return;
+    }
+
+    pendingPhilippineHolidayRestoreRef.current = false;
+    isApplyingPhilippineHolidayAdjustmentRef.current = true;
+
+    void restoreExistingActivitiesFromPhilippineHolidayAdjustment()
+      .catch((error) => {
+        toast({
+          title: "Could not restore activities",
+          description: error instanceof Error ? error.message : "Failed to restore original activity dates",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        isApplyingPhilippineHolidayAdjustmentRef.current = false;
+      });
+  }, [restoreExistingActivitiesFromPhilippineHolidayAdjustment, showPhilippineHolidays, toast]);
 
   const getStatusColor = (status: string | null) => {
     switch(status) {
