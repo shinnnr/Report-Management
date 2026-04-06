@@ -399,9 +399,9 @@ export async function registerRoutes(
       const input = api.settings.set.input.parse(req.body);
       const currentUser = req.user as any;
 
-      // Admins can change any setting; non-admins may only toggle holidays_enabled when that feature is allowed
+      // Admins can change any setting; non-admins may only toggle holiday display settings when that feature is allowed
       if (currentUser.role !== 'admin') {
-        if (input.key !== 'holidays_enabled') {
+        if (input.key !== 'holidays_enabled' && input.key !== 'show_philippine_holidays') {
           return res.status(403).json({ message: "Only admins can update settings" });
         }
         const allowNonAdminHolidayAdd = await storage.getSetting('allow_non_admin_holiday_add');
@@ -434,6 +434,11 @@ export async function registerRoutes(
             return {
               action: on ? 'HOLIDAYS_ENABLED' : 'HOLIDAYS_DISABLED',
               description: on ? 'Enabled Holidays' : 'Disabled Holidays',
+            };
+          case 'show_philippine_holidays':
+            return {
+              action: on ? 'PHILIPPINE_HOLIDAYS_ENABLED' : 'PHILIPPINE_HOLIDAYS_DISABLED',
+              description: on ? 'Enabled Philippines Holidays' : 'Disabled Philippines Holidays',
             };
           case 'enable_role_filtering':
             return {

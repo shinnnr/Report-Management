@@ -146,7 +146,7 @@ const getDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const isHolidayAdjustmentEnabled = () => holidaysEnabledDataData || showPhilippineHolidaysDataData;
+const isHolidayAdjustmentEnabled = () => holidaysEnabledDataData;
 
 const hasHolidayDate = (date: Date) => {
   return holidayDateKeysData.has(getDateKey(date));
@@ -723,6 +723,7 @@ function CalendarContent() {
   );
   const { toast } = useToast();
   const holidaysEnabledSavePendingRef = useRef(false);
+  const showPhilippineHolidaysSavePendingRef = useRef(false);
 
   const updateHolidaysEnabled = useMutation({
     retry: false,
@@ -817,11 +818,64 @@ function CalendarContent() {
   const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(() => {
     return readStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) === true;
   });
+  const updateShowPhilippineHolidays = useMutation({
+    retry: false,
+    mutationFn: async (value: boolean) => {
+      const res = await fetch(api.settings.set.path, {
+        method: api.settings.set.method,
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ key: 'show_philippine_holidays', value: value.toString() }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update setting"));
+      }
+      return res.json();
+    },
+    onMutate: (value: boolean) => {
+      showPhilippineHolidaysSavePendingRef.current = true;
+      const previous = showPhilippineHolidaysDataData;
+      setShowPhilippineHolidays(value);
+      showPhilippineHolidaysDataData = value;
+      writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, value);
+      return { previous };
+    },
+    onError: (err, _value, context) => {
+      if (context?.previous !== undefined) {
+        setShowPhilippineHolidays(context.previous);
+        showPhilippineHolidaysDataData = context.previous;
+        writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, context.previous);
+      }
+      pendingPhilippineHolidayAdjustmentRef.current = false;
+      pendingPhilippineHolidayRestoreRef.current = false;
+      toast({
+        title: "Could not save setting",
+        description: err instanceof Error ? err.message : "Failed to update Philippines holidays",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      showPhilippineHolidaysSavePendingRef.current = false;
+    },
+    onSuccess: (_, value) => {
+      setShowPhilippineHolidays(value);
+      showPhilippineHolidaysDataData = value;
+      writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, value);
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
+      toast({
+        title: "Setting saved",
+        description: value
+          ? "Philippines holidays are enabled on the calendar."
+          : "Philippines holidays are disabled on the calendar.",
+      });
+    },
+  });
   const {
     data: philippineHolidays,
     isLoading: isLoadingPhilippineHolidays,
     error: philippineHolidaysError,
-  } = usePhilippineHolidays(showPhilippineHolidays);
+  } = usePhilippineHolidays(holidaysEnabledData && showPhilippineHolidays);
   const createHoliday = useCreateHoliday();
   const updateHoliday = useUpdateHoliday();
   const deleteHoliday = useDeleteHoliday();
@@ -829,13 +883,13 @@ function CalendarContent() {
   const [location, setLocation] = useLocation();
   const calendarHolidays = [
     ...(holidays || []),
-    ...((showPhilippineHolidays ? philippineHolidays : []) || []).map((holiday, index) => ({
+    ...((holidaysEnabledData && showPhilippineHolidays ? philippineHolidays : []) || []).map((holiday, index) => ({
         id: `philippines-${holiday.date}-${index}`,
         name: holiday.name,
         date: parseDateOnlyString(holiday.date),
       })),
   ];
-  const showHolidayIndicators = holidaysEnabledData || showPhilippineHolidays;
+  const showHolidayIndicators = holidaysEnabledData;
   const pendingPhilippineHolidayAdjustmentRef = useRef(false);
   const pendingPhilippineHolidayRestoreRef = useRef(false);
   const isApplyingPhilippineHolidayAdjustmentRef = useRef(false);
@@ -846,6 +900,33 @@ function CalendarContent() {
     showPhilippineHolidaysDataData = showPhilippineHolidays;
   }, [showPhilippineHolidays]);
 
+  useEffect(() => {
+    const fetchShowPhilippineHolidays = async () => {
+      if (showPhilippineHolidaysSavePendingRef.current) return;
+      try {
+        const res = await fetch('/api/settings/show_philippine_holidays', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const newValue = data.value === 'true';
+          setShowPhilippineHolidays(prev => {
+            if (prev !== newValue) {
+              showPhilippineHolidaysDataData = newValue;
+              writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, newValue);
+              return newValue;
+            }
+            return prev;
+          });
+        }
+      } catch (_error) {
+        // Ignore errors
+      }
+    };
+
+    fetchShowPhilippineHolidays();
+    const interval = setInterval(fetchShowPhilippineHolidays, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleShowPhilippineHolidaysChange = useCallback((checked: boolean) => {
     if (checked && !showPhilippineHolidays) {
       pendingPhilippineHolidayAdjustmentRef.current = true;
@@ -855,8 +936,8 @@ function CalendarContent() {
       pendingPhilippineHolidayRestoreRef.current = true;
     }
 
-    setShowPhilippineHolidays(checked);
-  }, [showPhilippineHolidays]);
+    updateShowPhilippineHolidays.mutate(checked);
+  }, [showPhilippineHolidays, updateShowPhilippineHolidays]);
 
   // Calendar view state
   type CalendarView = 'day' | 'week' | 'month';
