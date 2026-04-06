@@ -1909,9 +1909,13 @@ function CalendarContent() {
       return;
     }
 
+    const previousActivities = queryClient.getQueryData<any[]>([api.activities.list.path]);
+    const previousSelectedActivity = selectedActivity;
+
     try {
       const deadlineDateStr = new Date(targetDate);
       const isRecurringSeriesMove = Boolean(activityToMove.recurrence && activityToMove.recurrence !== 'none');
+      const activitiesQueryKey = [api.activities.list.path] as const;
       if (targetTime) {
         const [hours, minutes] = targetTime.split(':').map(Number);
         deadlineDateStr.setHours(hours, minutes, 0, 0);
@@ -1922,6 +1926,81 @@ function CalendarContent() {
 
       const adjustedDeadlineDate = adjustToPreviousWorkingDay(deadlineDateStr);
       const deadlineToPersist = isRecurringSeriesMove ? deadlineDateStr : adjustedDeadlineDate;
+
+      await queryClient.cancelQueries({ queryKey: activitiesQueryKey });
+
+      if (previousActivities) {
+        const getMonthDifference = (from: Date, to: Date) =>
+          ((to.getFullYear() - from.getFullYear()) * 12) + (to.getMonth() - from.getMonth());
+
+        const buildRecurringDeadlineForSlot = (slotDate: Date, sourceDate: Date) => {
+          const maxDayInMonth = new Date(slotDate.getFullYear(), slotDate.getMonth() + 1, 0).getDate();
+          const clampedDay = Math.min(sourceDate.getDate(), maxDayInMonth);
+          const nextDeadline = new Date(slotDate.getFullYear(), slotDate.getMonth(), clampedDay);
+
+          nextDeadline.setHours(
+            sourceDate.getHours(),
+            sourceDate.getMinutes(),
+            sourceDate.getSeconds(),
+            sourceDate.getMilliseconds(),
+          );
+
+          return nextDeadline;
+        };
+
+        const now = new Date();
+        const restrictedStatusSet = new Set(restrictedStatuses);
+        const currentSeriesSlotDate = new Date(activityToMove.startDate);
+
+        const optimisticActivities = previousActivities.map((activity) => {
+          if (!isRecurringSeriesMove) {
+            if (activity.id !== activityToMove.id) {
+              return activity;
+            }
+
+            return {
+              ...activity,
+              deadlineDate: adjustedDeadlineDate,
+              status: adjustedDeadlineDate > now ? 'pending' : 'overdue',
+            };
+          }
+
+          const isSameSeries =
+            activity.title === activityToMove.title &&
+            activity.recurrence === activityToMove.recurrence &&
+            activity.userId === activityToMove.userId &&
+            activity.regulatoryAgency === activityToMove.regulatoryAgency &&
+            activity.concernDepartment === activityToMove.concernDepartment;
+
+          if (!isSameSeries || restrictedStatusSet.has(activity.status || '')) {
+            return activity;
+          }
+
+          const seriesSlotDate = new Date(activity.startDate);
+          const monthOffset = getMonthDifference(currentSeriesSlotDate, seriesSlotDate);
+          const nextSlotDate = new Date(
+            deadlineDateStr.getFullYear(),
+            deadlineDateStr.getMonth() + monthOffset,
+            1,
+          );
+          const requestedSlotDeadline = buildRecurringDeadlineForSlot(nextSlotDate, deadlineDateStr);
+          const nextDeadline = adjustToPreviousWorkingDay(requestedSlotDeadline);
+
+          return {
+            ...activity,
+            startDate: requestedSlotDeadline,
+            deadlineDate: nextDeadline,
+            status: nextDeadline > now ? 'pending' : 'overdue',
+          };
+        });
+
+        queryClient.setQueryData(activitiesQueryKey, optimisticActivities);
+
+        const optimisticSelectedActivity = optimisticActivities.find((activity) => activity.id === activityToMove.id);
+        if (optimisticSelectedActivity) {
+          setSelectedActivity(optimisticSelectedActivity);
+        }
+      }
 
       const { activity: updatedActivity } = await updateActivity.mutateAsync({
         id: activityToMove.id,
@@ -1951,9 +2030,13 @@ function CalendarContent() {
           : `Moved to ${finalDateLabel}${timeStr}.${statusChangeMsg}${adjustmentMsg}`
       });
     } catch (error) {
+      queryClient.setQueryData([api.activities.list.path], previousActivities);
+      if (previousSelectedActivity) {
+        setSelectedActivity(previousSelectedActivity);
+      }
       // Error handled by mutation
     }
-  }, [selectedActivity, toast, updateActivity]);
+  }, [queryClient, selectedActivity, toast, updateActivity]);
 
   const rescheduleActivityToDropTarget = useCallback((activityToMove: any, target: CalendarDropTarget | null) => {
     if (!activityToMove || !target) return;
