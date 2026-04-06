@@ -97,6 +97,7 @@ const writeStoredBoolean = (key: string, value: boolean) => {
 
 let holidaysData: any[] = [];
 let holidaysEnabledDataData: boolean = readStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY) ?? false;
+let showPhilippineHolidaysDataData: boolean = readStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) ?? false;
 let holidayDateKeysData = new Set<string>();
 let holidayLabelsByDateKeyData = new Map<string, string>();
 
@@ -107,13 +108,15 @@ const getDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const isHolidayAdjustmentEnabled = () => holidaysEnabledDataData || showPhilippineHolidaysDataData;
+
 const hasHolidayDate = (date: Date) => {
   return holidayDateKeysData.has(getDateKey(date));
 };
 
 // Helper function to check if a date is a holiday
 const isDateHoliday = (date: Date) => {
-  if (!holidaysEnabledDataData) return false;
+  if (!isHolidayAdjustmentEnabled()) return false;
   return hasHolidayDate(date);
 };
 
@@ -430,7 +433,7 @@ const getEffectiveActivityDate = (activity: any): Date => {
   const deadlineDate = new Date(activity.deadlineDate);
   
   // Check if we should adjust for weekends (always, regardless of holidays setting)
-  const shouldAdjust = isDateWeekend(deadlineDate) || (holidaysEnabledDataData && isDateHoliday(deadlineDate));
+  const shouldAdjust = isDateWeekend(deadlineDate) || isDateHoliday(deadlineDate);
   
   if (shouldAdjust) {
     // Move to previous weekday that's not a holiday
@@ -448,7 +451,7 @@ const getEffectiveActivityDate = (activity: any): Date => {
       } else if (dayOfWeek === 0) { // Sunday
         adjustedDate.setDate(adjustedDate.getDate() - 2);
         isAdjusted = true;
-      } else if (holidaysEnabledDataData && isDateHoliday(adjustedDate)) { // Check if it's a holiday (only when enabled)
+      } else if (isDateHoliday(adjustedDate)) { // Check if it's a holiday (only when enabled)
         adjustedDate.setDate(adjustedDate.getDate() - 1);
         isAdjusted = true;
       }
@@ -795,9 +798,22 @@ function CalendarContent() {
       })),
   ];
   const showHolidayIndicators = holidaysEnabledData || showPhilippineHolidays;
+  const pendingPhilippineHolidayAdjustmentRef = useRef(false);
+  const isApplyingPhilippineHolidayAdjustmentRef = useRef(false);
 
   useEffect(() => {
     writeStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY, showPhilippineHolidays);
+    showPhilippineHolidaysDataData = showPhilippineHolidays;
+  }, [showPhilippineHolidays]);
+
+  const handleShowPhilippineHolidaysChange = useCallback((checked: boolean) => {
+    if (checked && !showPhilippineHolidays) {
+      pendingPhilippineHolidayAdjustmentRef.current = true;
+    } else if (!checked) {
+      pendingPhilippineHolidayAdjustmentRef.current = false;
+    }
+
+    setShowPhilippineHolidays(checked);
   }, [showPhilippineHolidays]);
 
   // Calendar view state
@@ -880,6 +896,7 @@ function CalendarContent() {
     });
 
     holidaysEnabledDataData = holidaysEnabledData;
+    showPhilippineHolidaysDataData = showPhilippineHolidays;
     setHolidaysKey(k => k + 1); // Force re-render when holidays update
   }, [holidays, philippineHolidays, showPhilippineHolidays, holidaysEnabledData]);
 
@@ -1035,7 +1052,7 @@ function CalendarContent() {
     holidayName !== editingHoliday.name || 
     (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
   );
-  const selectedSubmissionHoliday = holidaysEnabledData
+  const selectedSubmissionHoliday = showHolidayIndicators
     ? calendarHolidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
     : undefined;
   const holidaySubmissionToastDescription = "The selected submission date matches a holiday.";
@@ -1244,7 +1261,7 @@ function CalendarContent() {
 
   // Helper function to check if a date is a holiday or weekend
   const isDateHolidayOrWeekend = (date: Date) => {
-    return (holidaysEnabledDataData && isDateHoliday(date)) || isDateWeekend(date);
+    return isDateHoliday(date) || isDateWeekend(date);
   };
 
   // Helper to get date indicators
@@ -1860,10 +1877,12 @@ function CalendarContent() {
         deadlineDateStr.setHours(originalDate.getHours(), originalDate.getMinutes(), 0, 0);
       }
 
+      const adjustedDeadlineDate = adjustToPreviousWorkingDay(deadlineDateStr);
+
       const { activity: updatedActivity } = await updateActivity.mutateAsync({
         id: activityToMove.id,
         data: {
-          deadlineDate: deadlineDateStr,
+          deadlineDate: adjustedDeadlineDate,
           applyToSeries: Boolean(activityToMove.recurrence && activityToMove.recurrence !== 'none'),
         },
         suppressSuccessToast: true,
@@ -1877,7 +1896,7 @@ function CalendarContent() {
       const finalDateLabel = format(finalDeadline, 'MMMM d, yyyy');
       const timeStr = targetTime ? ` at ${format(finalDeadline, 'HH:mm')}` : '';
       const statusChangeMsg = updatedActivity.status === 'overdue' ? ' Status changed to Overdue.' : '';
-      const wasAdjustedToPreviousWorkingDay = !isSameDay(finalDeadline, targetDate);
+      const wasAdjustedToPreviousWorkingDay = adjustedDeadlineDate.getTime() !== deadlineDateStr.getTime();
       const adjustmentMsg = wasAdjustedToPreviousWorkingDay ? ' Adjusted to the previous working day.' : '';
       toast({
         title: activityToMove.recurrence && activityToMove.recurrence !== 'none'
@@ -2446,6 +2465,115 @@ function CalendarContent() {
 
     await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
   };
+
+  const moveExistingActivitiesToPreviousWorkingDay = useCallback(async () => {
+    if (!activities || activities.length === 0) {
+      return;
+    }
+
+    const activitiesToAdjust = activities
+      .map((activity) => {
+        const currentDeadline = new Date(activity.deadlineDate);
+        const adjustedDeadline = adjustToPreviousWorkingDay(currentDeadline);
+
+        if (adjustedDeadline.getTime() === currentDeadline.getTime()) {
+          return null;
+        }
+
+        return {
+          id: activity.id,
+          adjustedDeadline,
+        };
+      })
+      .filter((activity): activity is { id: number; adjustedDeadline: Date } => activity !== null);
+
+    if (activitiesToAdjust.length === 0) {
+      toast({
+        title: "No activity changes needed",
+        description: "Existing activities already fall on working days.",
+      });
+      return;
+    }
+
+    const errors: string[] = [];
+
+    for (const activityBatch of chunkArray(activitiesToAdjust, 10)) {
+      const results = await Promise.allSettled(
+        activityBatch.map(async (activity) => {
+          const url = buildUrl(api.activities.update.path, { id: activity.id });
+          const response = await fetch(url, {
+            method: api.activities.update.method,
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              deadlineDate: activity.adjustedDeadline,
+              applyToSeries: false,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: "Failed to update activity" }));
+            throw new Error(errorData?.message || "Failed to update activity");
+          }
+
+          return api.activities.update.responses[200].parse(await response.json());
+        }),
+      );
+
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          errors.push(result.reason instanceof Error ? result.reason.message : "Failed to update activity");
+        }
+      });
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors[0]);
+    }
+
+    await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+
+    toast({
+      title: "Activities adjusted",
+      description: `${activitiesToAdjust.length} existing ${activitiesToAdjust.length === 1 ? "activity was" : "activities were"} moved to the previous working day.`,
+    });
+  }, [activities, queryClient, toast]);
+
+  useEffect(() => {
+    if (!pendingPhilippineHolidayAdjustmentRef.current) {
+      return;
+    }
+
+    if (!showPhilippineHolidays || isLoadingPhilippineHolidays || !philippineHolidays || !activities) {
+      return;
+    }
+
+    if (isApplyingPhilippineHolidayAdjustmentRef.current) {
+      return;
+    }
+
+    pendingPhilippineHolidayAdjustmentRef.current = false;
+    isApplyingPhilippineHolidayAdjustmentRef.current = true;
+
+    void moveExistingActivitiesToPreviousWorkingDay()
+      .catch((error) => {
+        toast({
+          title: "Could not adjust activities",
+          description: error instanceof Error ? error.message : "Failed to move existing activities",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        isApplyingPhilippineHolidayAdjustmentRef.current = false;
+      });
+  }, [
+    activities,
+    isLoadingPhilippineHolidays,
+    moveExistingActivitiesToPreviousWorkingDay,
+    philippineHolidays,
+    showPhilippineHolidays,
+    toast,
+  ]);
 
   const getStatusColor = (status: string | null) => {
     switch(status) {
@@ -3073,7 +3201,7 @@ function CalendarContent() {
                       <PhilippinesHolidaySection
                         checkboxId="holiday-philippines-modal"
                         checked={showPhilippineHolidays}
-                        onCheckedChange={setShowPhilippineHolidays}
+                        onCheckedChange={handleShowPhilippineHolidaysChange}
                         isLoading={isLoadingPhilippineHolidays}
                         error={philippineHolidaysError}
                       />
@@ -5301,7 +5429,7 @@ function CalendarContent() {
                   <PhilippinesHolidaySection
                     checkboxId="holiday-philippines-panel"
                     checked={showPhilippineHolidays}
-                    onCheckedChange={setShowPhilippineHolidays}
+                    onCheckedChange={handleShowPhilippineHolidaysChange}
                     isLoading={isLoadingPhilippineHolidays}
                     error={philippineHolidaysError}
                   />
