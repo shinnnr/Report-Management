@@ -1036,36 +1036,45 @@ function DashboardContent() {
           </ScrollArea>
 
           {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 py-2 mt-2 shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="mt-2 flex shrink-0 flex-col items-start gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+            <div
+              className={cn(
+                "flex w-full items-center gap-2",
+                selectedLogIds.length === 0 && "justify-between"
+              )}
+            >
               {logs && logs.length >= logsPerPage && (
                 <>
                   <span className="text-sm text-muted-foreground">
                     Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                  <div
+                    className="flex items-center gap-2"
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
-                    disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(logs.length / logsPerPage), p + 1))}
+                      disabled={currentPage >= Math.ceil(logs.length / logsPerPage)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 whitespace-nowrap">
               {selectedLogIds.length > 0 && (
                 <>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="whitespace-nowrap text-sm text-muted-foreground">
                     {selectedLogIds.length} selected
                   </span>
                   <Button
