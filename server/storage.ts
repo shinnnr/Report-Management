@@ -39,10 +39,12 @@ export interface IStorage {
   getActivities(): Promise<Activity[]>;
   getActivity(id: number): Promise<Activity | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  createActivities(activities: InsertActivity[]): Promise<Activity[]>;
   generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
   rescheduleRecurringActivitySeries(id: number, deadlineDate: Date): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
+  deleteActivities(ids: number[]): Promise<number>;
   startActivity(id: number, userId: number): Promise<void>;
   completeActivity(id: number, userId: number): Promise<void>;
   checkDeadlines(): Promise<void>;
@@ -633,6 +635,14 @@ export class DatabaseStorage implements IStorage {
   // Generate recurring activities for a specific year
   // If masterActivityId is provided, only generate for that specific master activity
   // Otherwise, generate for all master activities (used when user visits a year)
+  async createActivities(insertActivities: InsertActivity[]): Promise<Activity[]> {
+    if (insertActivities.length === 0) {
+      return [];
+    }
+
+    return db.insert(activities).values(insertActivities).returning();
+  }
+
   async generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]> {
     let recurringActivities: Activity[];
     
@@ -949,14 +959,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteActivity(id: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      // Delete related records first due to foreign key constraints
-      await tx.delete(activitySubmissions).where(eq(activitySubmissions.activityId, id));
-      await tx.delete(notifications).where(eq(notifications.activityId, id));
+    await this.deleteActivities([id]);
+  }
 
-      // Finally delete the activity
-      await tx.delete(activities).where(eq(activities.id, id));
+  async deleteActivities(ids: number[]): Promise<number> {
+    const uniqueIds = Array.from(new Set(ids.filter((id) => Number.isInteger(id) && id > 0)));
+
+    if (uniqueIds.length === 0) {
+      return 0;
+    }
+
+    await db.transaction(async (tx) => {
+      const linkedReports = await tx
+        .select({ id: reports.id })
+        .from(reports)
+        .where(sql`${reports.activityId} IN ${uniqueIds}`);
+      const linkedReportIds = linkedReports.map((report) => report.id);
+
+      // Delete related records first due to foreign key constraints
+      await tx.delete(activitySubmissions).where(sql`${activitySubmissions.activityId} IN ${uniqueIds}`);
+      if (linkedReportIds.length > 0) {
+        await tx.delete(activitySubmissions).where(sql`${activitySubmissions.reportId} IN ${linkedReportIds}`);
+        await tx.delete(reports).where(sql`${reports.id} IN ${linkedReportIds}`);
+      }
+      await tx.delete(notifications).where(sql`${notifications.activityId} IN ${uniqueIds}`);
+      await tx.delete(activities).where(sql`${activities.id} IN ${uniqueIds}`);
     });
+
+    return uniqueIds.length;
   }
 
   async completeActivity(id: number, userId: number): Promise<void> {

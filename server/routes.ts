@@ -99,6 +99,48 @@ async function getSubmissionHolidayConflict(date: Date, submissionDateKey?: stri
   }) || null;
 }
 
+async function getOrCreateFolder(name: string, parentId: number | null, createdBy: number) {
+  let folder = await storage.getActiveFolderByNameAndParent(name, parentId);
+  if (folder) {
+    return folder;
+  }
+
+  const existingFolder = await storage.getFolderByNameAndParentAnyStatus(name, parentId);
+  if (existingFolder) {
+    return existingFolder;
+  }
+
+  return storage.createFolder({
+    name,
+    parentId,
+    createdBy,
+  });
+}
+
+async function getSubmissionTargetFolder(options: {
+  activityYear: number;
+  activityMonthName: string;
+  regulatoryAgency: string | null | undefined;
+  recurrence: string | null | undefined;
+  createdBy: number;
+}) {
+  const yearFolder = await getOrCreateFolder(`${options.activityYear}`, null, options.createdBy);
+  const monthFolder = await getOrCreateFolder(options.activityMonthName, yearFolder.id, options.createdBy);
+  const agencyFolderName = options.regulatoryAgency?.trim() || "Unassigned Agency";
+  const agencyFolder = await getOrCreateFolder(agencyFolderName, monthFolder.id, options.createdBy);
+  const submissionTypeFolderName =
+    options.recurrence && options.recurrence !== "none"
+      ? "Regular Submission"
+      : "Special Submission";
+  const submissionTypeFolder = await getOrCreateFolder(
+    submissionTypeFolderName,
+    agencyFolder.id,
+    options.createdBy,
+  );
+
+  return submissionTypeFolder;
+}
+
 const PHILIPPINES_HOLIDAY_FEED_URL = "https://calendar.google.com/calendar/ical/en.philippines%23holiday%40group.v.calendar.google.com/public/basic.ics";
 const PHILIPPINES_HOLIDAY_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
 
@@ -962,6 +1004,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.activities.createMany.path, isAuthenticated, async (req, res) => {
+    try {
+      const { activities: inputActivities } = api.activities.createMany.input.parse(req.body);
+      const userId = (req.user as any).id;
+
+      const activitiesToCreate = inputActivities.map((activity) => ({
+        ...activity,
+        userId,
+      }));
+
+      const createdActivities = await storage.createActivities(activitiesToCreate);
+      res.status(201).json({
+        activities: createdActivities,
+        createdCount: createdActivities.length,
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const zodMessage = err.errors[0]?.message;
+        console.error("[Activity] Bulk create validation error:", err.errors);
+        return res.status(400).json({ message: zodMessage ?? "Validation error" });
+      }
+      console.error("[Activity] Error creating activities in bulk:", err);
+      throw err;
+    }
+  });
+
   app.patch(api.activities.update.path, isAuthenticated, async (req, res) => {
     const id = parseInt(req.params.id as string);
     const parsedInput = api.activities.update.input.parse(req.body);
@@ -990,6 +1058,20 @@ export async function registerRoutes(
     await storage.deleteActivity(id);
     await storage.createLog((req.user as any).id, "DELETE_ACTIVITY", `Deleted activity ID: ${id}`);
     res.json({ message: "Activity deleted" });
+  });
+
+  app.post(api.activities.deleteMany.path, isAuthenticated, async (req, res) => {
+    const { ids } = api.activities.deleteMany.input.parse(req.body);
+    const deletedCount = await storage.deleteActivities(ids);
+    await storage.createLog(
+      (req.user as any).id,
+      "DELETE_ACTIVITY",
+      `Deleted ${deletedCount} activities in batch`,
+    );
+    res.json({
+      message: deletedCount === 1 ? "Activity deleted" : "Activities deleted",
+      deletedCount,
+    });
   });
 
   // GET single activity by ID
@@ -1202,46 +1284,16 @@ export async function registerRoutes(
       ];
       const activityMonthName = monthNames[activityMonth];
 
-      // Create or get year folder
-      // First check for active folder, then check for any folder (archived or active)
-      let yearFolder = await storage.getActiveFolderByNameAndParent(`${activityYear}`, null);
-      if (!yearFolder) {
-        // Check if there's an archived folder
-        const archivedYearFolder = await storage.getFolderByNameAndParentAnyStatus(`${activityYear}`, null);
-        if (archivedYearFolder) {
-          // Re-use the archived folder (don't unarchive to avoid conflicts)
-          yearFolder = archivedYearFolder;
-        } else {
-          // Create new folder only if none exists
-          yearFolder = await storage.createFolder({
-            name: `${activityYear}`,
-            parentId: null,
-            createdBy: userId
-          });
-        }
-      }
-
-      // Create or get month folder
-      // First check for active folder, then check for any folder (archived or active)
-      let monthFolder = await storage.getActiveFolderByNameAndParent(activityMonthName, yearFolder.id);
-      if (!monthFolder) {
-        // Check if there's an archived folder
-        const archivedMonthFolder = await storage.getFolderByNameAndParentAnyStatus(activityMonthName, yearFolder.id);
-        if (archivedMonthFolder) {
-          // Re-use the archived folder (don't unarchive to avoid conflicts)
-          monthFolder = archivedMonthFolder;
-        } else {
-          // Create new folder only if none exists
-          monthFolder = await storage.createFolder({
-            name: activityMonthName,
-            parentId: yearFolder.id,
-            createdBy: userId
-          });
-        }
-      }
+      const submissionFolder = await getSubmissionTargetFolder({
+        activityYear,
+        activityMonthName,
+        regulatoryAgency: activity.regulatoryAgency,
+        recurrence: activity.recurrence,
+        createdBy: userId,
+      });
 
       // Check for duplicate file name and append (n) if needed
-      const existingReports = await storage.getReports(monthFolder.id);
+      const existingReports = await storage.getReports(submissionFolder.id);
       let finalFileName = fileName;
       let counter = 1;
       const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
@@ -1260,7 +1312,7 @@ export async function registerRoutes(
         fileType,
         fileSize,
         fileData,
-        folderId: monthFolder.id,
+        folderId: submissionFolder.id,
         uploadedBy: userId,
         activityId,
         year: activityYear,
@@ -1364,38 +1416,16 @@ export async function registerRoutes(
         'July', 'August', 'September', 'October', 'November', 'December'];
       const activityMonthName = monthNames[activityMonth];
 
-      // Create year folder (only once)
-      let yearFolder = await storage.getActiveFolderByNameAndParent(`${activityYear}`, null);
-      if (!yearFolder) {
-        const archivedYearFolder = await storage.getFolderByNameAndParentAnyStatus(`${activityYear}`, null);
-        if (archivedYearFolder) {
-          yearFolder = archivedYearFolder;
-        } else {
-          yearFolder = await storage.createFolder({
-            name: `${activityYear}`,
-            parentId: null,
-            createdBy: userId
-          });
-        }
-      }
+      const submissionFolder = await getSubmissionTargetFolder({
+        activityYear,
+        activityMonthName,
+        regulatoryAgency: activity.regulatoryAgency,
+        recurrence: activity.recurrence,
+        createdBy: userId,
+      });
 
-      // Create month folder (only once)
-      let monthFolder = await storage.getActiveFolderByNameAndParent(activityMonthName, yearFolder.id);
-      if (!monthFolder) {
-        const archivedMonthFolder = await storage.getFolderByNameAndParentAnyStatus(activityMonthName, yearFolder.id);
-        if (archivedMonthFolder) {
-          monthFolder = archivedMonthFolder;
-        } else {
-          monthFolder = await storage.createFolder({
-            name: activityMonthName,
-            parentId: yearFolder.id,
-            createdBy: userId
-          });
-        }
-      }
-
-      // Get existing reports in the month folder
-      const existingReports = await storage.getReports(monthFolder.id);
+      // Get existing reports in the submission folder
+      const existingReports = await storage.getReports(submissionFolder.id);
 
       // Create all reports in the same folder
       const createdReports = [];
@@ -1418,7 +1448,7 @@ export async function registerRoutes(
           fileType: file.type,
           fileSize: file.size,
           fileData: file.data,
-          folderId: monthFolder.id,
+          folderId: submissionFolder.id,
           uploadedBy: userId,
           activityId,
           year: activityYear,
@@ -1436,6 +1466,7 @@ export async function registerRoutes(
         });
 
         createdReports.push(report);
+        existingReports.push(report);
       }
 
       // Update activity status

@@ -96,6 +96,22 @@ const writeStoredBoolean = (key: string, value: boolean) => {
   window.localStorage.setItem(key, value.toString());
 };
 
+const getRecurringActivityTitles = (
+  activities: Array<{ recurrence?: string | null; title?: string | null }> | undefined,
+  recurrenceTypes: string[],
+) => {
+  if (!activities || recurrenceTypes.length === 0) {
+    return [];
+  }
+
+  return activities
+    .filter((activity) => activity.recurrence && recurrenceTypes.includes(activity.recurrence))
+    .map((activity) => activity.title)
+    .filter((title): title is string => title !== null && title !== undefined)
+    .filter((title, index, arr) => arr.indexOf(title) === index)
+    .sort();
+};
+
 const readStoredPhilippineHolidayRestoreDates = (): Record<string, string> => {
   if (typeof window === "undefined") {
     return {};
@@ -1105,6 +1121,7 @@ function CalendarContent() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+  const [activitySearchQuery, setActivitySearchQuery] = useState("");
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -1142,6 +1159,30 @@ function CalendarContent() {
   const [recurrence, setRecurrence] = useState<string>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [submissionDate, setSubmissionDate] = useState<Date>(new Date());
+  const trimmedActivitySearchQuery = activitySearchQuery.trim().toLowerCase();
+  const searchedActivities = trimmedActivitySearchQuery.length === 0
+    ? []
+    : (activities || [])
+        .filter((activity) => {
+          const searchFields = [
+            activity.title,
+            activity.description,
+            activity.regulatoryAgency,
+            activity.concernDepartment,
+            activity.reportDetails,
+          ]
+            .filter((value): value is string => Boolean(value))
+            .join(" ")
+            .toLowerCase();
+
+          return searchFields.includes(trimmedActivitySearchQuery);
+        })
+        .sort((left, right) => {
+          const leftDate = getCalendarDisplayDate(left).getTime();
+          const rightDate = getCalendarDisplayDate(right).getTime();
+          return leftDate - rightDate;
+        })
+        .slice(0, 20);
   const [activitySubmissions, setActivitySubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
@@ -1201,6 +1242,8 @@ function CalendarContent() {
   const [addRecurYears, setAddRecurYears] = useState<string[]>([]);
   const [addRecurPreview, setAddRecurPreview] = useState<any[]>([]);
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
+  const addRecurringActivityTitles = getRecurringActivityTitles(activities, addRecurTypes);
+  const deleteRecurringActivityTitles = getRecurringActivityTitles(activities, deleteRecurTypes);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -2640,37 +2683,18 @@ function CalendarContent() {
   };
 
   const createActivitiesFast = async (activitiesToCreate: InsertActivity[]) => {
-    const errors: string[] = [];
+    const response = await fetch(api.activities.createMany.path, {
+      method: api.activities.createMany.method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activities: activitiesToCreate }),
+    });
 
-    for (const activityBatch of chunkArray(activitiesToCreate, 10)) {
-      const results = await Promise.allSettled(
-        activityBatch.map(async (activity) => {
-          const response = await fetch(api.activities.create.path, {
-            method: api.activities.create.method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(activity),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: "Failed to create activity" }));
-            throw new Error(errorData?.message || "Failed to create activity");
-          }
-
-          return api.activities.create.responses[201].parse(await response.json());
-        })
-      );
-
-      results.forEach((result) => {
-        if (result.status === "rejected") {
-          errors.push(result.reason instanceof Error ? result.reason.message : "Failed to create activity");
-        }
-      });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: "Failed to create activities" }));
+      throw new Error(errorData?.message || "Failed to create activities");
     }
 
-    if (errors.length > 0) {
-      throw new Error(errors[0]);
-    }
-
+    api.activities.createMany.responses[201].parse(await response.json());
     await queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
   };
 
@@ -3353,31 +3377,29 @@ function CalendarContent() {
                 setIsDeletingRecurring(true);
                 setShowDeleteRecurConfirm(false);
                 try {
-                  const deleteResults = await Promise.all(
-                    deleteRecurPreview.map(async (activity) => {
-                      const url = buildUrl(api.activities.delete.path, { id: activity.id });
-                      const response = await fetch(url, { method: api.activities.delete.method });
-                      return { id: activity.id, success: response.ok };
-                    })
-                  );
-                  const failedCount = deleteResults.filter(r => !r.success).length;
+                  const ids = deleteRecurPreview.map((activity) => activity.id);
+                  const response = await fetch(api.activities.deleteMany.path, {
+                    method: api.activities.deleteMany.method,
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ ids }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error("Failed to delete activities");
+                  }
+
+                  const result = api.activities.deleteMany.responses[200].parse(await response.json());
                   queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
                   setDeleteRecurPreview([]);
                   setDeleteRecurTypes([]);
                   setDeleteRecurTitles([]);
                   setDeleteRecurYears([]);
-                   if (failedCount === 0) {
-                      toast({
-                        title: "Deleted",
-                        description: `All ${deleteResults.length} activities have been deleted`,
-                      });
-                   } else {
-                    toast({
-                      title: "Partially Deleted",
-                       description: `${deleteResults.length - failedCount} activities deleted. ${failedCount} failed.`,
-                       variant: "destructive"
-                    });
-                  }
+                  toast({
+                    title: "Deleted",
+                    description: `All ${result.deletedCount} activities have been deleted`,
+                  });
                 } catch (error) {
                   toast({ title: "Error", description: "Failed to delete activities. Please try again.", variant: "destructive" });
                 } finally {
@@ -4980,6 +5002,91 @@ function CalendarContent() {
             <div className="w-full text-left text-sm text-muted-foreground 2xl:hidden">
               {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
             </div>
+
+            <div className="relative">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={activitySearchQuery}
+                  onChange={(e) => setActivitySearchQuery(e.target.value)}
+                  placeholder="Search activities by title, description, agency, or department"
+                  className="h-10 border border-gray-300 pl-10 pr-10 dark:border-gray-600"
+                />
+                {activitySearchQuery.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActivitySearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    aria-label="Clear activity search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {activitySearchQuery.trim().length > 0 && (
+                <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-background shadow-lg dark:border-gray-800">
+                  <ScrollArea className="max-h-72">
+                    <div className="p-2">
+                      {searchedActivities.length > 0 ? (
+                        searchedActivities.map((activity) => {
+                          const activityDate = getCalendarDisplayDate(activity);
+
+                          return (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              onClick={() => {
+                                setCurrentDate(activityDate);
+                                setSelectedDate(activityDate);
+                                setSelectedActivity(activity);
+                                setIsActivityModalOpen(true);
+                                setActivitySearchQuery("");
+                              }}
+                              className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                            >
+                              <div className="min-w-0 space-y-1">
+                                <p className="truncate text-sm font-medium text-foreground">{activity.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(activityDate, 'MMM d, yyyy h:mm a')}
+                                </p>
+                                {(activity.regulatoryAgency || activity.concernDepartment) && (
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {[activity.regulatoryAgency, activity.concernDepartment].filter(Boolean).join(' | ')}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={cn(
+                                "mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                                activity.status === 'completed' || activity.status === 'late'
+                                  ? "bg-green-100 text-green-700"
+                                  : activity.status === 'overdue'
+                                    ? "bg-red-100 text-red-700"
+                                    : activity.status === 'in-progress'
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-orange-100 text-orange-700"
+                              )}>
+                                {activity.status === 'late'
+                                  ? 'Late Submitted'
+                                  : activity.status === 'in-progress'
+                                    ? 'In Progress'
+                                    : activity.status
+                                      ? activity.status.charAt(0).toUpperCase() + activity.status.slice(1)
+                                      : 'Pending'}
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          No matching activities found.
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -5977,19 +6084,32 @@ function CalendarContent() {
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {(() => {
                               if (addRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                              // Filter activities by selected recurrence types and extract unique titles
-                              const titlesWithRecurrence = activities
-                                .filter(a => a.recurrence && addRecurTypes.includes(a.recurrence))
-                                .map(a => a.title)
-                                .filter((title): title is string => title !== null && title !== undefined)
-                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
-                                .sort(); // Sort alphabetically
-
-                              if (titlesWithRecurrence.length === 0) {
+                              if (addRecurringActivityTitles.length === 0) {
                                 return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
                               }
 
-                              return titlesWithRecurrence.map(title => (
+                              const allSelected = addRecurringActivityTitles.every(title => addRecurTitles.includes(title));
+
+                              return (
+                                <>
+                                  <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded border-b">
+                                    <Checkbox
+                                      id="add-activity-select-all"
+                                      checked={allSelected}
+                                      onCheckedChange={(checked) => {
+                                        setAddRecurTitles(checked ? addRecurringActivityTitles : []);
+                                        setAddRecurYears([]);
+                                        setAddRecurPreview([]);
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor="add-activity-select-all"
+                                      className="text-sm font-medium cursor-pointer flex-1"
+                                    >
+                                      Select All
+                                    </Label>
+                                  </div>
+                                  {addRecurringActivityTitles.map(title => (
                                 <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
                                   <Checkbox
                                     id={`add-activity-${title}`}
@@ -6011,7 +6131,9 @@ function CalendarContent() {
                                     {title}
                                   </Label>
                                 </div>
-                              ));
+                                  ))}
+                                </>
+                              );
                             })()}
                           </div>
                         </div>
@@ -6328,19 +6450,32 @@ function CalendarContent() {
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {(() => {
                               if (deleteRecurTypes.length === 0 || !activities) return <p className="text-sm text-muted-foreground p-2">Select recurrence type first</p>;
-                              // Filter activities by selected recurrence types and extract unique titles
-                              const titlesWithRecurrence = activities
-                                .filter(a => a.recurrence && deleteRecurTypes.includes(a.recurrence))
-                                .map(a => a.title)
-                                .filter((title): title is string => title !== null && title !== undefined)
-                                .filter((title, index, arr) => arr.indexOf(title) === index) // Remove duplicates
-                                .sort(); // Sort alphabetically
-
-                              if (titlesWithRecurrence.length === 0) {
+                              if (deleteRecurringActivityTitles.length === 0) {
                                 return <p className="text-sm text-muted-foreground p-2">No activities found</p>;
                               }
 
-                              return titlesWithRecurrence.map(title => (
+                              const allSelected = deleteRecurringActivityTitles.every(title => deleteRecurTitles.includes(title));
+
+                              return (
+                                <>
+                                  <div className="flex items-center space-x-2 p-2 hover:bg-muted rounded border-b">
+                                    <Checkbox
+                                      id="delete-activity-select-all"
+                                      checked={allSelected}
+                                      onCheckedChange={(checked) => {
+                                        setDeleteRecurTitles(checked ? deleteRecurringActivityTitles : []);
+                                        setDeleteRecurYears([]);
+                                        setDeleteRecurPreview([]);
+                                      }}
+                                    />
+                                    <Label
+                                      htmlFor="delete-activity-select-all"
+                                      className="text-sm font-medium cursor-pointer flex-1"
+                                    >
+                                      Select All
+                                    </Label>
+                                  </div>
+                                  {deleteRecurringActivityTitles.map(title => (
                                 <div key={title} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
                                   <Checkbox
                                     id={`activity-${title}`}
@@ -6362,7 +6497,9 @@ function CalendarContent() {
                                     {title}
                                   </Label>
                                 </div>
-                              ));
+                                  ))}
+                                </>
+                              );
                             })()}
                           </div>
                         </div>

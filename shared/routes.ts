@@ -282,6 +282,20 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    createMany: {
+      method: 'POST' as const,
+      path: '/api/activities/create-many',
+      input: z.object({
+        activities: z.array(insertActivitySchema).min(1),
+      }),
+      responses: {
+        201: z.object({
+          activities: z.array(z.custom<typeof activities.$inferSelect>()),
+          createdCount: z.number(),
+        }),
+        400: errorSchemas.validation,
+      },
+    },
     update: {
       method: 'PATCH' as const,
       path: '/api/activities/:id',
@@ -299,6 +313,20 @@ export const api = {
       responses: {
         200: z.object({ message: z.string() }),
         404: errorSchemas.notFound,
+      },
+    },
+    deleteMany: {
+      method: 'POST' as const,
+      path: '/api/activities/delete-many',
+      input: z.object({
+        ids: z.array(z.number().int().positive()).min(1),
+      }),
+      responses: {
+        200: z.object({
+          message: z.string(),
+          deletedCount: z.number(),
+        }),
+        400: errorSchemas.validation,
       },
     },
   },

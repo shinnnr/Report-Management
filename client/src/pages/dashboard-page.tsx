@@ -158,12 +158,21 @@ function DashboardContent() {
         };
     }, [isAdmin, activities, reports]);
 
-    const overdueActivities = activities?.filter(a => a.status === 'overdue').length || 0;
+    const currentDate = new Date();
+    const isCurrentMonthActivity = (activity: DashboardActivity) => {
+        const deadline = new Date(activity.deadlineDate);
+        return (
+            deadline.getMonth() === currentDate.getMonth() &&
+            deadline.getFullYear() === currentDate.getFullYear()
+        );
+    };
+
+    const overdueActivities = activities?.filter(a => a.status === 'overdue' && isCurrentMonthActivity(a)).length || 0;
     const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
     const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
-    const pendingActivities = activities?.filter(a => a.status === 'pending').length || 0;
-    const inProgressActivities = activities?.filter(a => a.status === 'in-progress').length || 0;
-    const completedActivities = activities?.filter(a => a.status === 'completed' || a.status === 'late').length || 0;
+    const pendingActivities = activities?.filter(a => a.status === 'pending' && isCurrentMonthActivity(a)).length || 0;
+    const inProgressActivities = activities?.filter(a => a.status === 'in-progress' && isCurrentMonthActivity(a)).length || 0;
+    const completedActivities = activities?.filter(a => (a.status === 'completed' || a.status === 'late') && isCurrentMonthActivity(a)).length || 0;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const sevenDaysFromNow = new Date(startOfToday);
@@ -185,8 +194,16 @@ function DashboardContent() {
 
     const getActivityStatusOverviewActivities = (status: ActivityStatusOverviewKey): DashboardActivity[] => {
         const filteredActivities = (activities || []).filter((activity) => {
+            if (status === "pending") {
+                return activity.status === "pending" && isCurrentMonthActivity(activity);
+            }
+
+            if (status === "in-progress") {
+                return activity.status === "in-progress" && isCurrentMonthActivity(activity);
+            }
+
             if (status === "completed") {
-                return activity.status === "completed" || activity.status === "late";
+                return (activity.status === "completed" || activity.status === "late") && isCurrentMonthActivity(activity);
             }
 
             return activity.status === status;
