@@ -1093,6 +1093,7 @@ function CalendarContent() {
   const weekScrollAreaRef = useRef<HTMLDivElement>(null);
   const dayScrollAreaRef = useRef<HTMLDivElement>(null);
   const monthCalendarContainerRef = useRef<HTMLDivElement>(null);
+  const activitySearchRef = useRef<HTMLDivElement>(null);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -1122,6 +1123,7 @@ function CalendarContent() {
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [activitySearchQuery, setActivitySearchQuery] = useState("");
+  const [isActivitySearchOpen, setIsActivitySearchOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -1245,6 +1247,21 @@ function CalendarContent() {
   const deleteRecurringActivityTitles = getRecurringActivityTitles(activities, deleteRecurTypes);
   
   // Clear concern department when regulatory agency changes
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isActivityModalOpen) {
+        return;
+      }
+
+      if (activitySearchRef.current && !activitySearchRef.current.contains(event.target as Node)) {
+        setIsActivitySearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isActivityModalOpen]);
+
   useEffect(() => {
     setConcernDepartment([]);
   }, [regulatoryAgency]);
@@ -5002,19 +5019,30 @@ function CalendarContent() {
               {filteredActivities.length} {activityFilter === 'all' ? 'Total' : activityFilter === 'in-progress' ? 'In Progress' : activityFilter.charAt(0).toUpperCase() + activityFilter.slice(1)} {filteredActivities.length === 1 ? 'Activity' : 'Activities'}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={activitySearchRef}>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={activitySearchQuery}
-                  onChange={(e) => setActivitySearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setActivitySearchQuery(e.target.value);
+                    setIsActivitySearchOpen(e.target.value.trim().length > 0);
+                  }}
+                  onFocus={() => {
+                    if (activitySearchQuery.trim().length > 0) {
+                      setIsActivitySearchOpen(true);
+                    }
+                  }}
                   placeholder="Search activities by title, description, agency, or department"
                   className="h-10 border border-gray-300 pl-10 pr-10 dark:border-gray-600"
                 />
                 {activitySearchQuery.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setActivitySearchQuery("")}
+                    onClick={() => {
+                      setActivitySearchQuery("");
+                      setIsActivitySearchOpen(false);
+                    }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     aria-label="Clear activity search"
                   >
@@ -5023,66 +5051,63 @@ function CalendarContent() {
                 )}
               </div>
 
-              {activitySearchQuery.trim().length > 0 && (
+              {activitySearchQuery.trim().length > 0 && isActivitySearchOpen && (
                 <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-background shadow-lg dark:border-gray-800">
-                  <ScrollArea className="max-h-72">
-                    <div className="p-2">
-                      {searchedActivities.length > 0 ? (
-                        searchedActivities.map((activity) => {
-                          const activityDate = getCalendarDisplayDate(activity);
+                  <div className="max-h-96 overflow-y-auto overscroll-contain p-2">
+                    {searchedActivities.length > 0 ? (
+                      searchedActivities.map((activity) => {
+                        const activityDate = getCalendarDisplayDate(activity);
 
-                          return (
-                            <button
-                              key={activity.id}
-                              type="button"
-                              onClick={() => {
-                                setCurrentDate(activityDate);
-                                setSelectedDate(activityDate);
-                                setSelectedActivity(activity);
-                                setIsActivityModalOpen(true);
-                                setActivitySearchQuery("");
-                              }}
-                              className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
-                            >
-                              <div className="min-w-0 space-y-1">
-                                <p className="truncate text-sm font-medium text-foreground">{activity.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {format(activityDate, 'MMM d, yyyy h:mm a')}
+                        return (
+                          <button
+                            key={activity.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentDate(activityDate);
+                              setSelectedDate(activityDate);
+                              setSelectedActivity(activity);
+                              setIsActivityModalOpen(true);
+                            }}
+                            className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                          >
+                            <div className="min-w-0 space-y-1">
+                              <p className="truncate text-sm font-medium text-foreground">{activity.title}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(activityDate, 'MMM d, yyyy h:mm a')}
+                              </p>
+                              {(activity.regulatoryAgency || activity.concernDepartment) && (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {[activity.regulatoryAgency, activity.concernDepartment].filter(Boolean).join(' | ')}
                                 </p>
-                                {(activity.regulatoryAgency || activity.concernDepartment) && (
-                                  <p className="truncate text-xs text-muted-foreground">
-                                    {[activity.regulatoryAgency, activity.concernDepartment].filter(Boolean).join(' | ')}
-                                  </p>
-                                )}
-                              </div>
-                              <span className={cn(
-                                "mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                                activity.status === 'completed' || activity.status === 'late'
-                                  ? "bg-green-100 text-green-700"
-                                  : activity.status === 'overdue'
-                                    ? "bg-red-100 text-red-700"
-                                    : activity.status === 'in-progress'
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-orange-100 text-orange-700"
-                              )}>
-                                {activity.status === 'late'
-                                  ? 'Late Submitted'
+                              )}
+                            </div>
+                            <span className={cn(
+                              "mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                              activity.status === 'completed' || activity.status === 'late'
+                                ? "bg-green-100 text-green-700"
+                                : activity.status === 'overdue'
+                                  ? "bg-red-100 text-red-700"
                                   : activity.status === 'in-progress'
-                                    ? 'In Progress'
-                                    : activity.status
-                                      ? activity.status.charAt(0).toUpperCase() + activity.status.slice(1)
-                                      : 'Pending'}
-                              </span>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                          No matching activities found.
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-orange-100 text-orange-700"
+                            )}>
+                              {activity.status === 'late'
+                                ? 'Late Submitted'
+                                : activity.status === 'in-progress'
+                                  ? 'In Progress'
+                                  : activity.status
+                                    ? activity.status.charAt(0).toUpperCase() + activity.status.slice(1)
+                                    : 'Pending'}
+                            </span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        No matching activities found.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
