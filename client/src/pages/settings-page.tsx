@@ -111,6 +111,7 @@ function SettingsContent() {
   const [selectedUserForDialog, setSelectedUserForDialog] = useState<any>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [togglingUserId, setTogglingUserId] = useState<number | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [changingRoleUserId, setChangingRoleUserId] = useState<{ userId: number; role: string } | null>(null);
 
   // User search and pagination state
@@ -302,10 +303,13 @@ function SettingsContent() {
 
   // Delete user
   const handleDeleteUser = async (userId: number) => {
+    setDeletingUserId(userId);
     try {
       await deleteUserMutation.mutateAsync(userId);
     } catch (error) {
       // Error handled in mutation
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -918,7 +922,7 @@ function SettingsContent() {
                             )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm" disabled={deleteUserMutation.isPending}>
+                                    <Button variant="destructive" size="sm">
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
@@ -933,10 +937,10 @@ function SettingsContent() {
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => handleDeleteUser(user.id)}
-                                        disabled={deleteUserMutation.isPending}
+                                        disabled={deletingUserId === user.id}
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                       >
-                                        {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
+                                        {deletingUserId === user.id ? "Deleting..." : "Delete"}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -1105,9 +1109,9 @@ function SettingsContent() {
             )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={deleteUserMutation.isPending}>
+                  <Button variant="destructive">
                     <Trash2 className="w-4 h-4 mr-2" />
-                    {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
+                    Delete
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -1124,10 +1128,10 @@ function SettingsContent() {
                         handleDeleteUser(selectedUserForDialog?.id);
                         setIsUserDialogOpen(false);
                       }}
-                      disabled={deleteUserMutation.isPending}
+                      disabled={deletingUserId === selectedUserForDialog?.id}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
+                      {deletingUserId === selectedUserForDialog?.id ? "Deleting..." : "Delete"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
