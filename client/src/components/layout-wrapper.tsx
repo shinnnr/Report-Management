@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect, useRef, createContext, useContext } from "react";
+import { ReactNode, useState, useEffect, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,18 +23,11 @@ const SidebarContext = createContext<SidebarContextType>({
 
 export const useSidebar = () => useContext(SidebarContext);
 
-// Custom hook to check if sidebar should be toggleable (mobile screens)
-function useSidebarToggle() {
-  return useIsMobile();
-}
-
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
   const isSidebarToggleable = isMobile === true; // Only true when explicitly true
   const [sidebarOpen, setSidebarOpen] = useState(false); // Always start closed
-  const touchStartX = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
 
   // Handle sidebar state based on mobile/toggleable status
   useEffect(() => {
@@ -52,29 +45,6 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       document.body.style.overflow = 'unset';
     }
   }, [sidebarOpen, isMobile]);
-
-  // Handle swipe gestures for sidebar
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const swipeThreshold = 50;
-    const diff = touchStartX.current - touchEndX.current;
-    
-    // Swipe right to open sidebar
-    if (diff < -swipeThreshold && !sidebarOpen && isMobile) {
-      setSidebarOpen(true);
-    }
-    // Swipe left to close sidebar
-    else if (diff > swipeThreshold && sidebarOpen && isMobile) {
-      setSidebarOpen(false);
-    }
-  };
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => !prev);
@@ -104,12 +74,7 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
       isSidebarOpen: sidebarOpen,
       isSidebarToggleable
     }}>
-    <div 
-      className="flex min-h-screen bg-background text-foreground"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="flex min-h-screen bg-background text-foreground">
       {/* Sidebar overlay - visible when sidebar is open on toggleable screens */}
       {isSidebarToggleable && sidebarOpen && (
         <div 
