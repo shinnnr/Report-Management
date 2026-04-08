@@ -223,6 +223,25 @@ const buildRecurringDeadlineForMonth = (year: number, month: number, originalDat
   return adjustToPreviousWorkingDay(deadlineDate);
 };
 
+const isExistingRecurringMatch = (existingActivity: any, generatedActivity: any) => (
+  existingActivity.title === generatedActivity.title &&
+  existingActivity.recurrence === generatedActivity.recurrence &&
+  existingActivity.regulatoryAgency === generatedActivity.regulatoryAgency &&
+  existingActivity.concernDepartment === generatedActivity.concernDepartment &&
+  existingActivity.userId === generatedActivity.userId &&
+  isSameDay(new Date(existingActivity.deadlineDate), new Date(generatedActivity.deadlineDate))
+);
+
+const filterMissingRecurringActivities = (generatedActivities: any[], allActivities?: any[]) => {
+  if (!allActivities || allActivities.length === 0) {
+    return generatedActivities;
+  }
+
+  return generatedActivities.filter((generatedActivity) =>
+    !allActivities.some((existingActivity) => isExistingRecurringMatch(existingActivity, generatedActivity))
+  );
+};
+
 // Helper function to generate recurring activities for a specific year based on an original activity
 const generateRecurringActivitiesForYear = (originalActivity: any, year: number, allActivities?: any[]): any[] => {
   const activities: any[] = [];
@@ -239,7 +258,7 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number,
       if (monthlyPatternWeekday !== null) {
         const yearStart = new Date(year, 0, 1);
         const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
-        return getMonthlyWeekdayOccurrences(
+        return filterMissingRecurringActivities(getMonthlyWeekdayOccurrences(
           yearStart,
           originalDate,
           yearEnd,
@@ -249,7 +268,7 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number,
           startDate: occurrence.startDate,
           deadlineDate: adjustToPreviousWorkingDay(occurrence.deadlineDate),
           id: undefined,
-        }));
+        })), allActivities);
       }
 
       // Create 12 activities, one for each month
@@ -300,35 +319,12 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number,
       break;
   }
 
-  return activities;
+  return filterMissingRecurringActivities(activities, allActivities);
 };
 
 // Helper function to get the count of activities that would be created for a year
 const getActivitiesCountForYear = (originalActivity: any, year: number, allActivities?: any[]): number => {
-  const recurrence = originalActivity.recurrence;
-
-  if (!recurrence) return 0;
-
-  const monthlyPatternWeekday = getMonthlyPatternWeekday(originalActivity, allActivities);
-
-  switch (recurrence) {
-    case 'monthly':
-      if (monthlyPatternWeekday !== null) {
-        const yearStart = new Date(year, 0, 1);
-        const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
-        return getMonthlyWeekdayOccurrences(
-          yearStart,
-          new Date(originalActivity.deadlineDate),
-          yearEnd,
-          monthlyPatternWeekday,
-        ).length;
-      }
-      return 12;
-    case 'quarterly': return 4;
-    case 'semi-annual': return 2;
-    case 'yearly': return 1;
-    default: return 0;
-  }
+  return generateRecurringActivitiesForYear(originalActivity, year, allActivities).length;
 };
 
 const getTargetMonthsForRecurrence = (recurrence: string | null | undefined, originalMonth: number): number[] => {
@@ -4006,11 +4002,11 @@ function CalendarContent() {
                         <SelectContent>
                           <SelectItem value="DOE">DOE</SelectItem>
                           <SelectItem value="ERC">ERC</SelectItem>
+                          <SelectItem value="IEMOP">IEMOP</SelectItem>
                           <SelectItem value="NEA">NEA</SelectItem>
                           <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
-                          <SelectItem value="PSALM">PSALM</SelectItem>
                           <SelectItem value="NGCP">NGCP</SelectItem>
-                          <SelectItem value="IEMOP">IEMOP</SelectItem>
+                          <SelectItem value="PSALM">PSALM</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -6221,18 +6217,36 @@ function CalendarContent() {
                                 return <p className="text-sm text-muted-foreground p-2">Select activity first</p>;
                               }
 
-                              const selectedTemplateActivities = (activities || []).filter(a =>
-                                a.title &&
-                                addRecurTitles.includes(a.title) &&
-                                a.recurrence &&
-                                addRecurTypes.includes(a.recurrence)
+                              const selectedOriginalActivities = addRecurTitles
+                                .map((title) => activities?.find((activity) =>
+                                  activity.title === title &&
+                                  activity.recurrence &&
+                                  addRecurTypes.includes(activity.recurrence)
+                                ))
+                                .filter((activity): activity is NonNullable<typeof activity> => Boolean(activity));
+
+                              const currentYear = new Date().getFullYear();
+                              const nextAvailableStartYear = selectedOriginalActivities.length > 0
+                                ? Math.min(...selectedOriginalActivities.map((originalActivity) => {
+                                    const latestYearInSeries = (activities || [])
+                                      .filter((activity) =>
+                                        activity.title === originalActivity.title &&
+                                        activity.recurrence === originalActivity.recurrence &&
+                                        activity.regulatoryAgency === originalActivity.regulatoryAgency &&
+                                        activity.concernDepartment === originalActivity.concernDepartment &&
+                                        activity.userId === originalActivity.userId
+                                      )
+                                      .map((activity) => new Date(activity.deadlineDate).getFullYear())
+                                      .reduce((latestYear, year) => Math.max(latestYear, year), currentYear);
+
+                                    return latestYearInSeries + 1;
+                                  }))
+                                : currentYear + 1;
+                              const futureYears = Array.from({ length: 5 }, (_, i) => nextAvailableStartYear + i).filter((year) =>
+                                selectedOriginalActivities.some((originalActivity) =>
+                                  getActivitiesCountForYear(originalActivity, year, activities || []) > 0
+                                )
                               );
-                              const selectedYears = selectedTemplateActivities
-                                .map(a => new Date(a.deadlineDate).getFullYear());
-                              const baseYear = selectedYears.length > 0
-                                ? Math.max(...selectedYears)
-                                : new Date().getFullYear();
-                              const futureYears = Array.from({ length: 5 }, (_, i) => baseYear + i + 1);
 
                               if (futureYears.length === 0) {
                                 return <p className="text-sm text-muted-foreground p-2">No available years for the selected activities</p>;
