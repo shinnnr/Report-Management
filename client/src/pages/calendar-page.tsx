@@ -3494,12 +3494,14 @@ function CalendarContent() {
 
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
-      // Refresh activities and notifications without page reload
-      queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] });
-      // Also refresh folders and reports so Drive page reflects changes in real-time
-      queryClient.invalidateQueries({ queryKey: [api.folders.list.path] });
-      queryClient.invalidateQueries({ queryKey: [api.reports.list.path] });
+      // Refresh activities, notifications, folders, and reports so other pages reflect the submission immediately.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [api.activities.list.path] }),
+        queryClient.invalidateQueries({ queryKey: [api.notifications.list.path] }),
+        queryClient.invalidateQueries({ queryKey: [api.folders.list.path], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: [api.reports.list.path], refetchType: 'all' }),
+        queryClient.invalidateQueries({ queryKey: [api.reports.count.path], refetchType: 'all' }),
+      ]);
     } catch (error: any) {
       console.error('Submission error:', error);
       const isHolidaySubmissionError = error?.message === "Submission date is a holiday";
