@@ -224,7 +224,7 @@ const buildRecurringDeadlineForMonth = (year: number, month: number, originalDat
 };
 
 // Helper function to generate recurring activities for a specific year based on an original activity
-const generateRecurringActivitiesForYear = (originalActivity: any, year: number): any[] => {
+const generateRecurringActivitiesForYear = (originalActivity: any, year: number, allActivities?: any[]): any[] => {
   const activities: any[] = [];
   const recurrence = originalActivity.recurrence;
 
@@ -232,9 +232,26 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
 
   // Ensure deadlineDate is a Date object
   const originalDate = new Date(originalActivity.deadlineDate);
+  const monthlyPatternWeekday = getMonthlyPatternWeekday(originalActivity, allActivities);
 
   switch (recurrence) {
     case 'monthly':
+      if (monthlyPatternWeekday !== null) {
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+        return getMonthlyWeekdayOccurrences(
+          yearStart,
+          originalDate,
+          yearEnd,
+          monthlyPatternWeekday,
+        ).map((occurrence) => ({
+          ...originalActivity,
+          startDate: occurrence.startDate,
+          deadlineDate: adjustToPreviousWorkingDay(occurrence.deadlineDate),
+          id: undefined,
+        }));
+      }
+
       // Create 12 activities, one for each month
       for (let month = 0; month < 12; month++) {
         activities.push({
@@ -287,13 +304,26 @@ const generateRecurringActivitiesForYear = (originalActivity: any, year: number)
 };
 
 // Helper function to get the count of activities that would be created for a year
-const getActivitiesCountForYear = (originalActivity: any, year: number): number => {
+const getActivitiesCountForYear = (originalActivity: any, year: number, allActivities?: any[]): number => {
   const recurrence = originalActivity.recurrence;
 
   if (!recurrence) return 0;
 
+  const monthlyPatternWeekday = getMonthlyPatternWeekday(originalActivity, allActivities);
+
   switch (recurrence) {
-    case 'monthly': return 12;
+    case 'monthly':
+      if (monthlyPatternWeekday !== null) {
+        const yearStart = new Date(year, 0, 1);
+        const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+        return getMonthlyWeekdayOccurrences(
+          yearStart,
+          new Date(originalActivity.deadlineDate),
+          yearEnd,
+          monthlyPatternWeekday,
+        ).length;
+      }
+      return 12;
     case 'quarterly': return 4;
     case 'semi-annual': return 2;
     case 'yearly': return 1;
@@ -378,6 +408,37 @@ const getMonthlyWeekdayOccurrences = (
   }
 
   return occurrences;
+};
+
+const getMonthlyPatternWeekday = (
+  originalActivity: any,
+  allActivities?: any[],
+): string | null => {
+  if (!allActivities || originalActivity?.recurrence !== "monthly") {
+    return null;
+  }
+
+  const originalDeadlineDate = new Date(originalActivity.deadlineDate);
+  const sourceYear = originalDeadlineDate.getFullYear();
+
+  const seriesActivities = allActivities.filter((activity) =>
+    activity.title === originalActivity.title &&
+    activity.recurrence === originalActivity.recurrence &&
+    activity.regulatoryAgency === originalActivity.regulatoryAgency &&
+    activity.concernDepartment === originalActivity.concernDepartment &&
+    activity.userId === originalActivity.userId &&
+    new Date(activity.deadlineDate).getFullYear() === sourceYear
+  );
+
+  const uniqueWeekdays = Array.from(
+    new Set(seriesActivities.map((activity) => new Date(activity.deadlineDate).getDay()))
+  );
+
+  if (seriesActivities.length > 12 && uniqueWeekdays.length === 1 && uniqueWeekdays[0] >= 1 && uniqueWeekdays[0] <= 5) {
+    return String(uniqueWeekdays[0]);
+  }
+
+  return null;
 };
 
 const getCreatedActivitiesCount = (
@@ -5035,9 +5096,17 @@ function CalendarContent() {
                     });
                   }
                 }}
-                disabled={confirmDeletingActivityId === activityToDelete?.id || confirmDeletingSelectionType !== null}
+                disabled={
+                  (deleteSelectionContext !== null &&
+                    confirmDeletingSelectionType === deleteSelectionContext.type) ||
+                  confirmDeletingActivityId === activityToDelete?.id
+                }
               >
-                {confirmDeletingSelectionType !== null || confirmDeletingActivityId === activityToDelete?.id ? "Deleting..." : "Delete"}
+                {(deleteSelectionContext !== null &&
+                  confirmDeletingSelectionType === deleteSelectionContext.type) ||
+                confirmDeletingActivityId === activityToDelete?.id
+                  ? "Deleting..."
+                  : "Delete"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -6211,7 +6280,7 @@ function CalendarContent() {
 
                            if (originalActivity) {
                              // Generate activities based on recurrence type
-                             const activitiesForYear = generateRecurringActivitiesForYear(originalActivity, year);
+                           const activitiesForYear = generateRecurringActivitiesForYear(originalActivity, year, activities || []);
                              previewActivities.push(...activitiesForYear);
                            }
                          });
@@ -6231,7 +6300,7 @@ function CalendarContent() {
                             addRecurTypes.includes(a.recurrence)
                           );
                           if (originalActivity) {
-                            count += getActivitiesCountForYear(originalActivity, year);
+                            count += getActivitiesCountForYear(originalActivity, year, activities || []);
                           }
                         });
                       });
