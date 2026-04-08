@@ -93,7 +93,7 @@ export default function AuthPage() {
           <div className="mb-6">
             <img src={neecoBanner} alt="NEECO Banner" className="h-16 lg:h-20 w-auto rounded-lg shadow-lg" />
           </div>
-          <h1 className="text-2xl lg:text-4xl font-display font-bold mb-4">Report Management System</h1>
+          <h1 className="text-2xl lg:text-4xl font-display font-bold mb-4">Integrated Report and Activity Management System</h1>
           <p className="text-sm lg:text-lg opacity-80 max-w-md">
             Streamline your workflow, organize reports, and track activities with our comprehensive management solution.
           </p>

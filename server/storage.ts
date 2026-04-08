@@ -31,6 +31,7 @@ export interface IStorage {
   getReport(id: number): Promise<Report | undefined>;
   getReportsCount(folderId?: number | null, status?: string): Promise<number>;
   createReport(report: InsertReport): Promise<Report>;
+  createReports(reports: InsertReport[]): Promise<Report[]>;
   updateReport(id: number, updates: Partial<InsertReport>): Promise<Report>;
   moveReports(reportIds: number[], folderId: number | null): Promise<void>;
   deleteReport(id: number): Promise<void>;
@@ -53,10 +54,12 @@ export interface IStorage {
   getActivitySubmissions(activityId: number): Promise<ActivitySubmission[]>;
   getUserSubmissionForActivity(userId: number, activityId: number): Promise<ActivitySubmission | undefined>;
   createActivitySubmission(submission: InsertActivitySubmission): Promise<ActivitySubmission>;
+  createActivitySubmissions(submissions: InsertActivitySubmission[]): Promise<ActivitySubmission[]>;
 
   // Notifications
   getNotifications(userId: number): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
+  createNotifications(notifications: InsertNotification[]): Promise<Notification[]>;
   markNotificationRead(id: number): Promise<void>;
   deleteNotification(id: number): Promise<void>;
   deleteAllNotifications(userId: number): Promise<void>;
@@ -438,9 +441,39 @@ export class DatabaseStorage implements IStorage {
     if (status) conditions.push(eq(reports.status, status));
 
     if (conditions.length > 0) {
-      return db.select().from(reports).where(and(...conditions));
+      return db.select({
+        id: reports.id,
+        title: reports.title,
+        description: reports.description,
+        fileName: reports.fileName,
+        fileType: reports.fileType,
+        fileSize: reports.fileSize,
+        fileData: sql<string | null>`NULL`,
+        folderId: reports.folderId,
+        uploadedBy: reports.uploadedBy,
+        activityId: reports.activityId,
+        status: reports.status,
+        year: reports.year,
+        month: reports.month,
+        createdAt: reports.createdAt,
+      }).from(reports).where(and(...conditions));
     }
-    return db.select().from(reports);
+    return db.select({
+      id: reports.id,
+      title: reports.title,
+      description: reports.description,
+      fileName: reports.fileName,
+      fileType: reports.fileType,
+      fileSize: reports.fileSize,
+      fileData: sql<string | null>`NULL`,
+      folderId: reports.folderId,
+      uploadedBy: reports.uploadedBy,
+      activityId: reports.activityId,
+      status: reports.status,
+      year: reports.year,
+      month: reports.month,
+      createdAt: reports.createdAt,
+    }).from(reports);
   }
 
   async moveReports(reportIds: number[], folderId: number | null): Promise<void> {
@@ -463,13 +496,12 @@ export class DatabaseStorage implements IStorage {
     }
     if (status) conditions.push(eq(reports.status, status));
 
-    // Select only id field to minimize data transfer
     if (conditions.length > 0) {
-      const result = await db.select({ id: reports.id }).from(reports).where(and(...conditions));
-      return result.length;
+      const [result] = await db.select({ count: sql<number>`count(*)` }).from(reports).where(and(...conditions));
+      return Number(result?.count || 0);
     }
-    const result = await db.select({ id: reports.id }).from(reports);
-    return result.length;
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(reports);
+    return Number(result?.count || 0);
   }
 
   async createReport(insertReport: InsertReport): Promise<Report> {
@@ -481,6 +513,14 @@ export class DatabaseStorage implements IStorage {
     }
     
     return report;
+  }
+
+  async createReports(insertReports: InsertReport[]): Promise<Report[]> {
+    if (insertReports.length === 0) {
+      return [];
+    }
+
+    return db.insert(reports).values(insertReports).returning();
   }
 
   async updateReport(id: number, updates: Partial<InsertReport>): Promise<Report> {
@@ -1192,6 +1232,14 @@ export class DatabaseStorage implements IStorage {
     return submission;
   }
 
+  async createActivitySubmissions(insertSubmissions: InsertActivitySubmission[]): Promise<ActivitySubmission[]> {
+    if (insertSubmissions.length === 0) {
+      return [];
+    }
+
+    return db.insert(activitySubmissions).values(insertSubmissions).returning();
+  }
+
   // Notifications
   async getNotifications(userId: number): Promise<Notification[]> {
     return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
@@ -1200,6 +1248,14 @@ export class DatabaseStorage implements IStorage {
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
     const [notification] = await db.insert(notifications).values(insertNotification).returning();
     return notification;
+  }
+
+  async createNotifications(insertNotifications: InsertNotification[]): Promise<Notification[]> {
+    if (insertNotifications.length === 0) {
+      return [];
+    }
+
+    return db.insert(notifications).values(insertNotifications).returning();
   }
 
   async markNotificationRead(id: number): Promise<void> {

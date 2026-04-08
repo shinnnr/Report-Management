@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { api, buildUrl } from "@shared/routes";
 import { format, formatDistanceToNow } from "date-fns";
 
 // Helper function to remove file extension
@@ -211,9 +212,9 @@ function DriveContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSelectMode]);
 
-  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active', 5000);
-  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active', 5000); // For breadcrumbs and dropdowns
-  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active', 10000);
+  const { data: currentFolders, isInitialLoading: foldersLoading } = useFolders(currentFolderId, 'active');
+  const { data: allFoldersData, isInitialLoading: allFoldersLoading } = useFolders('all', 'active'); // For breadcrumbs and dropdowns
+  const { data: reports, isInitialLoading: reportsLoading } = useReports(currentFolderId === null ? "root" : currentFolderId, 'active');
 
   // Get unique file types from reports
   const fileTypes = useMemo(() => {
@@ -698,6 +699,16 @@ function DriveContent() {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const openReport = async (reportId: number) => {
+    const url = buildUrl(api.reports.get.path, { id: reportId });
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error("Failed to load file");
+    }
+
+    return api.reports.get.responses[200].parse(await response.json());
   };
 
   const toggleFolderSelection = (id: number) => {
@@ -1827,8 +1838,16 @@ function DriveContent() {
                                 e.stopPropagation();
                                 setSelectedFileForDialog(r);
                                 setIsFileDialogOpen(true);
-                              } else if (r.fileData) {
-                                handleFileClick(r.fileData, r.fileName, r.fileType);
+                              } else {
+                                openReport(r.id)
+                                  .then((report) => {
+                                    if (report.fileData) {
+                                      handleFileClick(report.fileData, report.fileName, report.fileType);
+                                    }
+                                  })
+                                  .catch((error: any) => {
+                                    toast({ title: "Error", description: error?.message || "Failed to load file", variant: "destructive" });
+                                  });
                               }
                             }
                           }}
@@ -1949,9 +1968,17 @@ function DriveContent() {
               variant="default" 
               className=""
               onClick={() => {
-                if (selectedFileForDialog?.fileData) {
-                  handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);
-                  setIsFileDialogOpen(false);
+                if (selectedFileForDialog) {
+                  openReport(selectedFileForDialog.id)
+                    .then((report) => {
+                      if (report.fileData) {
+                        handleFileClick(report.fileData, report.fileName, report.fileType);
+                        setIsFileDialogOpen(false);
+                      }
+                    })
+                    .catch((error: any) => {
+                      toast({ title: "Error", description: error?.message || "Failed to load file", variant: "destructive" });
+                    });
                 }
               }}
             >

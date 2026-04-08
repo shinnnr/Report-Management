@@ -3247,7 +3247,6 @@ function CalendarContent() {
         body: JSON.stringify({
           files: fileDataArray,
           activityTitle: selectedActivity.title,
-          suppressNotification: true,
           deadlineYear,
           deadlineMonth,
           submissionDate: submissionDate.toISOString(),
@@ -3262,41 +3261,11 @@ function CalendarContent() {
 
       const result = await response.json();
 
-      // Fetch users list once for notification creation
-      const usersResponse = await fetch(api.users.list.path);
-      const users = await usersResponse.json();
-      
-      // Create notifications in parallel (one per user, not per file)
-      const notificationPromises = users
-        .filter((recipient: any) => recipient.id !== user?.id)
-        .map((recipient: any) => 
-          fetch(api.notifications.create.path, {
-            method: api.notifications.create.method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: recipient.id,
-              activityId: selectedActivity.id,
-              title: 'Activity Submitted',
-              content: `${user?.fullName || 'A user'} submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} for: ${selectedActivity.title}`,
-              isRead: false
-            })
-          })
-        );
-      await Promise.all(notificationPromises);
-
       toast({
         title: "Submission successful",
         description: `Successfully submitted ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`,
       });
-      
-      // Fetch the updated activity to get the new status
-      const activityRes = await fetch(api.activities.list.path);
-      const allActivities = await activityRes.json();
-      const updatedActivity = allActivities.find((a: any) => a.id === selectedActivity.id);
-      if (updatedActivity) {
-        setSelectedActivity(updatedActivity);
-      }
-      
+
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
       // Refresh activities and notifications without page reload
@@ -3521,6 +3490,7 @@ function CalendarContent() {
                         <Label htmlFor="holidayName" className="text-sm font-medium">Holiday Name</Label>
                         <Input
                           id="holidayName"
+                          name="holidayName"
                           value={holidayName}
                           onChange={(e) => setHolidayName(e.target.value)}
                           placeholder="New Year's Day"
@@ -3780,11 +3750,11 @@ function CalendarContent() {
                   <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title" className="text-sm font-medium">Title</Label>
-                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border border-gray-300 dark:border-gray-600" />
+                      <Input id="title" name="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border border-gray-300 dark:border-gray-600" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="desc" className="text-sm font-medium">Description</Label>
-                      <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
+                      <Textarea id="desc" name="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
                     </div>
                   </div>
                 </div>
@@ -3798,7 +3768,7 @@ function CalendarContent() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="text-sm font-medium">Regulatory Agency</div>
-                      <Select value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
+                      <Select name="regulatoryAgency" value={regulatoryAgency} onValueChange={setRegulatoryAgency}>
                         <SelectTrigger id="regulatoryAgency" className="h-10 border border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Select agency" />
                         </SelectTrigger>
@@ -3881,7 +3851,7 @@ function CalendarContent() {
                     {/* Recurrence Section */}
                     <div className="space-y-2">
                       <div className="text-sm font-medium">Recurrence</div>
-                      <Select value={recurrence} onValueChange={handleRecurrenceChange}>
+                      <Select name="recurrence" value={recurrence} onValueChange={handleRecurrenceChange}>
                         <SelectTrigger id="recurrence" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                           <SelectValue placeholder="Select recurrence" />
                         </SelectTrigger>
@@ -3901,7 +3871,7 @@ function CalendarContent() {
                         <div className="text-sm font-medium">Recurrence End {recurrence === 'yearly' ? 'Year' : 'Date'}</div>
                         {recurrence === 'yearly' ? (
                           // Yearly: only show year picker
-                          <Select value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-12-31')}>
+                          <Select name="recurrenceEndYear" value={recurrenceEndDate ? recurrenceEndDate.split('-')[0] : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-12-31')}>
                             <SelectTrigger id="recurrenceEnd" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end year" />
                             </SelectTrigger>
@@ -3913,7 +3883,7 @@ function CalendarContent() {
                           </Select>
                         ) : (
                           // Monthly, Quarterly, Semi-Annual: show month and year picker
-                          <Select value={recurrenceEndDate ? recurrenceEndDate.substring(0, 7) : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01')}>
+                          <Select name="recurrenceEndMonth" value={recurrenceEndDate ? recurrenceEndDate.substring(0, 7) : ''} onValueChange={(value) => setRecurrenceEndDate(value + '-01')}>
                             <SelectTrigger id="recurrenceEnd" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
                               <SelectValue placeholder="Select end month and year" />
                             </SelectTrigger>
@@ -3970,7 +3940,7 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="reportDetails" className="text-sm font-medium">Reports Detail</Label>
-                    <Textarea id="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border border-gray-300 dark:border-gray-600" rows={3} />
+                    <Textarea id="reportDetails" name="reportDetails" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border border-gray-300 dark:border-gray-600" rows={3} />
                   </div>
                 </div>
 
@@ -3984,6 +3954,7 @@ function CalendarContent() {
                     <Label htmlFor="time" className="text-sm font-medium">Time</Label>
                     <Input 
                       id="time" 
+                      name="time"
                       type="time" 
                       value={activityTime} 
                       onChange={(e) => setActivityTime(e.target.value)} 
@@ -4001,7 +3972,7 @@ function CalendarContent() {
                   </h3>
                   <div className="space-y-2">
                     <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
-                    <Textarea id="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
+                    <Textarea id="remarks" name="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
                   </div>
                 </div>
               </div>
@@ -4487,6 +4458,7 @@ function CalendarContent() {
                     <input
                       type="file"
                       id="activity-file-upload"
+                      name="activityFiles"
                       className="hidden"
                       accept=".pdf,.doc,.docx"
                       multiple
@@ -5023,6 +4995,8 @@ function CalendarContent() {
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  id="activity-search"
+                  name="activitySearch"
                   value={activitySearchQuery}
                   onChange={(e) => {
                     setActivitySearchQuery(e.target.value);
@@ -5806,216 +5780,8 @@ function CalendarContent() {
       </div>
         </div>
 
-        {/* Holiday Management & Recurring Activity Deletion Panel */}
+        {/* Recurring Activities & Holiday Management Panel */}
         <div className="flex flex-col gap-8 mt-8">
-          {/* Holiday Management Panel */}
-          {canManageHolidays && (
-          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <CalendarDays className="w-5 h-5" />
-                    Holiday Management
-                  </h3>
-                  <p className="text-sm text-muted-foreground">Add or update holidays. Activities scheduled on holidays will be automatically moved to the previous working day.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="holidays-enabled-panel"
-                    checked={holidaysEnabledData}
-                    onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Add New Holiday Form - Left Column */}
-              <div className="border rounded-lg p-4">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
-                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
-                  {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
-                </h4>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="holidayNamePanel" className="text-sm font-medium">Holiday Name</Label>
-                    <Input
-                      id="holidayNamePanel"
-                      value={holidayName}
-                      onChange={(e) => setHolidayName(e.target.value)}
-                      placeholder="New Year's Day"
-                      className="h-10 border border-gray-300 dark:border-gray-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Date</div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                         <Button id="holidayDatePanel" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
-                          {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
-                         </Button>
-                      </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={holidayDate}
-                            onSelect={setHolidayDate}
-                            initialFocus
-                            holidays={calendarHolidays}
-                            holidaysEnabled={holidaysEnabledData}
-                          />
-                        </PopoverContent>
-                    </Popover>
-                  </div>
-                  <PhilippinesHolidaySection
-                    checkboxId="holiday-philippines-panel"
-                    checked={showPhilippineHolidays}
-                    onCheckedChange={handleShowPhilippineHolidaysChange}
-                    isLoading={isLoadingPhilippineHolidays}
-                    error={philippineHolidaysError}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      onClick={async () => {
-                        if (!holidayName || !holidayDate) return;
-
-                        setIsAddingHoliday(true);
-                        try {
-                          if (editingHoliday) {
-                            await updateHoliday.mutateAsync({
-                              id: editingHoliday.id,
-                              data: {
-                                name: holidayName,
-                                date: holidayDate
-                              }
-                            });
-                          } else {
-                            await createHoliday.mutateAsync({
-                              name: holidayName,
-                              date: holidayDate
-                            });
-                          }
-                          resetHolidayForm();
-                        } catch (error) {
-                          // Error handled by mutation
-                        } finally {
-                          setIsAddingHoliday(false);
-                        }
-                      }}
-                      disabled={!holidayName || !holidayDate || isAddingHoliday || (editingHoliday && !hasHolidayChanges)}
-                      className="gap-2"
-                    >
-                      {isAddingHoliday ? (
-                        <>
-                          {editingHoliday ? 'Updating...' : 'Adding...'}
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4" />
-                          {editingHoliday ? 'Update Holiday' : 'Add Holiday'}
-                        </>
-                      )}
-                    </Button>
-                    {editingHoliday && (
-                      <Button
-                        variant="outline"
-                        className="shrink-0"
-                        onClick={() => {
-                          resetHolidayForm();
-                        }}
-                        disabled={isAddingHoliday}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Edit Existing Holiday - Right Column */}
-              <div className="border rounded-lg overflow-hidden flex self-start flex-col">
-                <div className="shrink-0 p-4 pb-0">
-                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
-                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
-                    EXISTING HOLIDAYS
-                  </h4>
-                </div>
-                {holidays && holidays.length > 0 ? (
-                  <>
-                    <div className="px-4">
-                      <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                        <div className="space-y-2 pr-4 pb-2">
-                          {paginatedHolidays.map((holiday: any) => (
-                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
-                              <div>
-                                <p className="font-medium">{holiday.name}</p>
-                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
-                              </div>
-                              <div className="flex gap-2">
-                                 <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setEditingHoliday(holiday);
-                                      setHolidayName(holiday.name);
-                                      setHolidayDate(new Date(holiday.date));
-                                    }}
-                                  >
-                                    Edit
-                                 </Button>
-                                 <Button
-                                   variant="destructive"
-                                   size="sm"
-                                   onClick={() => {
-                                     setHolidayToDelete(holiday);
-                                     setShowDeleteHolidayConfirm(true);
-                                   }}
-                                 >
-                                   <Trash2 className="w-4 h-4" />
-                                 </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                    {showHolidayPagination && (
-                      <div className="flex items-center justify-between bg-muted/10 p-4">
-                        <p className="text-sm text-muted-foreground">
-                          Page {holidayPage} of {totalHolidayPages}
-                        </p>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
-                            disabled={holidayPage === 1}
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setHolidayPage(p => Math.min(totalHolidayPages, p + 1))}
-                            disabled={holidayPage === totalHolidayPages}
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No holidays configured yet
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          )}
-
           {/* Manage Recurring Activities Panel */}
           {canDeleteActivities && (
           <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
@@ -6671,6 +6437,215 @@ function CalendarContent() {
                     Delete All
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Holiday Management Panel */}
+          {canManageHolidays && (
+          <div className="bg-card rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 overflow-visible">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5" />
+                    Holiday Management
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Add or update holidays. Activities scheduled on holidays will be automatically moved to the previous working day.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="holidays-enabled-panel"
+                    checked={holidaysEnabledData}
+                    onCheckedChange={(checked) => updateHolidaysEnabled.mutate(checked)}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Add New Holiday Form - Left Column */}
+              <div className="border rounded-lg p-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                  <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                  {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
+                </h4>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="holidayNamePanel" className="text-sm font-medium">Holiday Name</Label>
+                    <Input
+                      id="holidayNamePanel"
+                      name="holidayNamePanel"
+                      value={holidayName}
+                      onChange={(e) => setHolidayName(e.target.value)}
+                      placeholder="New Year's Day"
+                      className="h-10 border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Date</div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                         <Button id="holidayDatePanel" variant="outline" className="h-10 w-full justify-start text-left font-normal !border-gray-300">
+                          {holidayDate ? format(holidayDate, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
+                         </Button>
+                      </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={holidayDate}
+                            onSelect={setHolidayDate}
+                            initialFocus
+                            holidays={calendarHolidays}
+                            holidaysEnabled={holidaysEnabledData}
+                          />
+                        </PopoverContent>
+                    </Popover>
+                  </div>
+                  <PhilippinesHolidaySection
+                    checkboxId="holiday-philippines-panel"
+                    checked={showPhilippineHolidays}
+                    onCheckedChange={handleShowPhilippineHolidaysChange}
+                    isLoading={isLoadingPhilippineHolidays}
+                    error={philippineHolidaysError}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={async () => {
+                        if (!holidayName || !holidayDate) return;
+
+                        setIsAddingHoliday(true);
+                        try {
+                          if (editingHoliday) {
+                            await updateHoliday.mutateAsync({
+                              id: editingHoliday.id,
+                              data: {
+                                name: holidayName,
+                                date: holidayDate
+                              }
+                            });
+                          } else {
+                            await createHoliday.mutateAsync({
+                              name: holidayName,
+                              date: holidayDate
+                            });
+                          }
+                          resetHolidayForm();
+                        } catch (error) {
+                          // Error handled by mutation
+                        } finally {
+                          setIsAddingHoliday(false);
+                        }
+                      }}
+                      disabled={!holidayName || !holidayDate || isAddingHoliday || (editingHoliday && !hasHolidayChanges)}
+                      className="gap-2"
+                    >
+                      {isAddingHoliday ? (
+                        <>
+                          {editingHoliday ? 'Updating...' : 'Adding...'}
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          {editingHoliday ? 'Update Holiday' : 'Add Holiday'}
+                        </>
+                      )}
+                    </Button>
+                    {editingHoliday && (
+                      <Button
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => {
+                          resetHolidayForm();
+                        }}
+                        disabled={isAddingHoliday}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Existing Holiday - Right Column */}
+              <div className="border rounded-lg overflow-hidden flex self-start flex-col">
+                <div className="shrink-0 p-4 pb-0">
+                  <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                    EXISTING HOLIDAYS
+                  </h4>
+                </div>
+                {holidays && holidays.length > 0 ? (
+                  <>
+                    <div className="px-4">
+                      <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
+                        <div className="space-y-2 pr-4 pb-2">
+                          {paginatedHolidays.map((holiday: any) => (
+                            <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
+                              <div>
+                                <p className="font-medium">{holiday.name}</p>
+                                <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                 <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditingHoliday(holiday);
+                                      setHolidayName(holiday.name);
+                                      setHolidayDate(new Date(holiday.date));
+                                    }}
+                                  >
+                                    Edit
+                                 </Button>
+                                 <Button
+                                   variant="destructive"
+                                   size="sm"
+                                   onClick={() => {
+                                     setHolidayToDelete(holiday);
+                                     setShowDeleteHolidayConfirm(true);
+                                   }}
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                    {showHolidayPagination && (
+                      <div className="flex items-center justify-between bg-muted/10 p-4">
+                        <p className="text-sm text-muted-foreground">
+                          Page {holidayPage} of {totalHolidayPages}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.max(1, p - 1))}
+                            disabled={holidayPage === 1}
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHolidayPage(p => Math.min(totalHolidayPages, p + 1))}
+                            disabled={holidayPage === totalHolidayPages}
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No holidays configured yet
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { Link, useLocation, useSearch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { api, buildUrl } from "@shared/routes";
 
 // Helper function to remove file extension
 const removeFileExtension = (filename: string): string => {
@@ -106,9 +107,9 @@ function ArchivesContent() {
 
   const [archivesSearchQuery, setArchivesSearchQuery] = useState("");
 
-  const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived', 5000);
-  const { data: allArchivedFolders } = useFolders('all', 'archived', 5000);
-  const { data: archivedReports } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived', 5000);
+  const { data: currentArchivedFolders } = useFolders(currentFolderId, 'archived');
+  const { data: allArchivedFolders } = useFolders('all', 'archived');
+  const { data: archivedReports } = useReports(currentFolderId === null ? "root" : currentFolderId, 'archived');
   const { toast } = useToast();
 
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
@@ -371,6 +372,16 @@ function ArchivesContent() {
       link.click();
       document.body.removeChild(link);
     }
+  };
+
+  const openReport = async (reportId: number) => {
+    const url = buildUrl(api.reports.get.path, { id: reportId });
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error("Failed to load file");
+    }
+
+    return api.reports.get.responses[200].parse(await response.json());
   };
 
   const handleBulkRestore = async () => {
@@ -934,8 +945,16 @@ function ArchivesContent() {
                               e.stopPropagation();
                               setSelectedFileForDialog(r);
                               setIsFileDialogOpen(true);
-                            } else if (r.fileData) {
-                              handleFileClick(r.fileData, r.fileName, r.fileType);
+                            } else {
+                              openReport(r.id)
+                                .then((report) => {
+                                  if (report.fileData) {
+                                    handleFileClick(report.fileData, report.fileName, report.fileType);
+                                  }
+                                })
+                                .catch((error: any) => {
+                                  toast({ title: "Error", description: error?.message || "Failed to load file", variant: "destructive" });
+                                });
                             }
                           }
                         }}
@@ -951,7 +970,23 @@ function ArchivesContent() {
                         <td className="px-4 py-4 w-auto min-w-[150px] align-middle">
                           <div className="flex items-center gap-3">
                             <FileText className="w-4 h-4 flex-shrink-0" />
-                            <span onClick={(e) => { e.stopPropagation(); if (isMobile) { setSelectedFileForDialog(r); setIsFileDialogOpen(true); } else if (r.fileData) handleFileClick(r.fileData, r.fileName, r.fileType); }} className="cursor-pointer hover:text-primary truncate max-w-[120px] sm:max-w-none md:cursor-default">{removeFileExtension(r.fileName)}</span>
+                            <span onClick={(e) => {
+                              e.stopPropagation();
+                              if (isMobile) {
+                                setSelectedFileForDialog(r);
+                                setIsFileDialogOpen(true);
+                              } else {
+                                openReport(r.id)
+                                  .then((report) => {
+                                    if (report.fileData) {
+                                      handleFileClick(report.fileData, report.fileName, report.fileType);
+                                    }
+                                  })
+                                  .catch((error: any) => {
+                                    toast({ title: "Error", description: error?.message || "Failed to load file", variant: "destructive" });
+                                  });
+                              }
+                            }} className="cursor-pointer hover:text-primary truncate max-w-[120px] sm:max-w-none md:cursor-default">{removeFileExtension(r.fileName)}</span>
                           </div>
                         </td>
                         <td className="px-4 py-4 w-auto min-w-[20%] text-muted-foreground align-middle hidden lg:table-cell">{r.createdAt ? format(new Date(r.createdAt), 'MMM d, yyyy') : '-'}</td>
@@ -1059,9 +1094,17 @@ function ArchivesContent() {
               variant="default" 
               className=""
               onClick={() => {
-                if (selectedFileForDialog?.fileData) {
-                  handleFileClick(selectedFileForDialog.fileData, selectedFileForDialog.fileName, selectedFileForDialog.fileType);
-                  setIsFileDialogOpen(false);
+                if (selectedFileForDialog) {
+                  openReport(selectedFileForDialog.id)
+                    .then((report) => {
+                      if (report.fileData) {
+                        handleFileClick(report.fileData, report.fileName, report.fileType);
+                        setIsFileDialogOpen(false);
+                      }
+                    })
+                    .catch((error: any) => {
+                      toast({ title: "Error", description: error?.message || "Failed to load file", variant: "destructive" });
+                    });
                 }
               }}
             >

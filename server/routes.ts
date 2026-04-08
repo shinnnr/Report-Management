@@ -10,7 +10,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { db } from "./db";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { userSessions, type User } from "@shared/schema";
+import { userSessions, type InsertReport, type User } from "@shared/schema";
 import { format } from "date-fns";
 
 // Custom Drizzle Session Store
@@ -976,21 +976,18 @@ export async function registerRoutes(
       await storage.createLog((req.user as any).id, "CREATE_ACTIVITY", `Created activity: ${activity.title}`);
 
       // Create notification for all users (except the creator)
-      const users = await storage.getUsers();;
-      
-      for (const user of users) {
-        // Exclude the creator from receiving notification
-        if (user.id !== (req.user as any).id) {
-          // Notify all users about the new activity
-          await storage.createNotification({
+      const users = await storage.getUsers();
+      await storage.createNotifications(
+        users
+          .filter((user) => user.id !== (req.user as any).id)
+          .map((user) => ({
             userId: user.id,
             activityId: activity.id,
             title: "New Activity Added",
             content: `${activity.title}\nAdded by: ${creatorUser?.fullName || 'Unknown'}\nConcern Department: ${input.concernDepartment || 'N/A'}`,
-            isRead: false
-          });
-        }
-      }
+            isRead: false,
+          }))
+      );
       
       res.status(201).json(activity);
     } catch (err) {
@@ -1427,8 +1424,7 @@ export async function registerRoutes(
       // Get existing reports in the submission folder
       const existingReports = await storage.getReports(submissionFolder.id);
 
-      // Create all reports in the same folder
-      const createdReports = [];
+      const reportInputs: InsertReport[] = [];
       for (const file of files) {
         // Check for duplicate file name and append (n) if needed
         let finalFileName = file.name;
@@ -1441,7 +1437,7 @@ export async function registerRoutes(
           counter++;
         }
 
-        const report = await storage.createReport({
+        const reportInput: InsertReport = {
           title: `${activityTitle} - ${file.name}`,
           description: `Submission for activity: ${activityTitle}`,
           fileName: finalFileName,
@@ -1454,20 +1450,22 @@ export async function registerRoutes(
           year: activityYear,
           month: deadline.getMonth() + 1,
           status: 'active'
-        });
+        };
 
-        // Create submission record
-        await storage.createActivitySubmission({
+        reportInputs.push(reportInput);
+        existingReports.push({ fileName: finalFileName } as any);
+      }
+
+      const createdReports = await storage.createReports(reportInputs);
+      await storage.createActivitySubmissions(
+        createdReports.map((report) => ({
           activityId,
           userId,
           reportId: report.id,
           status: isLate ? 'late' : 'submitted',
-          submissionDate: now
-        });
-
-        createdReports.push(report);
-        existingReports.push(report);
-      }
+          submissionDate: now,
+        }))
+      );
 
       // Update activity status
       await storage.updateActivity(activityId, {
@@ -1483,17 +1481,17 @@ export async function registerRoutes(
       if (!suppressNotification) {
         const users = await storage.getUsers();
         const submittingUser = await storage.getUser(userId);
-        for (const user of users) {
-          if (user.id !== userId) {
-            await storage.createNotification({
+        await storage.createNotifications(
+          users
+            .filter((user) => user.id !== userId)
+            .map((user) => ({
               userId: user.id,
               activityId: activity.id,
               title: "Activity Submitted",
               content: `${submittingUser?.fullName || 'A user'} submitted ${files.length} files for: ${activity.title}`,
-              isRead: false
-            });
-          }
-        }
+              isRead: false,
+            }))
+        );
       }
 
       res.status(201).json({
