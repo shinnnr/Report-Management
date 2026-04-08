@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { useNotifications, useMarkNotificationRead, useDeleteNotification } from "@/hooks/use-notifications";
-import { formatDistanceToNow, format } from "date-fns";
+import { useNotifications, useMarkNotificationRead, useDeleteNotification, useDeleteAllNotifications } from "@/hooks/use-notifications";
+import { format } from "date-fns";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -19,10 +28,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
   const { data: notifications } = useNotifications();
   const markReadMutation = useMarkNotificationRead();
   const deleteMutation = useDeleteNotification();
+  const deleteAllMutation = useDeleteAllNotifications();
   const [, setLocation] = useLocation();
 
-  const [selectedNotifications, setSelectedNotifications] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const notificationsPerPage = 10;
 
   const handleNotificationClick = (notification: any) => {
@@ -44,24 +54,10 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
     deleteMutation.mutate(id);
   };
 
-  const handleDeleteSelected = () => {
-    selectedNotifications.forEach(id => deleteMutation.mutate(id));
-    setSelectedNotifications([]);
-  };
-
-  const toggleSelection = (id: number) => {
-    setSelectedNotifications(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const isAdmin = user?.role === 'admin';
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
         setCurrentPage(1);
-        setSelectedNotifications([]);
       }
       onClose();
     }}>
@@ -69,6 +65,18 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
         <DialogHeader className="pb-4 shrink-0">
           <DialogTitle className="flex items-center justify-between pr-8">
             <span>All Notifications</span>
+            {notifications && notifications.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                disabled={deleteAllMutation.isPending}
+                className="rounded p-1.5 text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Delete all notifications"
+                title="Delete all notifications"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : null}
           </DialogTitle>
           <DialogDescription className="text-left">
             View and manage all your notifications. Select notifications to delete them.
@@ -88,11 +96,6 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <Checkbox
-                      checked={selectedNotifications.includes(notification.id)}
-                      onCheckedChange={() => toggleSelection(notification.id)}
-                      className="flex-shrink-0 mt-1"
-                    />
                     <div className="flex-1 min-w-0" onClick={() => handleNotificationClick(notification)}>
                       <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
                         {notification.title}
@@ -130,89 +133,64 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </div>
         </ScrollArea>
 
-          {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="mt-2 shrink-0 py-2">
-            <div className="flex min-h-9 w-full items-center justify-between gap-2">
-              {selectedNotifications.length > 0 ? (
-                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:w-auto sm:min-w-0 sm:justify-start sm:gap-3">
-                    {notifications && notifications.length >= notificationsPerPage ? (
-                      <>
-                        <span className="whitespace-nowrap text-sm text-muted-foreground">
-                          Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}
-                        </span>
-                        <div className="flex shrink-0 gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                            disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </>
-                    ) : null}
-                  </div>
-                  <div className="flex min-h-9 w-full items-center justify-start gap-2 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
-                    <span className="hidden text-sm text-muted-foreground sm:inline">
-                      {selectedNotifications.length} selected
-                    </span>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="whitespace-nowrap"
-                      onClick={handleDeleteSelected}
-                      disabled={deleteMutation.isPending || selectedNotifications.length === 0}
-                      aria-label="Delete selected notifications"
-                      title="Delete selected notifications"
-                    >
-                      Delete Selected
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <span className="whitespace-nowrap text-sm text-muted-foreground">
-                    {notifications && notifications.length >= notificationsPerPage ? (
-                      <>Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}</>
-                    ) : ""}
-                  </span>
-                  {notifications && notifications.length >= notificationsPerPage ? (
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
-                        disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="min-h-9" />
-                  )}
-                </>
-              )}
-            </div>
+        <div className="mt-2 shrink-0 py-2">
+          <div className="flex min-h-9 w-full items-center justify-between gap-2">
+            <span className="whitespace-nowrap text-sm text-muted-foreground">
+              {notifications && notifications.length >= notificationsPerPage ? (
+                <>Page {currentPage} of {Math.ceil(notifications.length / notificationsPerPage)}</>
+              ) : ""}
+            </span>
+            {notifications && notifications.length >= notificationsPerPage ? (
+              <div className="flex shrink-0 gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(notifications.length / notificationsPerPage), p + 1))}
+                  disabled={currentPage >= Math.ceil(notifications.length / notificationsPerPage)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="min-h-9" />
+            )}
           </div>
+        </div>
       </DialogContent>
+
+      <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Notifications</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all notifications? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteAllMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (event) => {
+                event.preventDefault();
+                await deleteAllMutation.mutateAsync();
+                setCurrentPage(1);
+                setShowDeleteAllConfirm(false);
+              }}
+              disabled={deleteAllMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteAllMutation.isPending ? "Deleting..." : "Delete All"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
