@@ -316,14 +316,83 @@ const getTargetMonthsForRecurrence = (recurrence: string | null | undefined, ori
   }
 };
 
+const WEEKDAY_OPTIONS = [
+  { value: "date", label: "Same date each month" },
+  { value: "1", label: "Every Monday" },
+  { value: "2", label: "Every Tuesday" },
+  { value: "3", label: "Every Wednesday" },
+  { value: "4", label: "Every Thursday" },
+  { value: "5", label: "Every Friday" },
+] as const;
+
+const getMonthlyWeekdayOccurrences = (
+  startDate: Date,
+  deadlineDate: Date,
+  recurrenceEndDate: Date,
+  weekdayOption: string,
+) => {
+  if (weekdayOption === "date") {
+    return [];
+  }
+
+  const targetWeekday = Number(weekdayOption);
+  if (Number.isNaN(targetWeekday)) {
+    return [];
+  }
+
+  const occurrences: { startDate: Date; deadlineDate: Date }[] = [];
+  const startBoundary = new Date(startDate);
+  startBoundary.setHours(0, 0, 0, 0);
+
+  const deadlineHours = deadlineDate.getHours();
+  const deadlineMinutes = deadlineDate.getMinutes();
+  const deadlineSeconds = deadlineDate.getSeconds();
+  const deadlineMilliseconds = deadlineDate.getMilliseconds();
+
+  for (
+    let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    cursor <= recurrenceEndDate;
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)
+  ) {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const occurrenceStart = new Date(year, month, day);
+      if (occurrenceStart.getDay() !== targetWeekday) {
+        continue;
+      }
+
+      if (occurrenceStart < startBoundary) {
+        continue;
+      }
+
+      const occurrenceDeadline = new Date(occurrenceStart);
+      occurrenceDeadline.setHours(deadlineHours, deadlineMinutes, deadlineSeconds, deadlineMilliseconds);
+      occurrences.push({
+        startDate: occurrenceStart,
+        deadlineDate: occurrenceDeadline,
+      });
+    }
+  }
+
+  return occurrences;
+};
+
 const getCreatedActivitiesCount = (
   startDate: Date,
   deadlineDate: Date,
   recurrence: string,
   recurrenceEndDate?: Date | null,
+  monthlyWeekdayOption: string = "date",
 ): number => {
   if (!recurrence || recurrence === 'none' || !recurrenceEndDate) {
     return 1;
+  }
+
+  if (recurrence === "monthly" && monthlyWeekdayOption !== "date") {
+    return getMonthlyWeekdayOccurrences(startDate, deadlineDate, recurrenceEndDate, monthlyWeekdayOption).length;
   }
 
   const originalDay = deadlineDate.getDate();
@@ -1134,6 +1203,7 @@ function CalendarContent() {
   const [startingActivityId, setStartingActivityId] = useState<number | null>(null);
   const [confirmDeletingActivityId, setConfirmDeletingActivityId] = useState<number | null>(null);
   const [manuallyClosedWhileAdding, setManuallyClosedWhileAdding] = useState(false);
+  const [isCreatingActivity, setIsCreatingActivity] = useState(false);
   
   // Day Activities Modal State
   const [showDayActivitiesModal, setShowDayActivitiesModal] = useState(false);
@@ -1159,6 +1229,7 @@ function CalendarContent() {
   const [regulatoryAgency, setRegulatoryAgency] = useState("");
   const [concernDepartment, setConcernDepartment] = useState<string[]>([]);
   const [recurrence, setRecurrence] = useState<string>("none");
+  const [monthlyWeekdayOption, setMonthlyWeekdayOption] = useState<string>("date");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [submissionDate, setSubmissionDate] = useState<Date>(new Date());
   const trimmedActivitySearchQuery = activitySearchQuery.trim().toLowerCase();
@@ -1290,6 +1361,7 @@ function CalendarContent() {
   const handleRecurrenceChange = (value: string) => {
     setRecurrence(value);
     setRecurrenceEndDate("");
+    setMonthlyWeekdayOption("date");
   };
   
   const [reportDetails, setReportDetails] = useState("");
@@ -2088,9 +2160,59 @@ function CalendarContent() {
           return nextDeadline;
         };
 
+        const getWeekdayOccurrenceIndex = (date: Date) => {
+          let occurrenceIndex = 0;
+          for (let day = 1; day <= date.getDate(); day++) {
+            const candidate = new Date(date.getFullYear(), date.getMonth(), day);
+            if (candidate.getDay() === date.getDay()) {
+              occurrenceIndex++;
+            }
+          }
+
+          return occurrenceIndex - 1;
+        };
+
+        const buildWeekdayRecurringDeadlineForSlot = (
+          slotDate: Date,
+          sourceDate: Date,
+          occurrenceIndex: number,
+        ) => {
+          const matchingDays: number[] = [];
+          const daysInMonth = new Date(slotDate.getFullYear(), slotDate.getMonth() + 1, 0).getDate();
+
+          for (let day = 1; day <= daysInMonth; day++) {
+            const candidate = new Date(slotDate.getFullYear(), slotDate.getMonth(), day);
+            if (candidate.getDay() === sourceDate.getDay()) {
+              matchingDays.push(day);
+            }
+          }
+
+          const targetDay = matchingDays[Math.min(occurrenceIndex, matchingDays.length - 1)] ?? 1;
+          const nextDeadline = new Date(slotDate.getFullYear(), slotDate.getMonth(), targetDay);
+
+          nextDeadline.setHours(
+            sourceDate.getHours(),
+            sourceDate.getMinutes(),
+            sourceDate.getSeconds(),
+            sourceDate.getMilliseconds(),
+          );
+
+          return nextDeadline;
+        };
+
         const now = new Date();
         const restrictedStatusSet = new Set(restrictedStatuses);
         const currentSeriesSlotDate = new Date(activityToMove.startDate);
+        const sameSeriesActivities = previousActivities.filter((activity) =>
+          activity.title === activityToMove.title &&
+          activity.recurrence === activityToMove.recurrence &&
+          activity.userId === activityToMove.userId &&
+          activity.regulatoryAgency === activityToMove.regulatoryAgency &&
+          activity.concernDepartment === activityToMove.concernDepartment
+        );
+        const isMonthlyPatternSeries =
+          activityToMove.recurrence === 'monthly' &&
+          sameSeriesActivities.some((activity) => activity.id !== activityToMove.id && new Date(activity.startDate).getDate() !== 1);
 
         const optimisticActivities = previousActivities.map((activity) => {
           if (!isRecurringSeriesMove) {
@@ -2123,7 +2245,13 @@ function CalendarContent() {
             deadlineDateStr.getMonth() + monthOffset,
             1,
           );
-          const requestedSlotDeadline = buildRecurringDeadlineForSlot(nextSlotDate, deadlineDateStr);
+          const requestedSlotDeadline = isMonthlyPatternSeries
+            ? buildWeekdayRecurringDeadlineForSlot(
+                nextSlotDate,
+                deadlineDateStr,
+                getWeekdayOccurrenceIndex(seriesSlotDate),
+              )
+            : buildRecurringDeadlineForSlot(nextSlotDate, deadlineDateStr);
           const nextDeadline = adjustToPreviousWorkingDay(requestedSlotDeadline);
 
           return {
@@ -2649,6 +2777,8 @@ function CalendarContent() {
   const handleCreate = async () => {
     if (!title || !selectedDate) return;
 
+    setIsCreatingActivity(true);
+
     // Combine selected date with activity time
     const [hours, minutes] = activityTime.split(':').map(Number);
     const deadlineWithTime = new Date(selectedDate);
@@ -2661,41 +2791,69 @@ function CalendarContent() {
       adjustedDeadline,
       recurrence,
       recurrenceEndDateValue,
+      monthlyWeekdayOption,
     );
 
-    if (adjustedDeadline.getTime() !== deadlineWithTime.getTime()) {
+    try {
+      if (adjustedDeadline.getTime() !== deadlineWithTime.getTime()) {
+        toast({
+          title: "Date adjusted",
+          description: `Activity date was moved to ${format(adjustedDeadline, 'MMMM d, yyyy')} because the selected date falls on a weekend or holiday.`,
+        });
+      }
+
+      if (recurrence === "monthly" && recurrenceEndDateValue && monthlyWeekdayOption !== "date") {
+        const weekdayActivities: InsertActivity[] = getMonthlyWeekdayOccurrences(
+          selectedDate,
+          deadlineWithTime,
+          recurrenceEndDateValue,
+          monthlyWeekdayOption,
+        ).map((occurrence) => ({
+          title,
+          description,
+          startDate: occurrence.startDate,
+          deadlineDate: adjustToPreviousWorkingDay(occurrence.deadlineDate),
+          status: 'pending',
+          regulatoryAgency: regulatoryAgency || null,
+          concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
+          reportDetails: reportDetails || null,
+          remarks: remarks || null,
+          recurrence: 'monthly',
+          recurrenceEndDate: null,
+        }));
+
+        await createActivitiesFast(weekdayActivities);
+      } else {
+        await createActivity.mutateAsync({
+          data: {
+            title,
+            description,
+            startDate: selectedDate,
+            deadlineDate: adjustedDeadline,
+            status: 'pending',
+            regulatoryAgency: regulatoryAgency || null,
+            concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
+            reportDetails: reportDetails || null,
+            remarks: remarks || null,
+            recurrence: recurrence !== 'none' ? recurrence : null,
+            recurrenceEndDate: recurrenceEndDateValue,
+          },
+          suppressSuccessToast: true,
+        });
+      }
+
       toast({
-        title: "Date adjusted",
-        description: `Activity date was moved to ${format(adjustedDeadline, 'MMMM d, yyyy')} because the selected date falls on a weekend or holiday.`,
+        title: "Success",
+        description: createdActivitiesCount === 1
+          ? "Activity created"
+          : `Created ${createdActivitiesCount} activities`,
       });
+
+      // Reset the flag
+      setManuallyClosedWhileAdding(false);
+    } finally {
+      setIsCreatingActivity(false);
     }
-
-    await createActivity.mutateAsync({
-      data: {
-        title,
-        description,
-        startDate: selectedDate,
-        deadlineDate: adjustedDeadline,
-        status: 'pending',
-        regulatoryAgency: regulatoryAgency || null,
-        concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
-        reportDetails: reportDetails || null,
-        remarks: remarks || null,
-        recurrence: recurrence !== 'none' ? recurrence : null,
-        recurrenceEndDate: recurrenceEndDateValue,
-      },
-      suppressSuccessToast: true,
-    });
-
-    toast({
-      title: "Success",
-      description: createdActivitiesCount === 1
-        ? "Activity created"
-        : `Created ${createdActivitiesCount} activities`,
-    });
-
-    // Reset the flag
-    setManuallyClosedWhileAdding(false);
   };
 
   const createActivitiesFast = async (activitiesToCreate: InsertActivity[]) => {
@@ -3686,6 +3844,7 @@ function CalendarContent() {
               setConcernDepartment([]);
               setRecurrence("none");
               setRecurrenceEndDate("");
+              setMonthlyWeekdayOption("date");
               setReportDetails("");
               setRemarks("");
               if (newActivityReturnModal === 'day' && dayActivitiesModalDate) {
@@ -3864,6 +4023,28 @@ function CalendarContent() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {recurrence === 'monthly' && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium">Monthly Pattern</div>
+                        <Select
+                          name="monthlyWeekdayOption"
+                          value={monthlyWeekdayOption}
+                          onValueChange={setMonthlyWeekdayOption}
+                        >
+                          <SelectTrigger id="monthlyWeekdayOption" className="h-10 border border-gray-300 dark:border-gray-600 text-left">
+                            <SelectValue placeholder="Select monthly pattern" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WEEKDAY_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     
                     {/* Recurrence End Date - only show if recurrence is not none */}
                     {recurrence !== 'none' && (
@@ -3982,8 +4163,8 @@ function CalendarContent() {
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0 || (recurrence !== 'none' && !recurrenceEndDate)}>
-                  {createActivity.isPending ? (
+                <Button onClick={handleCreate} disabled={isCreatingActivity || createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0 || (recurrence !== 'none' && !recurrenceEndDate)}>
+                  {isCreatingActivity || createActivity.isPending ? (
                     <>
                       Adding...
                     </>

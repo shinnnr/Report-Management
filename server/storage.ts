@@ -959,6 +959,46 @@ export class DatabaseStorage implements IStorage {
       return nextDeadline;
     };
 
+    const getWeekdayOccurrenceIndex = (date: Date) => {
+      let occurrenceIndex = 0;
+      for (let day = 1; day <= date.getDate(); day++) {
+        const candidate = new Date(date.getFullYear(), date.getMonth(), day);
+        if (candidate.getDay() === date.getDay()) {
+          occurrenceIndex++;
+        }
+      }
+
+      return occurrenceIndex - 1;
+    };
+
+    const buildWeekdayRecurringDeadlineForSlot = (
+      slotDate: Date,
+      sourceDate: Date,
+      occurrenceIndex: number,
+    ) => {
+      const matchingDays: number[] = [];
+      const daysInMonth = new Date(slotDate.getFullYear(), slotDate.getMonth() + 1, 0).getDate();
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const candidate = new Date(slotDate.getFullYear(), slotDate.getMonth(), day);
+        if (candidate.getDay() === sourceDate.getDay()) {
+          matchingDays.push(day);
+        }
+      }
+
+      const targetDay = matchingDays[Math.min(occurrenceIndex, matchingDays.length - 1)] ?? 1;
+      const nextDeadline = new Date(slotDate.getFullYear(), slotDate.getMonth(), targetDay);
+
+      nextDeadline.setHours(
+        sourceDate.getHours(),
+        sourceDate.getMinutes(),
+        sourceDate.getSeconds(),
+        sourceDate.getMilliseconds(),
+      );
+
+      return nextDeadline;
+    };
+
     const seriesCandidates = await db.select().from(activities).where(
       and(
         eq(activities.title, currentActivity.title),
@@ -971,6 +1011,9 @@ export class DatabaseStorage implements IStorage {
       activity.regulatoryAgency === currentActivity.regulatoryAgency &&
       activity.concernDepartment === currentActivity.concernDepartment
     );
+    const isMonthlyPatternSeries =
+      currentActivity.recurrence === 'monthly' &&
+      seriesActivities.some((activity) => activity.id !== currentActivity.id && new Date(activity.startDate).getDate() !== 1);
 
     const movableActivities = seriesActivities.filter((activity) => !restrictedStatuses.has(activity.status || ''));
 
@@ -983,7 +1026,13 @@ export class DatabaseStorage implements IStorage {
           targetDeadline.getMonth() + monthOffset,
           1,
         );
-        const requestedSlotDeadline = buildRecurringDeadlineForSlot(nextSlotDate, targetDeadline);
+        const requestedSlotDeadline = isMonthlyPatternSeries
+          ? buildWeekdayRecurringDeadlineForSlot(
+              nextSlotDate,
+              targetDeadline,
+              getWeekdayOccurrenceIndex(seriesSlotDate),
+            )
+          : buildRecurringDeadlineForSlot(nextSlotDate, targetDeadline);
         const nextDeadline = adjustDateForWeekendOrHolidaySync(requestedSlotDeadline);
 
         await tx.update(activities).set({
