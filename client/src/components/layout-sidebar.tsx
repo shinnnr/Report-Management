@@ -55,7 +55,7 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
             <img src={neecoBanner} alt="NEECO Banner" className="w-10 h-10 rounded-lg object-contain" />
           </div>
           <div>
-            <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Report Management</h1>
+            <h1 className="font-display font-bold text-lg tracking-tight leading-tight">Reportorial Compliance</h1>
           </div>
         </div>
 
