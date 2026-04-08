@@ -753,6 +753,57 @@ export class DatabaseStorage implements IStorage {
 
       return adjustDateForWeekendOrHolidaySync(deadlineDate);
     };
+
+    const getMonthlyWeekdayOccurrencesSync = (
+      year: number,
+      startBoundary: Date,
+      recurrenceEndDate: Date | null,
+      originalDeadline: Date,
+      weekdayOption: string,
+    ): { startDate: Date; deadlineDate: Date }[] => {
+      if (weekdayOption === 'date') {
+        return [];
+      }
+
+      const targetWeekday = Number(weekdayOption);
+      if (Number.isNaN(targetWeekday)) {
+        return [];
+      }
+
+      const occurrences: { startDate: Date; deadlineDate: Date }[] = [];
+      const normalizedStartBoundary = new Date(startBoundary);
+      normalizedStartBoundary.setHours(0, 0, 0, 0);
+      const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+      const effectiveEnd = recurrenceEndDate && recurrenceEndDate < yearEnd ? recurrenceEndDate : yearEnd;
+
+      for (let month = 0; month < 12; month++) {
+        for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day++) {
+          const occurrenceStart = new Date(year, month, day);
+          if (occurrenceStart.getDay() !== targetWeekday) {
+            continue;
+          }
+
+          if (occurrenceStart < normalizedStartBoundary || occurrenceStart > effectiveEnd) {
+            continue;
+          }
+
+          const occurrenceDeadline = new Date(occurrenceStart);
+          occurrenceDeadline.setHours(
+            originalDeadline.getHours(),
+            originalDeadline.getMinutes(),
+            originalDeadline.getSeconds(),
+            originalDeadline.getMilliseconds()
+          );
+
+          occurrences.push({
+            startDate: occurrenceStart,
+            deadlineDate: adjustDateForWeekendOrHolidaySync(occurrenceDeadline),
+          });
+        }
+      }
+
+      return occurrences;
+    };
     
     for (const activity of recurringActivities) {
       const startDate = new Date(activity.startDate);
@@ -769,6 +820,52 @@ export class DatabaseStorage implements IStorage {
       const startYear = startDate.getFullYear();
       const originalMonth = originalDeadline.getMonth();
       const originalDay = originalDeadline.getDate();
+      const existingActivities = await db.select({
+        deadlineDate: activities.deadlineDate,
+      }).from(activities).where(
+        and(
+          eq(activities.title, activity.title),
+          isNull(activities.recurrence)
+        )
+      );
+      const existingDeadlineTimes = new Set(existingActivities.map((existing) => new Date(existing.deadlineDate).getTime()));
+      const monthlyPattern = activity.monthlyPattern;
+
+      if (activity.recurrence === 'monthly' && monthlyPattern && monthlyPattern !== 'date') {
+        const monthlyOccurrences = getMonthlyWeekdayOccurrencesSync(
+          year,
+          startDate,
+          endDate,
+          originalDeadline,
+          monthlyPattern,
+        );
+
+        for (const occurrence of monthlyOccurrences) {
+          const deadlineTime = occurrence.deadlineDate.getTime();
+          if (existingDeadlineTimes.has(deadlineTime)) {
+            continue;
+          }
+
+          existingDeadlineTimes.add(deadlineTime);
+          newActivitiesToInsert.push({
+            userId: activity.userId,
+            title: activity.title,
+            description: activity.description,
+            startDate: occurrence.startDate,
+            deadlineDate: occurrence.deadlineDate,
+            status: occurrence.deadlineDate < now ? 'overdue' : 'pending',
+            regulatoryAgency: activity.regulatoryAgency,
+            concernDepartment: activity.concernDepartment,
+            reportDetails: activity.reportDetails,
+            remarks: activity.remarks,
+            recurrence: activity.recurrence,
+            recurrenceEndDate: null,
+            monthlyPattern: activity.monthlyPattern,
+          });
+        }
+
+        continue;
+      }
       
       // Determine which months in the target year should have deadlines
       let targetMonths: number[] = [];
@@ -787,16 +884,6 @@ export class DatabaseStorage implements IStorage {
         targetMonths = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
       }
 
-      const existingActivities = await db.select({
-        deadlineDate: activities.deadlineDate,
-      }).from(activities).where(
-        and(
-          eq(activities.title, activity.title),
-          isNull(activities.recurrence)
-        )
-      );
-      const existingDeadlineTimes = new Set(existingActivities.map((existing) => new Date(existing.deadlineDate).getTime()));
-      
       for (const month of targetMonths) {
         // Skip if this deadline is exactly the same as the original deadline
         const originalDeadlineYear = originalDeadline.getFullYear();
@@ -850,6 +937,7 @@ export class DatabaseStorage implements IStorage {
           remarks: activity.remarks,
           recurrence: activity.recurrence, // Keep for filtering in Delete Recurring Activities
           recurrenceEndDate: null, // Set to null to prevent re-generation (null fails the check at line 572)
+          monthlyPattern: activity.monthlyPattern,
         });
       }
     }
@@ -1013,7 +1101,8 @@ export class DatabaseStorage implements IStorage {
     );
     const isMonthlyPatternSeries =
       currentActivity.recurrence === 'monthly' &&
-      seriesActivities.some((activity) => activity.id !== currentActivity.id && new Date(activity.startDate).getDate() !== 1);
+      !!currentActivity.monthlyPattern &&
+      currentActivity.monthlyPattern !== 'date';
 
     const movableActivities = seriesActivities.filter((activity) => !restrictedStatuses.has(activity.status || ''));
 

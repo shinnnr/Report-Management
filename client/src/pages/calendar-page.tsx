@@ -414,6 +414,14 @@ const getMonthlyPatternWeekday = (
   originalActivity: any,
   allActivities?: any[],
 ): string | null => {
+  if (
+    originalActivity?.recurrence === "monthly" &&
+    originalActivity?.monthlyPattern &&
+    originalActivity.monthlyPattern !== "date"
+  ) {
+    return originalActivity.monthlyPattern;
+  }
+
   if (!allActivities || originalActivity?.recurrence !== "monthly") {
     return null;
   }
@@ -431,7 +439,7 @@ const getMonthlyPatternWeekday = (
   );
 
   const uniqueWeekdays = Array.from(
-    new Set(seriesActivities.map((activity) => new Date(activity.deadlineDate).getDay()))
+    new Set(seriesActivities.map((activity) => new Date(activity.startDate).getDay()))
   );
 
   if (seriesActivities.length > 12 && uniqueWeekdays.length === 1 && uniqueWeekdays[0] >= 1 && uniqueWeekdays[0] <= 5) {
@@ -2273,7 +2281,8 @@ function CalendarContent() {
         );
         const isMonthlyPatternSeries =
           activityToMove.recurrence === 'monthly' &&
-          sameSeriesActivities.some((activity) => activity.id !== activityToMove.id && new Date(activity.startDate).getDate() !== 1);
+          !!activityToMove.monthlyPattern &&
+          activityToMove.monthlyPattern !== 'date';
 
         const optimisticActivities = previousActivities.map((activity) => {
           if (!isRecurringSeriesMove) {
@@ -2881,6 +2890,7 @@ function CalendarContent() {
           remarks: remarks || null,
           recurrence: 'monthly',
           recurrenceEndDate: null,
+          monthlyPattern: monthlyWeekdayOption,
         }));
 
         await createActivitiesFast(weekdayActivities);
@@ -2898,6 +2908,7 @@ function CalendarContent() {
             remarks: remarks || null,
             recurrence: recurrence !== 'none' ? recurrence : null,
             recurrenceEndDate: recurrenceEndDateValue,
+            monthlyPattern: recurrence === 'monthly' ? monthlyWeekdayOption : null,
           },
           suppressSuccessToast: true,
         });
@@ -6365,6 +6376,7 @@ function CalendarContent() {
                           remarks: activity.remarks || null,
                           recurrence: activity.recurrence || null,
                           recurrenceEndDate: null,
+                          monthlyPattern: activity.monthlyPattern || null,
                         }));
 
                         await createActivitiesFast(activitiesToCreate);
