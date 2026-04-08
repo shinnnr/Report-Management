@@ -1181,8 +1181,7 @@ function CalendarContent() {
           const leftDate = getCalendarDisplayDate(left).getTime();
           const rightDate = getCalendarDisplayDate(right).getTime();
           return leftDate - rightDate;
-        })
-        .slice(0, 20);
+        });
   const [activitySubmissions, setActivitySubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
