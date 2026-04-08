@@ -55,20 +55,23 @@ const ACTIVITY_STATUS_OVERVIEW_CONFIG: Record<
 > = {
   pending: {
     title: "Pending Activities",
-    description: "Activities waiting to be started.",
+    description: "All activities waiting to be started.",
     emptyMessage: "No pending activities found.",
   },
   "in-progress": {
     title: "In Progress Activities",
-    description: "Activities currently being worked on.",
+    description: "All activities currently being worked on.",
     emptyMessage: "No in progress activities found.",
   },
   completed: {
     title: "Completed Activities",
-    description: "Finished activities, including late submissions.",
+    description: "All finished activities, including late submissions.",
     emptyMessage: "No completed activities found.",
   },
 };
+
+const normalizeActivityStatus = (status: string | null | undefined) =>
+  (status ?? "pending").trim().toLowerCase().replace(/[\s_]+/g, "-");
 
 export default function DashboardPage() {
   return (
@@ -167,26 +170,33 @@ function DashboardContent() {
         );
     };
 
-    const overdueActivities = activities?.filter(a => a.status === 'overdue' && isCurrentMonthActivity(a)).length || 0;
+    const overdueActivities = activities?.filter(a => normalizeActivityStatus(a.status) === 'overdue' && isCurrentMonthActivity(a)).length || 0;
     const subFoldersCount = folders?.filter(f => f.parentId !== null && f.parentId !== undefined).length || 0;
     const rootFoldersCount = folders?.filter(f => f.parentId === null || f.parentId === undefined).length || 0;
-    const pendingActivities = activities?.filter(a => a.status === 'pending' && isCurrentMonthActivity(a)).length || 0;
-    const inProgressActivities = activities?.filter(a => a.status === 'in-progress' && isCurrentMonthActivity(a)).length || 0;
-    const completedActivities = activities?.filter(a => (a.status === 'completed' || a.status === 'late') && isCurrentMonthActivity(a)).length || 0;
+    const pendingActivities = activities?.filter(a => normalizeActivityStatus(a.status) === 'pending' && isCurrentMonthActivity(a)).length || 0;
+    const inProgressActivities = activities?.filter(a => normalizeActivityStatus(a.status) === 'in-progress').length || 0;
+    const completedActivities = activities?.filter(a => {
+      const status = normalizeActivityStatus(a.status);
+      return status === 'completed' || status === 'late';
+    }).length || 0;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const sevenDaysFromNow = new Date(startOfToday);
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
     const dueThisWeekCount = activities?.filter(activity => {
-      if (activity.status === 'completed' || activity.status === 'late') return false;
+      const status = normalizeActivityStatus(activity.status);
+      if (status === 'completed' || status === 'late') return false;
       const deadline = new Date(activity.deadlineDate);
       return deadline >= startOfToday && deadline <= sevenDaysFromNow;
     }).length || 0;
     const priorityActivities = (activities || [])
-      .filter(activity => activity.status !== 'completed' && activity.status !== 'late')
+      .filter(activity => {
+        const status = normalizeActivityStatus(activity.status);
+        return status !== 'completed' && status !== 'late';
+      })
       .sort((a, b) => {
-        const aPriority = a.status === 'overdue' ? 0 : 1;
-        const bPriority = b.status === 'overdue' ? 0 : 1;
+        const aPriority = normalizeActivityStatus(a.status) === 'overdue' ? 0 : 1;
+        const bPriority = normalizeActivityStatus(b.status) === 'overdue' ? 0 : 1;
         if (aPriority !== bPriority) return aPriority - bPriority;
         return new Date(a.deadlineDate).getTime() - new Date(b.deadlineDate).getTime();
       })
@@ -194,19 +204,21 @@ function DashboardContent() {
 
     const getActivityStatusOverviewActivities = (status: ActivityStatusOverviewKey): DashboardActivity[] => {
         const filteredActivities = (activities || []).filter((activity) => {
+            const normalizedStatus = normalizeActivityStatus(activity.status);
+
             if (status === "pending") {
-                return activity.status === "pending" && isCurrentMonthActivity(activity);
+                return normalizedStatus === "pending";
             }
 
             if (status === "in-progress") {
-                return activity.status === "in-progress" && isCurrentMonthActivity(activity);
+                return normalizedStatus === "in-progress";
             }
 
             if (status === "completed") {
-                return (activity.status === "completed" || activity.status === "late") && isCurrentMonthActivity(activity);
+                return normalizedStatus === "completed" || normalizedStatus === "late";
             }
 
-            return activity.status === status;
+            return normalizedStatus === status;
         });
 
         return filteredActivities.sort(
@@ -235,18 +247,24 @@ function DashboardContent() {
         setActivityStatusOverviewPage(1);
     };
 
-    const getActivityStatusBadgeClasses = (status: string) => cn(
+    const getActivityStatusBadgeClasses = (status: string) => {
+        const normalizedStatus = normalizeActivityStatus(status);
+
+        return cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium w-fit",
-        (status === "completed" || status === "late") && "bg-green-100 text-green-700",
-        status === "in-progress" && "bg-blue-100 text-blue-700",
-        status === "pending" && "bg-orange-100 text-orange-700",
-        status === "overdue" && "bg-red-100 text-red-700"
+        (normalizedStatus === "completed" || normalizedStatus === "late") && "bg-green-100 text-green-700",
+        normalizedStatus === "in-progress" && "bg-blue-100 text-blue-700",
+        normalizedStatus === "pending" && "bg-orange-100 text-orange-700",
+        normalizedStatus === "overdue" && "bg-red-100 text-red-700"
     );
+    };
 
     const formatActivityStatusLabel = (status: string) => {
-        if (status === "in-progress") return "In Progress";
-        if (status === "late") return "Late Submitted";
-        return status.charAt(0).toUpperCase() + status.slice(1);
+        const normalizedStatus = normalizeActivityStatus(status);
+
+        if (normalizedStatus === "in-progress") return "In Progress";
+        if (normalizedStatus === "late") return "Late Submitted";
+        return normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
     };
 
     const handleMouseEnter = (type: string, event: React.MouseEvent) => {
@@ -299,7 +317,7 @@ function DashboardContent() {
                 })) || [];
                 break;
             case 'overdue':
-                data = activities?.filter(a => a.status === 'overdue').map(activity => ({
+                data = activities?.filter(a => normalizeActivityStatus(a.status) === 'overdue').map(activity => ({
                     title: activity.title,
                     deadlineDate: activity.deadlineDate,
                     daysOverdue: Math.floor((new Date().getTime() - new Date(activity.deadlineDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -619,6 +637,10 @@ function DashboardContent() {
                   <div className="space-y-3 pr-1 sm:pr-2">
                     {priorityActivities.length > 0 ? (
                       priorityActivities.map((activity) => (
+                        (() => {
+                          const normalizedStatus = normalizeActivityStatus(activity.status);
+
+                          return (
                         <button
                           key={activity.id}
                           type="button"
@@ -635,15 +657,17 @@ function DashboardContent() {
                             <span
                               className={cn(
                                 "inline-flex w-fit shrink-0 items-center self-start rounded-full px-2.5 py-1 text-xs font-medium capitalize",
-                                activity.status === 'overdue' && "bg-red-100 text-red-700",
-                                activity.status === 'in-progress' && "bg-blue-100 text-blue-700",
-                                activity.status === 'pending' && "bg-orange-100 text-orange-700"
+                                normalizedStatus === 'overdue' && "bg-red-100 text-red-700",
+                                normalizedStatus === 'in-progress' && "bg-blue-100 text-blue-700",
+                                normalizedStatus === 'pending' && "bg-orange-100 text-orange-700"
                               )}
                             >
-                              {activity.status}
+                              {formatActivityStatusLabel(activity.status ?? "pending")}
                             </span>
                           </div>
                         </button>
+                          );
+                        })()
                       ))
                     ) : (
                       <div className="text-center py-10 text-muted-foreground">
