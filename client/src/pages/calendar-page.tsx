@@ -1228,6 +1228,7 @@ function CalendarContent() {
   const dayScrollAreaRef = useRef<HTMLDivElement>(null);
   const monthCalendarContainerRef = useRef<HTMLDivElement>(null);
   const activitySearchRef = useRef<HTMLDivElement>(null);
+  const ignoreActivitySearchOutsideClickUntilRef = useRef(0);
   
   // Touch drag state
   const touchDragRef = useRef<{
@@ -1258,6 +1259,7 @@ function CalendarContent() {
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [activitySearchQuery, setActivitySearchQuery] = useState("");
   const [isActivitySearchOpen, setIsActivitySearchOpen] = useState(false);
+  const [shouldRestoreActivitySearch, setShouldRestoreActivitySearch] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -1385,12 +1387,24 @@ function CalendarContent() {
   // Clear concern department when regulatory agency changes
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const now = Date.now();
+
       if (isActivityModalOpen) {
+        return;
+      }
+
+      if (now < ignoreActivitySearchOutsideClickUntilRef.current) {
+        return;
+      }
+
+      if (target?.closest("[data-dialog-overlay='true'], [data-dialog-content='true']")) {
         return;
       }
 
       if (activitySearchRef.current && !activitySearchRef.current.contains(event.target as Node)) {
         setIsActivitySearchOpen(false);
+        setShouldRestoreActivitySearch(false);
       }
     };
 
@@ -4515,6 +4529,10 @@ function CalendarContent() {
         <Dialog open={isActivityModalOpen} onOpenChange={(open) => {
           setIsActivityModalOpen(open);
           if (!open) {
+            if (shouldRestoreActivitySearch) {
+              ignoreActivitySearchOutsideClickUntilRef.current = Date.now() + 250;
+            }
+            setShouldRestoreActivitySearch(false);
             setSelectedFiles([]);
             setSelectedActivity(null);
             setIsLoadingSubmissions(false);
@@ -5272,9 +5290,10 @@ function CalendarContent() {
                 {activitySearchQuery.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
+                  onClick={() => {
                       setActivitySearchQuery("");
                       setIsActivitySearchOpen(false);
+                      setShouldRestoreActivitySearch(false);
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     aria-label="Clear activity search"
@@ -5299,6 +5318,7 @@ function CalendarContent() {
                               setCurrentDate(activityDate);
                               setSelectedDate(activityDate);
                               setSelectedActivity(activity);
+                              setShouldRestoreActivitySearch(true);
                               setIsActivityModalOpen(true);
                             }}
                             className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
