@@ -37,7 +37,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Activity as DashboardActivity } from "@shared/schema";
 
@@ -108,7 +107,6 @@ function DashboardContent() {
     const [showNotificationModal, setShowNotificationModal] = useState(false);
     const [showDeleteLogsConfirm, setShowDeleteLogsConfirm] = useState(false);
     const [showViewAllLogs, setShowViewAllLogs] = useState(false);
-    const [selectedLogIds, setSelectedLogIds] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedActivityStatusOverview, setSelectedActivityStatusOverview] = useState<ActivityStatusOverviewKey | null>(null);
     const [activityStatusOverviewPage, setActivityStatusOverviewPage] = useState(1);
@@ -976,7 +974,6 @@ function DashboardContent() {
       <Dialog open={showViewAllLogs} onOpenChange={(open) => {
         setShowViewAllLogs(open);
         if (!open) {
-          setSelectedLogIds([]);
           setCurrentPage(1);
         }
       }}>
@@ -984,7 +981,7 @@ function DashboardContent() {
           <DialogHeader className="shrink-0">
             <DialogTitle>All Activity Logs</DialogTitle>
             <DialogDescription>
-              View all your recent activity logs here. You can select multiple logs to delete them.
+              View all your recent activity logs here.
             </DialogDescription>
           </DialogHeader>
           
@@ -1001,17 +998,6 @@ function DashboardContent() {
                       key={log.id} 
                       className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-muted/50 group hover:bg-muted/50 transition-colors"
                     >
-                      <Checkbox
-                        checked={selectedLogIds.includes(log.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedLogIds([...selectedLogIds, log.id]);
-                          } else {
-                            setSelectedLogIds(selectedLogIds.filter(id => id !== log.id));
-                          }
-                        }}
-                        className="flex-shrink-0"
-                      />
                       <div
                         className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
@@ -1058,14 +1044,8 @@ function DashboardContent() {
             </div>
           </ScrollArea>
 
-          {/* Pagination Controls and Delete Selected - fixed at bottom */}
-          <div className="mt-2 flex shrink-0 flex-col items-start gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
-            <div
-              className={cn(
-                "flex w-full items-center gap-2",
-                selectedLogIds.length === 0 && "justify-between"
-              )}
-            >
+          <div className="mt-2 flex shrink-0 items-center justify-between py-2">
+            <div className="flex w-full items-center gap-2 justify-between">
               {logs && logs.length >= logsPerPage && (
                 <>
                   <span className="text-sm text-muted-foreground">
@@ -1091,26 +1071,6 @@ function DashboardContent() {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-4 whitespace-nowrap">
-              {selectedLogIds.length > 0 && (
-                <>
-                  <span className="whitespace-nowrap text-sm text-muted-foreground">
-                    {selectedLogIds.length} selected
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      selectedLogIds.forEach(id => deleteLogMutation.mutate(id));
-                      setSelectedLogIds([]);
-                    }}
-                    disabled={deleteLogMutation.isPending}
-                  >
-                    Delete Selected
-                  </Button>
                 </>
               )}
             </div>
