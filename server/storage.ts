@@ -1,7 +1,7 @@
 import { users, folders, reports, activities, activityLogs, notifications, activitySubmissions, systemSettings, holidays } from "@shared/schema";
 import { type User, type InsertUser, type Folder, type InsertFolder, type Report, type InsertReport, type Activity, type InsertActivity, type ActivityLog, type Notification, type InsertNotification, type ActivitySubmission, type InsertActivitySubmission, type Holiday, type InsertHoliday, type SystemSetting, type InsertSystemSetting } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, lt, gte, sql, isNull, ne } from "drizzle-orm";
+import { eq, desc, and, lt, gte, sql, isNull, ne, or } from "drizzle-orm";
 import { format } from "date-fns";
 
 export interface IStorage {
@@ -112,12 +112,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // First delete related activity logs
-    await db.delete(activityLogs).where(eq(activityLogs.userId, id));
-    // Delete notifications for this user
-    await db.delete(notifications).where(eq(notifications.userId, id));
-    // Then delete the user
-    await db.delete(users).where(eq(users.id, id));
+    await db.transaction(async (tx) => {
+      // Delete activity logs for this user
+      await tx.delete(activityLogs).where(eq(activityLogs.userId, id));
+      // Delete notifications for this user
+      await tx.delete(notifications).where(eq(notifications.userId, id));
+      // Get activities created by this user first
+      const userActivities = await tx.select({ id: activities.id }).from(activities).where(eq(activities.userId, id));
+      const userActivityIds = userActivities.map(a => a.id);
+
+      // Delete activity submissions by this user or that reference activities by this user
+      let activitySubmissionConditions = [eq(activitySubmissions.userId, id)];
+      if (userActivityIds.length > 0) {
+        activitySubmissionConditions.push(sql`${activitySubmissions.activityId} IN ${userActivityIds}`);
+      }
+      await tx.delete(activitySubmissions).where(or(...activitySubmissionConditions));
+
+      // Delete notifications that reference activities created by this user
+      if (userActivityIds.length > 0) {
+        await tx.delete(notifications).where(sql`${notifications.activityId} IN ${userActivityIds}`);
+      }
+
+      // Delete reports that reference activities created by this user
+      if (userActivityIds.length > 0) {
+        await tx.delete(reports).where(sql`${reports.activityId} IN ${userActivityIds}`);
+      }
+
+      // Update activities to remove completedBy reference, then delete activities created by this user
+      await tx.update(activities).set({ completedBy: null }).where(eq(activities.completedBy, id));
+      await tx.delete(activities).where(eq(activities.userId, id));
+
+      // Delete reports uploaded by this user
+      await tx.delete(reports).where(eq(reports.uploadedBy, id));
+      // Handle folders created by this user
+      const userFolders = await tx.select().from(folders).where(eq(folders.createdBy, id));
+      if (userFolders.length > 0) {
+        // Find another admin to reassign folders to
+        const [otherAdmin] = await tx.select().from(users).where(and(eq(users.role, 'admin'), ne(users.id, id))).limit(1);
+        if (otherAdmin) {
+          await tx.update(folders).set({ createdBy: otherAdmin.id }).where(eq(folders.createdBy, id));
+        } else {
+          // If no other admin, delete the folders (cascade delete subfolders and files)
+          for (const folder of userFolders) {
+            await this._deleteFolderRecursive(folder.id, tx);
+          }
+        }
+      }
+      // Finally delete the user
+      await tx.delete(users).where(eq(users.id, id));
+    });
   }
 
   // Folders
@@ -392,36 +435,51 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async deleteFolder(id: number): Promise<void> {
+  async deleteFolder(id: number, tx?: any): Promise<void> {
     try {
       // Use a simpler approach - recursively delete from the bottom up
-      await this._deleteFolderRecursive(id);
+      await this._deleteFolderRecursive(id, tx);
     } catch (error) {
       console.error(`Error deleting folder ${id}:`, error);
       throw error;
     }
   }
 
-  private async _deleteFolderRecursive(folderId: number): Promise<void> {
+  private async _deleteFolderRecursive(folderId: number, tx?: any): Promise<void> {
+    const dbInstance = tx || db;
     try {
-      // First, recursively delete all child folders
-      const children = await db.select().from(folders).where(eq(folders.parentId, folderId));
+      // Collect all folder IDs to delete (including children recursively)
+      const folderIdsToDelete: number[] = [];
+      const reportIdsToDelete: number[] = [];
 
-      for (const child of children) {
-        await this._deleteFolderRecursive(child.id);
+      const collectFolders = async (currentId: number) => {
+        folderIdsToDelete.push(currentId);
+        const children = await dbInstance.select().from(folders).where(eq(folders.parentId, currentId));
+        for (const child of children) {
+          await collectFolders(child.id);
+        }
+        // Collect reports in this folder
+        const folderReports = await dbInstance.select({ id: reports.id }).from(reports).where(eq(reports.folderId, currentId));
+        reportIdsToDelete.push(...folderReports.map((r: { id: number }) => r.id));
+      };
+
+      await collectFolders(folderId);
+
+      // Delete activity submissions for all reports in these folders
+      if (reportIdsToDelete.length > 0) {
+        await dbInstance.delete(activitySubmissions).where(sql`${activitySubmissions.reportId} IN ${reportIdsToDelete}`);
       }
 
-      // Delete all activity submissions for reports in this folder
-      const folderReports = await db.select().from(reports).where(eq(reports.folderId, folderId));
-      for (const report of folderReports) {
-        await db.delete(activitySubmissions).where(eq(activitySubmissions.reportId, report.id));
+      // Delete all reports in these folders
+      if (reportIdsToDelete.length > 0) {
+        await dbInstance.delete(reports).where(sql`${reports.id} IN ${reportIdsToDelete}`);
       }
 
-      // Delete all reports in this folder
-      await db.delete(reports).where(eq(reports.folderId, folderId));
-
-      // Finally, delete the folder itself
-      await db.delete(folders).where(eq(folders.id, folderId));
+      // Delete all folders (children first due to foreign key constraints)
+      folderIdsToDelete.reverse(); // Delete from leaves up to root
+      for (const id of folderIdsToDelete) {
+        await dbInstance.delete(folders).where(eq(folders.id, id));
+      }
     } catch (error) {
       console.error(`Error in _deleteFolderRecursive for folder ${folderId}:`, error);
       throw error;

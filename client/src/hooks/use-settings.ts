@@ -33,6 +33,7 @@ export function useSettings() {
         return old;
       });
       queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
       toast({ title: "Username updated", description: "Your username has been updated successfully." });
     },
     onError: (error: Error) => {

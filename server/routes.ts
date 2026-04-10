@@ -1643,19 +1643,6 @@ export async function registerRoutes(
 
   // --- Seed Data Helper ---
   async function seed() {
-    const admin = await storage.getUserByUsername("admin");
-    if (!admin) {
-      const adminPassword = await hashPassword("admin123");
-      await storage.createUser({
-        username: "admin",
-        password: adminPassword,
-        fullName: "System Admin",
-        role: "admin",
-        status: "active"
-      });
-      console.log("Seeded admin user");
-    }
-
     // Seed CPS and ETS users if they don't exist
     const cps = await storage.getUserByUsername("cps");
     if (!cps) {
