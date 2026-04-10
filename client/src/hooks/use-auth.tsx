@@ -122,7 +122,7 @@ export function useUser() {
     staleTime: 30000,
     refetchInterval: (data) => {
       if (!data || isLoggedOut || isLoginPage || isSessionDeactivated) return false;
-      return 5000;
+      return 30000;
     },
   });
 }

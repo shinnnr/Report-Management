@@ -4,7 +4,7 @@ import { type InsertReport } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
-export function useReports(folderId?: number | "root", status: string = 'active', refetchInterval?: number) {
+export function useReports(folderId?: number | "root", status: string = 'active', refetchInterval?: number | false) {
   const { user, isLoggedOut, isSessionDeactivated } = useAuth();
   const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
 
