@@ -88,8 +88,16 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
           onClick={() => refetchUser()}
           title="Click to refresh user info"
         >
-          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm">
-            {user?.fullName?.charAt(0) || 'U'}
+          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm overflow-hidden">
+            {user?.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              user?.fullName?.charAt(0) || 'U'
+            )}
           </div>
           <div className="overflow-hidden">
             <p className="font-medium text-sm truncate text-primary-foreground dark:text-white">{user?.fullName}</p>

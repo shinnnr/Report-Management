@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Shield, ShieldAlert, X, Eye, EyeOff, User, Lock, Users, Settings, Menu, Clock, ChevronLeft, ChevronRight, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCheckDeadlines } from "@/hooks/use-activities";
@@ -40,7 +40,7 @@ function SettingsContent() {
   const { user } = useAuth();
   const { openSidebar, isSidebarOpen } = useSidebar();
   const isMobile = useIsMobile();
-  const { currentUser, updateUsernameMutation, updatePasswordMutation } = useSettings();
+  const { currentUser, updateUsernameMutation, updatePasswordMutation, updateProfilePictureMutation } = useSettings();
   const { users, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const {
     allowNonAdminFileManagement,
@@ -97,6 +97,8 @@ function SettingsContent() {
   }, []);
   const [passwordError, setPasswordError] = useState("");
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [isUploadingProfilePicture, setIsUploadingProfilePicture] = useState(false);
+  const [isRemovingProfilePicture, setIsRemovingProfilePicture] = useState(false);
   const [newUserData, setNewUserData] = useState({
     username: "",
     password: "",
@@ -318,13 +320,13 @@ function SettingsContent() {
     // Find the user to get current status
     const user = users?.find(u => u.id === userId);
     if (!user) return;
-    
+
     const newStatus = user.status === "active" ? "inactive" : "active";
     setTogglingUserId(userId);
     try {
-      const updatedUser = await updateUserMutation.mutateAsync({ 
-        userId, 
-        updates: { status: newStatus } 
+      const updatedUser = await updateUserMutation.mutateAsync({
+        userId,
+        updates: { status: newStatus }
       });
 
       if (selectedUserForDialog?.id === userId && updatedUser) {
@@ -334,6 +336,54 @@ function SettingsContent() {
       // Error handled in mutation
     } finally {
       setTogglingUserId(null);
+    }
+  };
+
+  // Handle profile picture upload
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Error", description: "Please select a valid image file", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingProfilePicture(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        await updateProfilePictureMutation.mutateAsync({
+          userId: currentUser.id,
+          profilePicture: base64,
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to upload profile picture", variant: "destructive" });
+    } finally {
+      setIsUploadingProfilePicture(false);
+      // Reset the input
+      event.target.value = '';
+    }
+  };
+
+  // Handle profile picture removal
+  const handleProfilePictureRemove = async () => {
+    if (!currentUser) return;
+
+    setIsRemovingProfilePicture(true);
+    try {
+      await updateProfilePictureMutation.mutateAsync({
+        userId: currentUser.id,
+        profilePicture: null,
+      });
+    } catch (error) {
+      // Error handled in mutation
+    } finally {
+      setIsRemovingProfilePicture(false);
     }
   };
 
@@ -403,8 +453,41 @@ function SettingsContent() {
             <CardContent className="space-y-6">
               {/* Current User Info */}
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {currentUser?.profilePicture ? (
+                      <img
+                        src={currentUser.profilePicture}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
+                    )}
+                  </div>
+                  {/* Profile Picture Controls */}
+                  <div className="absolute -bottom-1 -right-1 flex gap-1">
+                    <label className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureUpload}
+                        className="hidden"
+                        disabled={isUploadingProfilePicture || updateProfilePictureMutation.isPending}
+                      />
+                      <Camera className="w-3 h-3" />
+                    </label>
+                    {currentUser?.profilePicture && (
+                      <button
+                        onClick={handleProfilePictureRemove}
+                        disabled={isRemovingProfilePicture || updateProfilePictureMutation.isPending}
+                        className="w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                        title="Remove profile picture"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
@@ -827,8 +910,16 @@ function SettingsContent() {
                           }}
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                              {user.profilePicture ? (
+                                <img
+                                  src={user.profilePicture}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
+                              )}
                             </div>
                             <div>
                               <p className="font-medium truncate md:whitespace-normal md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>

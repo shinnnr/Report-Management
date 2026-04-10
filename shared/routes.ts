@@ -85,6 +85,7 @@ export const api = {
         fullName: z.string().optional(),
         role: z.enum(['admin', 'cps', 'ets']).optional(),
         status: z.enum(['active', 'inactive']).optional(),
+        profilePicture: z.string().nullable().optional(),
       }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),

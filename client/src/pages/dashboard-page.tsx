@@ -2,7 +2,7 @@ import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause, type LucideIcon } from "lucide-react";
+import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause, Camera, X, User, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useFolders } from "@/hooks/use-folders";
 import { useReports, useReportsCount } from "@/hooks/use-reports";
@@ -391,6 +391,11 @@ function DashboardContent() {
         if (lowerAction.includes('delete_folder')) return Trash2;
         if (lowerAction.includes('create') || lowerAction.includes('upload')) return Plus;
         if (lowerAction.includes('update') || lowerAction.includes('update_profile')) return UserCog;
+        if (lowerAction === 'update_profile_picture') return Camera;
+        if (lowerAction === 'remove_profile_picture') return X;
+        if (lowerAction === 'update_username') return User;
+        if (lowerAction === 'update_name') return User;
+        if (lowerAction.includes('change_password')) return Key;
         if (lowerAction.includes('delete')) return Trash2;
         if (lowerAction.includes('move')) return ArrowRightLeft;
         if (lowerAction.includes('archive')) return Archive;
@@ -826,10 +831,10 @@ function DashboardContent() {
                     const toggleVisual = getSettingToggleVisual(log.action);
                     const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action, log.description);
                     return (
-                      <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
+                      <div key={log.id} className="flex items-center gap-3 p-3 rounded-lg md:rounded-xl bg-muted/30 border border-muted/50">
                         <div
                           className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                            "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                             toggleVisual != null && "bg-gray-200 dark:bg-gray-400",
                             toggleVisual == null && "bg-primary/10"
                           )}

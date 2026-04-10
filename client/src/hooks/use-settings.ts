@@ -40,6 +40,37 @@ export function useSettings() {
     },
   });
 
+  // Update profile picture mutation
+  const updateProfilePictureMutation = useMutation({
+    retry: false,
+    mutationFn: async ({ userId, profilePicture }: { userId: number; profilePicture: string | null }) => {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ profilePicture }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        return Promise.reject(new Error(error.message || "Failed to update profile picture"));
+      }
+      return api.users.update.responses[200].parse(await res.json());
+    },
+    onSuccess: (data) => {
+      // Update the current user cache immediately
+      queryClient.setQueryData([api.auth.me.path], (old: User | null) => {
+        if (old) return { ...old, profilePicture: data.profilePicture };
+        return old;
+      });
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.auth.me.path] });
+      toast({ title: "Profile picture updated", description: "Your profile picture has been updated successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Update password mutation
   const updatePasswordMutation = useMutation({
     retry: false,
@@ -69,6 +100,7 @@ export function useSettings() {
     isLoadingUser,
     updateUsernameMutation,
     updatePasswordMutation,
+    updateProfilePictureMutation,
   };
 }
 

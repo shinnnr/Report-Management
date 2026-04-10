@@ -556,22 +556,37 @@ export async function registerRoutes(
       }
 
       const input = api.users.update.input.parse(req.body);
-      
+
+      // Check if this is a self-update
+      const isSelfUpdate = currentUser.id === userId;
+
       // If not admin, restrict what fields can be updated
       if (currentUser.role !== 'admin') {
-        // Non-admins can only update username and fullName
+        // Non-admins can only update username, fullName, and profilePicture
         const allowedUpdates: Partial<User> = {};
         if (input.username) allowedUpdates.username = input.username;
         if (input.fullName) allowedUpdates.fullName = input.fullName;
-        
+        if (input.profilePicture !== undefined) allowedUpdates.profilePicture = input.profilePicture;
+
         const user = await storage.updateUser(userId, allowedUpdates);
-        await storage.createLog(currentUser.id, "UPDATE_PROFILE", `Updated own profile`);
+
+        // Log specific profile update actions
+        if (input.profilePicture !== undefined) {
+          await storage.createLog(currentUser.id, input.profilePicture ? "UPDATE_PROFILE_PICTURE" : "REMOVE_PROFILE_PICTURE", input.profilePicture ? `Updated profile picture` : `Removed profile picture`);
+        } else if (input.username) {
+          await storage.createLog(currentUser.id, "UPDATE_USERNAME", `Changed username to ${input.username}`);
+        } else if (input.fullName) {
+          await storage.createLog(currentUser.id, "UPDATE_NAME", `Changed name to ${input.fullName}`);
+        } else {
+          await storage.createLog(currentUser.id, "UPDATE_PROFILE", `Updated own profile`);
+        }
+
         return res.json(user);
       }
 
-      // Admin can update all fields
+      // Admin updates
       const user = await storage.updateUser(userId, input);
-      
+
       // Log specific actions based on what was updated
       if (input.role) {
         const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
@@ -579,6 +594,26 @@ export async function registerRoutes(
       } else if (input.status) {
         const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
         await storage.createLog(currentUser.id, input.status === "active" ? "ACTIVATE_USER" : "DEACTIVATE_USER", `${input.status === "active" ? "Activated" : "Deactivated"} user ${displayName} (${user.username})`);
+      } else if (input.profilePicture !== undefined) {
+        if (isSelfUpdate) {
+          await storage.createLog(currentUser.id, input.profilePicture ? "UPDATE_PROFILE_PICTURE" : "REMOVE_PROFILE_PICTURE", input.profilePicture ? `Updated profile picture` : `Removed profile picture`);
+        } else {
+          const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
+          await storage.createLog(currentUser.id, input.profilePicture ? "UPDATE_PROFILE_PICTURE" : "REMOVE_PROFILE_PICTURE", input.profilePicture ? `Updated profile picture for ${displayName}` : `Removed profile picture for ${displayName}`);
+        }
+      } else if (input.username !== undefined) {
+        if (isSelfUpdate) {
+          await storage.createLog(currentUser.id, "UPDATE_USERNAME", `Changed username to ${input.username}`);
+        } else {
+          const displayName = user.fullName?.replace(/\s+User$/i, '') || user.username;
+          await storage.createLog(currentUser.id, "UPDATE_USERNAME", `Changed username for ${displayName} to ${input.username}`);
+        }
+      } else if (input.fullName !== undefined) {
+        if (isSelfUpdate) {
+          await storage.createLog(currentUser.id, "UPDATE_NAME", `Changed name to ${input.fullName}`);
+        } else {
+          await storage.createLog(currentUser.id, "UPDATE_NAME", `Changed name for ${user.username} to ${input.fullName}`);
+        }
       } else {
         await storage.createLog(currentUser.id, "UPDATE_USER", `Updated user: ${user.username}`);
       }

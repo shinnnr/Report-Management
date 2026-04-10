@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   role: text("role").notNull().default("cps"), // 'admin' | 'cps' | 'ets'
   fullName: text("full_name").notNull(),
   status: text("status").notNull().default("active"),
+  profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
