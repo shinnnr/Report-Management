@@ -553,7 +553,7 @@ const matchesConcernDepartmentFilter = (
   if (filterValue === "ISD" || filterValue === "SD") return tokens.some((token) => token === filterValue || token === "ISD" || token === "SD" || token.startsWith("ISD"));
   if (filterValue === "TSD") return tokens.some((token) => token === "TSD" || token.startsWith("TSD"));
   if (filterValue === "CITET") return tokens.some((token) => token === "CITET" || token.startsWith("CITET"));
-  if (filterValue === "ZOD") return tokens.some((token) => token === "ZOD" || token.startsWith("ZONE"));
+  if (filterValue === "ZOD") return tokens.some((token) => token === "ZOD" || token.startsWith("ZOD") || token.startsWith("ZONE"));
 
   return tokens.some((token) => token === filterValue);
 };
@@ -563,8 +563,8 @@ const sortDepartmentOptions = (departments: string[]) => [...departments].sort((
 const AGENCY_DEPARTMENT_OPTIONS: Record<string, string[]> = {
   DOE: sortDepartmentOptions(["CITET", "CITET-CPS", "CITET-ETS"]),
   ERC: sortDepartmentOptions(["CITET", "CITET-ETS", "FSD", "FSD-BUDGET OFFICER", "FSD-CACD", "FSD-GAD", "ISD", "ISD-CWDC", "ISD-MSD", "TSD", "TSD-DAMD", "TSD-DNOD"]),
-  NEA: sortDepartmentOptions(["CITET", "CITET-CPS", "CITET-ETS", "FSD", "FSD-CACD", "FSD-CASHIER", "FSD-GAD", "FSD-ACCOUNTING CLERK", "ISD", "ISD-HRADD", "ISD-MSD", "ISD-CWDC", "TSD", "TSD-DAMD", "TSD-DNOD", "ZOD", "ZONE-ZOS"]),
-  "NEA-WEB PORTAL": sortDepartmentOptions(["CITET", "CITET-ETS", "FSD", "FSD-GAD", "ISD", "ISD-HRADD", "ISD-MSD", "OGM", "TSD", "TSD-DAMD", "TSD-DNOD", "ZOD", "ZONE-ZOS"]),
+  NEA: sortDepartmentOptions(["CITET", "CITET-CPS", "CITET-ETS", "FSD", "FSD-CACD", "FSD-CASHIER", "FSD-GAD", "FSD-ACCOUNTING CLERK", "ISD", "ISD-HRADD", "ISD-MSD", "ISD-CWDC", "TSD", "TSD-DAMD", "TSD-DNOD", "ZOD", "ZOD-DCSO", "ZONE-ZOS"]),
+  "NEA-WEB PORTAL": sortDepartmentOptions(["CITET", "CITET-ETS", "FSD", "FSD-GAD", "ISD", "ISD-HRADD", "ISD-MSD", "OGM", "TSD", "TSD-DAMD", "TSD-DNOD", "ZOD", "ZOD-DCSO", "ZONE-ZOS"]),
   PSALM: sortDepartmentOptions(["FSD", "FSD-GAD"]),
   NGCP: sortDepartmentOptions(["TSD", "TSD-DAMD", "TSD-DNOD"]),
   IEMOP: sortDepartmentOptions(["FSD", "FSD-CASHIER", "FSD-ACCOUNTING CLERK"]),
@@ -1444,7 +1444,7 @@ function CalendarContent() {
   };
   
   const [reportDetails, setReportDetails] = useState("");
-  const [remarks, setRemarks] = useState("");
+  const [submissionRemarks, setSubmissionRemarks] = useState("");
 
   // Helper function to create blob URL from base64 data
   const createBlobUrl = (dataUrl: string) => {
@@ -2897,7 +2897,6 @@ function CalendarContent() {
           regulatoryAgency: regulatoryAgency || null,
           concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
           reportDetails: reportDetails || null,
-          remarks: remarks || null,
           recurrence: 'monthly',
           recurrenceEndDate: null,
           monthlyPattern: monthlyWeekdayOption,
@@ -2915,7 +2914,6 @@ function CalendarContent() {
             regulatoryAgency: regulatoryAgency || null,
             concernDepartment: concernDepartment.length > 0 ? concernDepartment.join(", ") : null,
             reportDetails: reportDetails || null,
-            remarks: remarks || null,
             recurrence: recurrence !== 'none' ? recurrence : null,
             recurrenceEndDate: recurrenceEndDateValue,
             monthlyPattern: recurrence === 'monthly' ? monthlyWeekdayOption : null,
@@ -3461,6 +3459,7 @@ function CalendarContent() {
 
     setIsSubmitting(true);
     try {
+      const trimmedSubmissionRemarks = submissionRemarks.trim();
       // Read all files first
       const fileReaders = selectedFiles.map(file => {
         return new Promise<{ name: string; type: string; size: number; data: string }>((resolve, reject) => {
@@ -3491,6 +3490,7 @@ function CalendarContent() {
           deadlineMonth,
           submissionDate: submissionDate.toISOString(),
           submissionDateKey: format(submissionDate, 'yyyy-MM-dd'),
+          remarks: trimmedSubmissionRemarks || null,
         }),
       });
 
@@ -3500,6 +3500,50 @@ function CalendarContent() {
       }
 
       const result = await response.json();
+      const nextActivityStatus = submissionDate > deadlineDate ? 'late' : 'completed';
+      const nextCompletionDate = submissionDate.toISOString();
+      const createdReports = Array.isArray(result.reports) ? result.reports : [];
+      const newSubmissionEntries = createdReports.map((report: any, index: number) => ({
+        id: `temp-${report.id ?? index}-${Date.now()}`,
+        activityId: selectedActivity.id,
+        reportId: report.id,
+        submissionDate: nextCompletionDate,
+        status: nextActivityStatus === 'late' ? 'late' : 'submitted',
+        notes: trimmedSubmissionRemarks || null,
+        report: {
+          id: report.id,
+          title: report.title,
+          fileName: report.fileName,
+          fileType: report.fileType,
+          fileData: report.fileData || fileDataArray[index]?.data,
+        },
+      }));
+
+      queryClient.setQueryData<any[]>([api.activities.list.path], (currentActivities) => {
+        if (!Array.isArray(currentActivities)) {
+          return currentActivities;
+        }
+
+        return currentActivities.map((activity) =>
+          activity.id === selectedActivity.id
+            ? {
+                ...activity,
+                status: nextActivityStatus,
+                completionDate: nextCompletionDate,
+              }
+            : activity
+        );
+      });
+      setSelectedActivity((current: any) =>
+        current
+          ? {
+              ...current,
+              status: nextActivityStatus,
+              completionDate: nextCompletionDate,
+            }
+          : current
+      );
+      setActivitySubmissions((current) => [...current, ...newSubmissionEntries]);
 
       toast({
         title: "Submission successful",
@@ -3508,6 +3552,7 @@ function CalendarContent() {
 
       setIsActivityModalOpen(false);
       setSelectedFiles([]);
+      setSubmissionRemarks("");
       // Refresh activities, notifications, folders, and reports so other pages reflect the submission immediately.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [api.activities.list.path] }),
@@ -3930,7 +3975,6 @@ function CalendarContent() {
               setRecurrenceEndDate("");
               setMonthlyWeekdayOption("date");
               setReportDetails("");
-              setRemarks("");
               if (newActivityReturnModal === 'day' && dayActivitiesModalDate) {
                 setShowDayActivitiesModal(true);
               } else if (newActivityReturnModal === 'time' && timeSlotActivitiesModalData) {
@@ -4228,18 +4272,6 @@ function CalendarContent() {
                     <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
                   </div>
                 </div>
-
-                {/* Remarks Section */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1 h-4 bg-purple-500 rounded-full"></span>
-                    Additional Notes
-                  </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="remarks" className="text-sm font-medium">Remarks</Label>
-                    <Textarea id="remarks" name="remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes or remarks" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
-                  </div>
-                </div>
               </div>
             </div>
             <DialogFooter className="shrink-0 pt-4 mt-4">
@@ -4303,7 +4335,7 @@ function CalendarContent() {
                 setSelectedDayActivityIds([]);
               }
             }}>
-              <DialogContent className="flex h-[min(80vh,42rem)] max-h-[80vh] max-w-2xl flex-col overflow-hidden">
+              <DialogContent className="flex h-[min(80vh,42rem)] max-h-[80vh] max-w-2xl flex-col overflow-visible">
                 <DialogHeader className="shrink-0 pb-2">
                   <div className="flex flex-col gap-3 pr-8">
                     <DialogTitle className="leading-tight">
@@ -4534,11 +4566,12 @@ function CalendarContent() {
             }
             setShouldRestoreActivitySearch(false);
             setSelectedFiles([]);
+            setSubmissionRemarks("");
             setSelectedActivity(null);
             setIsLoadingSubmissions(false);
           }
         }}>
-          <DialogContent className="max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="max-h-[90vh] overflow-visible flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -4578,10 +4611,6 @@ function CalendarContent() {
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Reports Detail</h4>
                     <p className="text-sm">{selectedActivity?.reportDetails || 'No reports detail provided'}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Remarks</h4>
-                    <p className="text-sm">{selectedActivity?.remarks || 'No remarks provided'}</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-1">Deadline</h4>
@@ -4648,7 +4677,7 @@ function CalendarContent() {
               )}
 
               {/* Loading indicator for submissions */}
-              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && isLoadingSubmissions && (
+              {isLoadingSubmissions && (
                 <div className="flex items-center justify-center p-4">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                   <span className="ml-2 text-sm text-muted-foreground">Loading submitted files...</span>
@@ -4656,7 +4685,7 @@ function CalendarContent() {
               )}
 
               {/* Submitted Files Section - Show files that have been submitted */}
-              {(selectedActivity?.status === 'completed' || selectedActivity?.status === 'late') && activitySubmissions.length > 0 && !isLoadingSubmissions && (
+              {activitySubmissions.length > 0 && !isLoadingSubmissions && (
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm">Submitted Files</h4>
                   <div className="space-y-2 overflow-y-auto">
@@ -4767,8 +4796,44 @@ function CalendarContent() {
                       </div>
                     </div>
                   )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="submissionRemarks" className="text-sm font-medium">Remarks</Label>
+                    <Textarea
+                      id="submissionRemarks"
+                      name="submissionRemarks"
+                      value={submissionRemarks}
+                      onChange={(e) => setSubmissionRemarks(e.target.value)}
+                      placeholder="Add remarks for this submission"
+                      className="resize-none border border-gray-300 dark:border-gray-600"
+                      rows={3}
+                    />
+                  </div>
                 </div>
               )}
+
+              {(() => {
+                const submissionRemarkEntries = activitySubmissions.filter((submission: any) => {
+                  return typeof submission.notes === "string" && submission.notes.trim().length > 0;
+                });
+
+                if (submissionRemarkEntries.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div className="space-y-3 border-t pt-4">
+                    <h4 className="font-medium text-sm">Remarks</h4>
+                    <div className="space-y-2">
+                      {submissionRemarkEntries.map((submission: any, index: number) => (
+                        <div key={`${submission.id ?? index}-remark`} className="rounded-lg bg-muted/30 p-3">
+                          <p className="whitespace-pre-wrap text-sm">{submission.notes}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <DialogFooter className="flex flex-shrink-0 mt-4">
@@ -4836,7 +4901,7 @@ function CalendarContent() {
             setSelectedTimeSlotActivityIds([]);
           }
         }}>
-          <DialogContent className="flex h-[min(80vh,42rem)] max-h-[80vh] max-w-2xl flex-col overflow-hidden">
+          <DialogContent className="flex h-[min(80vh,42rem)] max-h-[80vh] max-w-2xl flex-col overflow-visible">
             <DialogHeader className="shrink-0 pb-2">
               <div className="flex flex-col gap-3 pr-8">
                 <DialogTitle className="whitespace-nowrap">

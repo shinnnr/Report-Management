@@ -1232,7 +1232,7 @@ export async function registerRoutes(
       // Allow multiple submissions to the same activity (user can upload additional files)
       // No check needed here as we want to allow multiple files per activity
 
-      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth, submissionDate, submissionDateKey } = req.body;
+      const { title, description, fileName, fileType, fileSize, fileData, deadlineYear, deadlineMonth, submissionDate, submissionDateKey, remarks } = req.body;
 
       // Validate file type
       const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -1323,7 +1323,8 @@ export async function registerRoutes(
         userId,
         reportId: report.id,
         status: isLate ? 'late' : 'submitted',
-        submissionDate: now
+        submissionDate: now,
+        notes: typeof remarks === "string" && remarks.trim().length > 0 ? remarks.trim() : null,
       });
 
       // Update activity status - mark as 'late' if overdue, 'completed' otherwise
@@ -1374,7 +1375,7 @@ export async function registerRoutes(
     try {
       const activityId = parseInt(req.params.id as string);
       const userId = (req.user as any).id;
-      const { files, activityTitle, suppressNotification, deadlineYear, deadlineMonth, submissionDate, submissionDateKey } = req.body;
+      const { files, activityTitle, suppressNotification, deadlineYear, deadlineMonth, submissionDate, submissionDateKey, remarks } = req.body;
 
       if (!files || !Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ message: "No files provided" });
@@ -1464,6 +1465,7 @@ export async function registerRoutes(
           reportId: report.id,
           status: isLate ? 'late' : 'submitted',
           submissionDate: now,
+          notes: typeof remarks === "string" && remarks.trim().length > 0 ? remarks.trim() : null,
         }))
       );
 
