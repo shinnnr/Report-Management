@@ -356,9 +356,8 @@ function DashboardContent() {
         }
         // Redirect based on notification type with activityId if available
         if (notification.content.includes('activity') || notification.activityId) {
-            const activityId = notification.activityId;
-            if (activityId) {
-                setLocation(`/calendar?activityId=${activityId}`);
+            if (notification.activityId) {
+                setLocation(`/calendar?activityId=${notification.activityId}`);
             } else {
                 setLocation('/calendar');
             }

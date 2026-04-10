@@ -829,15 +829,14 @@ export class DatabaseStorage implements IStorage {
         )
       );
       const existingDeadlineTimes = new Set(existingActivities.map((existing) => new Date(existing.deadlineDate).getTime()));
-      const monthlyPattern = activity.monthlyPattern;
 
-      if (activity.recurrence === 'monthly' && monthlyPattern && monthlyPattern !== 'date') {
+      if (activity.recurrence === 'monthly' && activity.monthlyPattern && activity.monthlyPattern !== 'date') {
         const monthlyOccurrences = getMonthlyWeekdayOccurrencesSync(
           year,
           startDate,
           endDate,
           originalDeadline,
-          monthlyPattern,
+          activity.monthlyPattern,
         );
 
         for (const occurrence of monthlyOccurrences) {
