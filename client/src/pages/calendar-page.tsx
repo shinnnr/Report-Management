@@ -4580,7 +4580,7 @@ function CalendarContent() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] px-3">
+            <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] px-3 pb-3">
               {/* Activity Details */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 bg-muted/30 rounded-lg">
                 <div className="space-y-4">
@@ -4674,6 +4674,24 @@ function CalendarContent() {
                 </div>
               )}
 
+              {/* Submission Status */}
+              {selectedActivity && (
+                <div className="text-center p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    {(selectedActivity.status === 'completed' || selectedActivity.status === 'late')
+                      ? selectedActivity.status === 'late' 
+                        ? "This activity was submitted late."
+                        : "You have already submitted this activity."
+                      : selectedActivity.status === 'overdue'
+                      ? "This activity is overdue. You can still submit but it will be marked as late."
+                      : selectedActivity.status === 'in-progress'
+                      ? "This activity is in progress. You can submit your report now."
+                      : "This activity is pending. Click 'Start Activity' to begin working on it."
+                    }
+                  </p>
+                </div>
+              )}
+
               {/* Loading indicator for submissions */}
               {isLoadingSubmissions && (
                 <div className="flex items-center justify-center p-4">
@@ -4721,24 +4739,6 @@ function CalendarContent() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Submission Status */}
-              {selectedActivity && (
-                <div className="text-center p-4 border rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedActivity.status === 'completed' || selectedActivity.status === 'late')
-                      ? selectedActivity.status === 'late' 
-                        ? "This activity was submitted late."
-                        : "You have already submitted this activity."
-                      : selectedActivity.status === 'overdue'
-                      ? "This activity is overdue. You can still submit but it will be marked as late."
-                      : selectedActivity.status === 'in-progress'
-                      ? "This activity is in progress. You can submit your report now."
-                      : "This activity is pending. Click 'Start Activity' to begin working on it."
-                    }
-                  </p>
                 </div>
               )}
 
