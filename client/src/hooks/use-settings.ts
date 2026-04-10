@@ -343,8 +343,13 @@ export function useSystemSettings() {
   };
 }
 
+type UseSystemSettingsPollingOptions = {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+};
+
 // Hook to poll for system settings changes and update queries in real-time
-export function useSystemSettingsPolling() {
+export function useSystemSettingsPolling(options?: UseSystemSettingsPollingOptions) {
   const queryClient = useQueryClient();
   const lastSettingsRef = useRef<{
     allowNonAdminFileManagement?: boolean;
@@ -354,6 +359,7 @@ export function useSystemSettingsPolling() {
 
   const { data: currentSettings } = useQuery({
     queryKey: ['system-settings-polling'],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const [fileManagement, activityDelete, holidayAdd] = await Promise.all([
         fetch(`/api/settings/allow_non_admin_file_management`).then(r => r.ok ? r.json().then(d => d.value === 'true') : true).catch(() => true),
@@ -367,7 +373,7 @@ export function useSystemSettingsPolling() {
         allowNonAdminHolidayAdd: holidayAdd,
       };
     },
-    refetchInterval: 5000, // Poll every 5 seconds
+    refetchInterval: options?.refetchInterval ?? 5000,
     refetchIntervalInBackground: true,
   });
 

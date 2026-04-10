@@ -9,7 +9,13 @@ type CreateActivityInput = {
   suppressSuccessToast?: boolean;
 };
 
-export function useActivities() {
+type UseActivitiesOptions = {
+  staleTime?: number;
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+};
+
+export function useActivities(options?: UseActivitiesOptions) {
   const { user, isLoggedOut, isSessionDeactivated } = useAuth();
   const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
 
@@ -22,8 +28,12 @@ export function useActivities() {
       return api.activities.list.responses[200].parse(await res.json());
     },
     enabled: !!user && !isLoggedOut && !isSessionDeactivated && !isLoginPage,
-    staleTime: 0, // Always fetch fresh data
-    refetchInterval: user && !isLoggedOut && !isSessionDeactivated && !isLoginPage ? 5000 : false,
+    staleTime: options?.staleTime ?? 0,
+    refetchInterval:
+      user && !isLoggedOut && !isSessionDeactivated && !isLoginPage
+        ? (options?.refetchInterval ?? 5000)
+        : false,
+    refetchOnWindowFocus: options?.refetchOnWindowFocus ?? true,
     retry: false,
   });
 }
@@ -173,8 +183,11 @@ export function useStartActivity() {
       }
       // Fetch the updated activity and return it
       const activityRes = await fetch(api.activities.list.path);
-      const activities = await activityRes.json();
-      const updatedActivity = activities.find((a: any) => a.id === id);
+      const activities = api.activities.list.responses[200].parse(await activityRes.json());
+      const updatedActivity = activities.find((activity) => activity.id === id);
+      if (!updatedActivity) {
+        return Promise.reject(new Error("Failed to load updated activity"));
+      }
       return updatedActivity;
     },
     onSuccess: (updatedActivity) => {

@@ -3,7 +3,13 @@ import { api } from "@shared/routes";
 import { type InsertHoliday } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-export function useHolidays() {
+type UseHolidaysOptions = {
+  staleTime?: number;
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+};
+
+export function useHolidays(options?: UseHolidaysOptions) {
   return useQuery({
     queryKey: [api.holidays.list.path],
     queryFn: async () => {
@@ -11,9 +17,9 @@ export function useHolidays() {
       if (!res.ok) throw new Error("Failed to fetch holidays");
       return api.holidays.list.responses[200].parse(await res.json());
     },
-    staleTime: 0,
-    refetchInterval: 2000,
-    refetchOnWindowFocus: true,
+    staleTime: options?.staleTime ?? 0,
+    refetchInterval: options?.refetchInterval ?? 2000,
+    refetchOnWindowFocus: options?.refetchOnWindowFocus ?? true,
   });
 }
 

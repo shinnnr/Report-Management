@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format, isSameDay, isSameMonth, eachDayOfInterval, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, startOfWeek, differenceInDays, isToday } from "date-fns";
@@ -866,7 +866,7 @@ function CalendarContent() {
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
   const prefersReducedMotion = useReducedMotion();
 
-  // Holidays enabled state - local with polling for sync across users
+  // Holidays enabled state - local first, with light refresh for cross-user sync
   const [holidaysEnabledData, setHolidaysEnabled] = useState<boolean>(
     () => readStoredBoolean(HOLIDAYS_ENABLED_STORAGE_KEY) ?? false,
   );
@@ -926,9 +926,11 @@ function CalendarContent() {
     },
   });
 
-  // Poll for holidays enabled setting every 5 seconds for cross-user sync
   useEffect(() => {
     const fetchHolidaysEnabled = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
       if (holidaysEnabledSavePendingRef.current) return;
       try {
         const res = await fetch('/api/settings/holidays_enabled', { credentials: 'include' });
@@ -950,20 +952,41 @@ function CalendarContent() {
     };
 
     fetchHolidaysEnabled();
-    const interval = setInterval(fetchHolidaysEnabled, 5000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchHolidaysEnabled();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", fetchHolidaysEnabled);
+
+    const interval = setInterval(fetchHolidaysEnabled, 30000);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", fetchHolidaysEnabled);
+    };
   }, []);
 
-  // Enable real-time polling for settings changes
-  useSystemSettingsPolling();
+  // Skip aggressive settings polling on the calendar page to keep interactions smooth.
+  useSystemSettingsPolling({ enabled: false });
   const canManageHolidays = user?.role === "admin" || allowNonAdminHolidayAdd;
   const isMobile = useIsMobile();
-  const { data: activities } = useActivities();
+  const { data: activities } = useActivities({
+    staleTime: 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: true,
+  });
   const createActivity = useCreateActivity();
   const deleteActivity = useDeleteActivity();
   const startActivity = useStartActivity();
   const updateActivity = useUpdateActivity();
-  const { data: holidays } = useHolidays();
+  const { data: holidays } = useHolidays({
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: true,
+  });
   const [showPhilippineHolidays, setShowPhilippineHolidays] = useState(() => {
     return readStoredBoolean(SHOW_PHILIPPINE_HOLIDAYS_STORAGE_KEY) === true;
   });
@@ -1030,14 +1053,14 @@ function CalendarContent() {
   const deleteHoliday = useDeleteHoliday();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const calendarHolidays = [
+  const calendarHolidays = useMemo(() => [
     ...(holidays || []),
     ...((holidaysEnabledData && showPhilippineHolidays ? philippineHolidays : []) || []).map((holiday, index) => ({
         id: `philippines-${holiday.date}-${index}`,
         name: holiday.name,
         date: parseDateOnlyString(holiday.date),
       })),
-  ];
+  ], [holidays, holidaysEnabledData, philippineHolidays, showPhilippineHolidays]);
   const showHolidayIndicators = holidaysEnabledData;
   const pendingPhilippineHolidayAdjustmentRef = useRef(false);
   const pendingPhilippineHolidayRestoreRef = useRef(false);
@@ -1051,6 +1074,9 @@ function CalendarContent() {
 
   useEffect(() => {
     const fetchShowPhilippineHolidays = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
       if (showPhilippineHolidaysSavePendingRef.current) return;
       try {
         const res = await fetch('/api/settings/show_philippine_holidays', { credentials: 'include' });
@@ -1072,8 +1098,21 @@ function CalendarContent() {
     };
 
     fetchShowPhilippineHolidays();
-    const interval = setInterval(fetchShowPhilippineHolidays, 5000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchShowPhilippineHolidays();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", fetchShowPhilippineHolidays);
+
+    const interval = setInterval(fetchShowPhilippineHolidays, 30000);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", fetchShowPhilippineHolidays);
+    };
   }, []);
 
   const handleShowPhilippineHolidaysChange = useCallback((checked: boolean) => {
@@ -1120,6 +1159,9 @@ function CalendarContent() {
   // Fetch role filtering setting
   useEffect(() => {
     const fetchSetting = async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
       try {
         const res = await fetch('/api/settings/enable_role_filtering', { credentials: 'include' });
         if (res.ok) {
@@ -1132,9 +1174,21 @@ function CalendarContent() {
     };
     fetchSetting();
 
-    // Poll for setting changes every 2 seconds
-    const interval = setInterval(fetchSetting, 2000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchSetting();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", fetchSetting);
+
+    const interval = setInterval(fetchSetting, 30000);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", fetchSetting);
+    };
   }, []);
 
   // Update global holidays data when holidays change
@@ -1240,19 +1294,19 @@ function CalendarContent() {
   const [isTouchDragging, setIsTouchDragging] = useState(false);
   
   // Filter activities based on current filter
-  const filteredActivities = activities?.filter(a => {
+  const filteredActivities = useMemo(() => (activities?.filter(a => {
     if (activityFilter === 'all') return true;
     if (activityFilter === 'pending') return a.status === 'pending';
     if (activityFilter === 'in-progress') return a.status === 'in-progress';
     if (activityFilter === 'completed') return a.status === 'completed' || a.status === 'late';
     if (activityFilter === 'overdue') return a.status === 'overdue';
     return true;
-  }) || [];
+  }) || []), [activities, activityFilter]);
 
   // Calculate activities in current month
-  const activitiesInCurrentMonth = filteredActivities.filter(a =>
+  const activitiesInCurrentMonth = useMemo(() => filteredActivities.filter(a =>
     isSameMonth(getCalendarDisplayDate(a), currentDate)
-  );
+  ), [filteredActivities, currentDate]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
@@ -1298,8 +1352,9 @@ function CalendarContent() {
   const [monthlyWeekdayOption, setMonthlyWeekdayOption] = useState<string>("date");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>("");
   const [submissionDate, setSubmissionDate] = useState<Date>(new Date());
-  const trimmedActivitySearchQuery = activitySearchQuery.trim().toLowerCase();
-  const searchedActivities = trimmedActivitySearchQuery.length === 0
+  const deferredActivitySearchQuery = useDeferredValue(activitySearchQuery);
+  const trimmedActivitySearchQuery = deferredActivitySearchQuery.trim().toLowerCase();
+  const searchedActivities = useMemo(() => trimmedActivitySearchQuery.length === 0
     ? []
     : (activities || [])
         .filter((activity) => {
@@ -1320,7 +1375,7 @@ function CalendarContent() {
           const leftDate = getCalendarDisplayDate(left).getTime();
           const rightDate = getCalendarDisplayDate(right).getTime();
           return leftDate - rightDate;
-        });
+        }), [activities, trimmedActivitySearchQuery]);
   const [activitySubmissions, setActivitySubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
 
@@ -1336,10 +1391,10 @@ function CalendarContent() {
   const [holidayPage, setHolidayPage] = useState(1);
   const holidaysPerPage = 5;
   const totalHolidayPages = Math.max(1, Math.ceil((holidays?.length || 0) / holidaysPerPage));
-  const paginatedHolidays = (holidays || []).slice(
+  const paginatedHolidays = useMemo(() => (holidays || []).slice(
     (holidayPage - 1) * holidaysPerPage,
     holidayPage * holidaysPerPage
-  );
+  ), [holidays, holidayPage]);
   const showHolidayPagination = (holidays?.length || 0) > holidaysPerPage;
   const holidayModalFormRef = useRef<HTMLDivElement | null>(null);
 
@@ -1380,8 +1435,106 @@ function CalendarContent() {
   const [addRecurYears, setAddRecurYears] = useState<string[]>([]);
   const [addRecurPreview, setAddRecurPreview] = useState<any[]>([]);
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
-  const addRecurringActivityTitles = getRecurringActivityTitles(activities, addRecurTypes);
-  const deleteRecurringActivityTitles = getRecurringActivityTitles(activities, deleteRecurTypes);
+  const addRecurringActivityTitles = useMemo(
+    () => getRecurringActivityTitles(activities, addRecurTypes),
+    [activities, addRecurTypes],
+  );
+  const deleteRecurringActivityTitles = useMemo(
+    () => getRecurringActivityTitles(activities, deleteRecurTypes),
+    [activities, deleteRecurTypes],
+  );
+
+  // Helper function to check if activity is due soon (within 3 days)
+  const isDueSoon = (deadlineDate: string | Date) => {
+    const deadline = new Date(deadlineDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = differenceInDays(deadline, today);
+    return diff >= 0 && diff <= 3;
+  };
+
+  // Helper function to check if a date is a weekend
+  const isDateWeekend = (date: Date) => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
+  };
+
+  // Helper function to check if a date is a holiday or weekend
+  const isDateHolidayOrWeekend = (date: Date) => {
+    return isDateHoliday(date) || isDateWeekend(date);
+  };
+
+  const dateIndicatorsByDateKey = useMemo(() => {
+    const indicators = new Map<string, {
+      hasOverdue: boolean;
+      hasDueSoon: boolean;
+      hasActivities: boolean;
+      activityCount: number;
+      isHoliday: boolean;
+      isWeekend: boolean;
+      isHolidayOrWeekend: boolean;
+    }>();
+
+    filteredActivities.forEach((activity) => {
+      const activityDate = getCalendarDisplayDate(activity);
+      const dateKey = getDateKey(activityDate);
+      const existing = indicators.get(dateKey);
+
+      if (existing) {
+        existing.activityCount += 1;
+        existing.hasActivities = true;
+        existing.hasOverdue = existing.hasOverdue || activity.status === 'overdue';
+        existing.hasDueSoon = existing.hasDueSoon || isDueSoon(activity.deadlineDate);
+        return;
+      }
+
+      const isWeekend = isDateWeekend(activityDate);
+      const isHoliday = showHolidayIndicators && hasHolidayDate(activityDate);
+      indicators.set(dateKey, {
+        hasOverdue: activity.status === 'overdue',
+        hasDueSoon: isDueSoon(activity.deadlineDate),
+        hasActivities: true,
+        activityCount: 1,
+        isHoliday,
+        isWeekend,
+        isHolidayOrWeekend: isHoliday || isWeekend,
+      });
+    });
+
+    return indicators;
+  }, [filteredActivities, showHolidayIndicators]);
+
+  const filteredActivitiesByDateKey = useMemo(() => {
+    const activitiesByDate = new Map<string, any[]>();
+
+    filteredActivities.forEach((activity) => {
+      const dateKey = getDateKey(getCalendarDisplayDate(activity));
+      const existing = activitiesByDate.get(dateKey);
+      if (existing) {
+        existing.push(activity);
+      } else {
+        activitiesByDate.set(dateKey, [activity]);
+      }
+    });
+
+    return activitiesByDate;
+  }, [filteredActivities]);
+
+  const allActivitiesByDateKey = useMemo(() => {
+    const activitiesByDate = new Map<string, any[]>();
+
+    (activities || []).forEach((activity) => {
+      const dateKey = getDateKey(getCalendarDisplayDate(activity));
+      const existing = activitiesByDate.get(dateKey);
+      if (existing) {
+        existing.push(activity);
+      } else {
+        activitiesByDate.set(dateKey, [activity]);
+      }
+    });
+
+    return activitiesByDate;
+  }, [activities]);
   
   // Clear concern department when regulatory agency changes
   useEffect(() => {
@@ -1506,6 +1659,35 @@ function CalendarContent() {
     }
   };
 
+  const fetchActivitySubmissions = useCallback(async (activityId: number) => {
+    try {
+      const response = await fetch(`/api/activities/${activityId}/submissions`);
+      const data = await response.json();
+      setActivitySubmissions(data);
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
+  }, []);
+
+  const openActivityModal = useCallback((activity: any, options?: { focusDate?: Date; restoreSearch?: boolean }) => {
+    if (options?.focusDate) {
+      setCurrentDate(options.focusDate);
+    }
+
+    if (options?.restoreSearch) {
+      setShouldRestoreActivitySearch(true);
+    }
+
+    setSelectedActivity(activity);
+    setStartingActivityId((current) => current === activity.id ? current : null);
+    setIsActivityModalOpen(true);
+    setActivitySubmissions([]);
+    setIsLoadingSubmissions(true);
+    void fetchActivitySubmissions(activity.id);
+  }, [fetchActivitySubmissions]);
+
   // Handle activityId from URL query parameter (when clicking from notification)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1514,32 +1696,15 @@ function CalendarContent() {
     if (activityId && activities) {
       const activity = activities.find(a => a.id === parseInt(activityId));
       if (activity) {
-        setSelectedActivity(activity);
-        setIsActivityModalOpen(true);
-        // Clear previous submissions and show loading
-        setActivitySubmissions([]);
-        setIsLoadingSubmissions(true);
-        // Fetch submissions for this activity when modal opens
-        fetch(`/api/activities/${activity.id}/submissions`)
-          .then(res => res.json())
-          .then(data => {
-            setActivitySubmissions(data);
-            setIsLoadingSubmissions(false);
-          })
-          .catch(err => {
-            console.error('Failed to fetch submissions:', err);
-            setIsLoadingSubmissions(false);
-          });
+        openActivityModal(activity, { focusDate: getCalendarDisplayDate(activity) });
         // Navigate to the month of the activity's deadline
-        const activityDate = getCalendarDisplayDate(activity);
-        setCurrentDate(activityDate);
         // Auto-switch to month view when navigating from notification
         setView('month');
         // Clear the URL parameter without adding to browser history
         setLocation('/calendar', { replace: true });
       }
     }
-  }, [activities, setLocation]);
+  }, [activities, openActivityModal, setLocation]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1576,41 +1741,26 @@ function CalendarContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedDate, view]);
 
-  // Helper function to check if activity is due soon (within 3 days)
-  const isDueSoon = (deadlineDate: string | Date) => {
-    const deadline = new Date(deadlineDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = differenceInDays(deadline, today);
-    return diff >= 0 && diff <= 3;
-  };
-
-  // Helper function to check if a date is a weekend
-  const isDateWeekend = (date: Date) => {
-    const dayOfWeek = date.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6; // Sunday = 0, Saturday = 6
-  };
-
-  // Helper function to check if a date is a holiday or weekend
-  const isDateHolidayOrWeekend = (date: Date) => {
-    return isDateHoliday(date) || isDateWeekend(date);
-  };
-
   // Helper to get date indicators
-  const getDateIndicators = (date: Date) => {
-    const dayActivities = filteredActivities.filter(a =>
-      isSameDay(getCalendarDisplayDate(a), date)
-    );
+  const getDateIndicators = useCallback((date: Date) => {
+    const dateKey = getDateKey(date);
+    const existing = dateIndicatorsByDateKey.get(dateKey);
+    if (existing) {
+      return existing;
+    }
+
+    const isWeekend = isDateWeekend(date);
+    const isHoliday = showHolidayIndicators && hasHolidayDate(date);
     return {
-      hasOverdue: dayActivities.some(a => a.status === 'overdue'),
-      hasDueSoon: dayActivities.some(a => isDueSoon(a.deadlineDate)),
-      hasActivities: dayActivities.length > 0,
-      activityCount: dayActivities.length,
-      isHoliday: showHolidayIndicators && hasHolidayDate(date),
-      isWeekend: isDateWeekend(date),
-      isHolidayOrWeekend: isDateHolidayOrWeekend(date)
+      hasOverdue: false,
+      hasDueSoon: false,
+      hasActivities: false,
+      activityCount: 0,
+      isHoliday,
+      isWeekend,
+      isHolidayOrWeekend: isHoliday || isWeekend,
     };
-  };
+  }, [dateIndicatorsByDateKey, showHolidayIndicators]);
 
   // Stop auto-scroll on drag end
   const stopAutoScroll = useCallback(() => {
@@ -3256,7 +3406,7 @@ function CalendarContent() {
 
   // Get activities for selected date
   const selectedDateActivities = selectedDate
-    ? activities?.filter(a => isSameDay(getCalendarDisplayDate(a), selectedDate)) || []
+    ? (allActivitiesByDateKey.get(getDateKey(selectedDate)) || [])
     : [];
   const getDeleteAllDateKey = (date: Date | null) => date ? format(date, 'yyyy-MM-dd') : null;
   const selectedDateDeleteKey = getDeleteAllDateKey(selectedDate);
@@ -4309,9 +4459,7 @@ function CalendarContent() {
 
         {/* Day Activities Modal */}
         {dayActivitiesModalDate && (() => {
-          const dayActs = (activities || []).filter(a =>
-            isSameDay(getCalendarDisplayDate(a), dayActivitiesModalDate)
-          );
+          const dayActs = allActivitiesByDateKey.get(getDateKey(dayActivitiesModalDate)) || [];
           const sortedDayActs = sortActivitiesByLatestCreated(dayActs);
           const totalPages = Math.ceil(sortedDayActs.length / dayActivitiesPerPage);
           const paginatedActivities = sortedDayActs.slice(
@@ -4408,24 +4556,7 @@ function CalendarContent() {
                           getStatusBorderColor(activity.status)
                         )}
                         onClick={() => {
-                          setSelectedActivity(activity);
-                          // Only reset if clicking a different activity
-                          setStartingActivityId(current => current === activity.id ? current : null);
-                          setIsActivityModalOpen(true);
-                          // Clear previous submissions and show loading
-                          setActivitySubmissions([]);
-                          setIsLoadingSubmissions(true);
-                          // Fetch submissions for this activity when modal opens
-                          fetch(`/api/activities/${activity.id}/submissions`)
-                            .then(res => res.json())
-                            .then(data => {
-                              setActivitySubmissions(data);
-                              setIsLoadingSubmissions(false);
-                            })
-                            .catch(err => {
-                              console.error('Failed to fetch submissions:', err);
-                              setIsLoadingSubmissions(false);
-                            });
+                          openActivityModal(activity);
                         }}
                       >
                         <div className="flex min-w-0 items-center justify-between gap-3">
@@ -4984,23 +5115,7 @@ function CalendarContent() {
                               getStatusBorderColor(activity.status)
                             )}
                             onClick={() => {
-                              setSelectedActivity(activity);
-                              setStartingActivityId(current => current === activity.id ? current : null);
-                              setIsActivityModalOpen(true);
-                              // Clear previous submissions and show loading
-                              setActivitySubmissions([]);
-                              setIsLoadingSubmissions(true);
-                              // Fetch submissions for this activity when modal opens
-                              fetch(`/api/activities/${activity.id}/submissions`)
-                                .then(res => res.json())
-                                .then(data => {
-                                  setActivitySubmissions(data);
-                                  setIsLoadingSubmissions(false);
-                                })
-                                .catch(err => {
-                                  console.error('Failed to fetch submissions:', err);
-                                  setIsLoadingSubmissions(false);
-                                });
+                              openActivityModal(activity);
                             }}
                           >
                             <div className="flex min-w-0 items-center justify-between gap-3">
@@ -5380,9 +5495,7 @@ function CalendarContent() {
                             onClick={() => {
                               setCurrentDate(activityDate);
                               setSelectedDate(activityDate);
-                              setSelectedActivity(activity);
-                              setShouldRestoreActivitySearch(true);
-                              setIsActivityModalOpen(true);
+                              openActivityModal(activity, { restoreSearch: true });
                             }}
                             className="flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
                           >
@@ -5477,9 +5590,7 @@ function CalendarContent() {
 
         {/* Days */}
         {daysInMonth.map((date) => {
-          const dayActivities = filteredActivities.filter(a =>
-            isSameDay(getCalendarDisplayDate(a), date)
-          );
+          const dayActivities = filteredActivitiesByDateKey.get(getDateKey(date)) || [];
           const holidayLabelForDate = showHolidayIndicators
             ? getHolidayLabelForDate(calendarHolidays, date)
             : "";
@@ -5592,23 +5703,7 @@ function CalendarContent() {
                         return;
                       }
                       e.stopPropagation();
-                      setSelectedActivity(activity);
-                      setStartingActivityId(current => current === activity.id ? current : null);
-                      setIsActivityModalOpen(true);
-                      // Clear previous submissions and show loading
-                      setActivitySubmissions([]);
-                      setIsLoadingSubmissions(true);
-                      // Fetch submissions for this activity when modal opens
-                      fetch(`/api/activities/${activity.id}/submissions`)
-                        .then(res => res.json())
-                        .then(data => {
-                          setActivitySubmissions(data);
-                          setIsLoadingSubmissions(false);
-                        })
-                        .catch(err => {
-                          console.error('Failed to fetch submissions:', err);
-                          setIsLoadingSubmissions(false);
-                        });
+                      openActivityModal(activity);
                     }}
                     className={cn(
                       "mb-1 hidden h-6 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium transition-opacity hover:opacity-80 sm:block cursor-pointer",
@@ -5668,23 +5763,7 @@ function CalendarContent() {
               if (consumeSuppressedActivityClick(activity.id)) {
                 return;
               }
-              setStartingActivityId(current => current === activity.id ? current : null);
-              setSelectedActivity(activity);
-              setIsActivityModalOpen(true);
-              // Clear previous submissions and show loading
-              setActivitySubmissions([]);
-              setIsLoadingSubmissions(true);
-              // Fetch submissions for this activity when modal opens
-              fetch(`/api/activities/${activity.id}/submissions`)
-                .then(res => res.json())
-                .then(data => {
-                  setActivitySubmissions(data);
-                  setIsLoadingSubmissions(false);
-                })
-                .catch(err => {
-                  console.error('Failed to fetch submissions:', err);
-                  setIsLoadingSubmissions(false);
-                });
+              openActivityModal(activity);
             }}
             onSelectTimeSlot={handleTimeSlotClick}
             selectedTimeSlot={selectedTimeSlot}
@@ -5727,23 +5806,7 @@ function CalendarContent() {
               if (consumeSuppressedActivityClick(activity.id)) {
                 return;
               }
-              setStartingActivityId(current => current === activity.id ? current : null);
-              setSelectedActivity(activity);
-              setIsActivityModalOpen(true);
-              // Clear previous submissions and show loading
-              setActivitySubmissions([]);
-              setIsLoadingSubmissions(true);
-              // Fetch submissions for this activity when modal opens
-              fetch(`/api/activities/${activity.id}/submissions`)
-                .then(res => res.json())
-                .then(data => {
-                  setActivitySubmissions(data);
-                  setIsLoadingSubmissions(false);
-                })
-                .catch(err => {
-                  console.error('Failed to fetch submissions:', err);
-                  setIsLoadingSubmissions(false);
-                });
+              openActivityModal(activity);
             }}
             onSelectTimeSlot={handleTimeSlotClick}
             selectedTimeSlot={selectedTimeSlot}
@@ -5815,23 +5878,7 @@ function CalendarContent() {
                         onClick={() => {
                           const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
-                          setSelectedActivity(activity);
-                          setStartingActivityId(current => current === activity.id ? current : null);
-                          setIsActivityModalOpen(true);
-                          // Clear previous submissions and show loading
-                          setActivitySubmissions([]);
-                          setIsLoadingSubmissions(true);
-                          // Fetch submissions for this activity when modal opens
-                          fetch(`/api/activities/${activity.id}/submissions`)
-                            .then(res => res.json())
-                            .then(data => {
-                              setActivitySubmissions(data);
-                              setIsLoadingSubmissions(false);
-                            })
-                            .catch(err => {
-                              console.error('Failed to fetch submissions:', err);
-                              setIsLoadingSubmissions(false);
-                            });
+                          openActivityModal(activity, { focusDate: activityDate });
                         }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
@@ -5867,23 +5914,7 @@ function CalendarContent() {
                         onClick={() => {
                           const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
-                          setSelectedActivity(activity);
-                          setStartingActivityId(current => current === activity.id ? current : null);
-                          setIsActivityModalOpen(true);
-                          // Clear previous submissions and show loading
-                          setActivitySubmissions([]);
-                          setIsLoadingSubmissions(true);
-                          // Fetch submissions for this activity when modal opens
-                          fetch(`/api/activities/${activity.id}/submissions`)
-                            .then(res => res.json())
-                            .then(data => {
-                              setActivitySubmissions(data);
-                              setIsLoadingSubmissions(false);
-                            })
-                            .catch(err => {
-                              console.error('Failed to fetch submissions:', err);
-                              setIsLoadingSubmissions(false);
-                            });
+                          openActivityModal(activity, { focusDate: activityDate });
                         }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
@@ -6039,23 +6070,7 @@ function CalendarContent() {
                         onClick={() => {
                           const activityDate = getCalendarDisplayDate(activity);
                           setCurrentDate(activityDate);
-                          setSelectedActivity(activity);
-                          setStartingActivityId(current => current === activity.id ? current : null);
-                          setIsActivityModalOpen(true);
-                          // Clear previous submissions and show loading
-                          setActivitySubmissions([]);
-                          setIsLoadingSubmissions(true);
-                          // Fetch submissions for this activity when modal opens
-                          fetch(`/api/activities/${activity.id}/submissions`)
-                            .then(res => res.json())
-                            .then(data => {
-                              setActivitySubmissions(data);
-                              setIsLoadingSubmissions(false);
-                            })
-                            .catch(err => {
-                              console.error('Failed to fetch submissions:', err);
-                              setIsLoadingSubmissions(false);
-                            });
+                          openActivityModal(activity, { focusDate: activityDate });
                         }}
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
