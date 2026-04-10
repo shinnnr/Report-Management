@@ -67,8 +67,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Link, useLocation, useSearch } from "wouter";
-import { queryClient } from "@/lib/queryClient";
+import { useLocation, useSearch } from "wouter";
 import { api, buildUrl } from "@shared/routes";
 import { format, formatDistanceToNow } from "date-fns";
 
@@ -119,7 +118,7 @@ function DriveContent() {
 
   // Enable real-time polling for settings changes
   useSystemSettingsPolling();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const search = useSearch();
 
   const searchParams = new URLSearchParams(search);
@@ -526,10 +525,10 @@ function DriveContent() {
     e.stopPropagation();
     setIsDragging(false);
     
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) {
       // Store all files and trigger upload modal
-      setUploadFiles(Array.from(files));
+      setUploadFiles(droppedFiles);
       setIsUploadOpen(true);
     }
   };

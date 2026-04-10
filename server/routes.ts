@@ -132,13 +132,11 @@ async function getSubmissionTargetFolder(options: {
     options.recurrence && options.recurrence !== "none"
       ? "Regular Submission"
       : "Special Submission";
-  const submissionTypeFolder = await getOrCreateFolder(
+  return getOrCreateFolder(
     submissionTypeFolderName,
     agencyFolder.id,
     options.createdBy,
   );
-
-  return submissionTypeFolder;
 }
 
 const PHILIPPINES_HOLIDAY_FEED_URL = "https://calendar.google.com/calendar/ical/en.philippines%23holiday%40group.v.calendar.google.com/public/basic.ics";
@@ -831,8 +829,7 @@ export async function registerRoutes(
       });
 
       // Check for duplicate file name in the same folder and append (n) if needed
-      const folderId = input.folderId;
-      const existingReports = await storage.getReports(folderId);
+      const existingReports = input.folderId === null ? [] : await storage.getReports(input.folderId);
       let finalFileName = input.fileName;
       let counter = 1;
       const nameWithoutExt = input.fileName.replace(/\.[^/.]+$/, '');
@@ -1213,14 +1210,18 @@ export async function registerRoutes(
 
   // --- Activity Submission Routes ---
   app.get("/api/activities/:id/submissions", isAuthenticated, async (req, res) => {
-    const activityId = parseInt(req.params.id as string);
-    console.log('Fetching submissions for activity:', activityId);
-    const submissions = await storage.getActivitySubmissions(activityId);
-    console.log('Found submissions:', submissions.length);
-    if (submissions.length > 0) {
-      console.log('First submission report data:', submissions[0].report?.fileData ? 'has fileData' : 'no fileData');
+    try {
+      const activityId = parseInt(req.params.id as string, 10);
+      if (Number.isNaN(activityId)) {
+        return res.status(400).json({ message: "Invalid activity ID" });
+      }
+
+      const submissions = await storage.getActivitySubmissions(activityId);
+      res.json(submissions);
+    } catch (err: any) {
+      console.error("Failed to fetch activity submissions:", err);
+      res.status(500).json({ message: "Failed to fetch activity submissions" });
     }
-    res.json(submissions);
   });
 
   app.post("/api/activities/:id/submit", isAuthenticated, async (req, res) => {
@@ -1379,6 +1380,12 @@ export async function registerRoutes(
 
       if (!files || !Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ message: "No files provided" });
+      }
+
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const hasInvalidFileType = files.some((file) => !allowedTypes.includes(file.type));
+      if (hasInvalidFileType) {
+        return res.status(400).json({ message: "Invalid file type. Only PDF and Word documents are allowed." });
       }
 
       // Get activity details for folder creation

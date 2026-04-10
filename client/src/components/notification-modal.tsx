@@ -40,9 +40,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
       markReadMutation.mutate({ userId: user.id, notificationId: notification.id });
     }
     if (notification.content.includes('activity') || notification.activityId) {
-      const activityId = notification.activityId;
-      if (activityId) {
-        setLocation(`/calendar?activityId=${activityId}`);
+      if (notification.activityId) {
+        setLocation(`/calendar?activityId=${notification.activityId}`);
       } else {
         setLocation('/calendar');
       }
@@ -56,9 +55,11 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        setCurrentPage(1);
+      if (open) {
+        return;
       }
+
+      setCurrentPage(1);
       onClose();
     }}>
       <DialogContent className="flex max-h-[80vh] max-w-none flex-col sm:max-w-lg">
@@ -97,7 +98,7 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0" onClick={() => handleNotificationClick(notification)}>
-                      <h4 className={`text-sm font-medium ${!notification.isRead ? 'font-semibold' : 'font-normal'} text-foreground`}>
+                      <h4 className={notification.isRead ? "text-sm font-normal text-foreground" : "text-sm font-semibold text-foreground"}>
                         {notification.title}
                       </h4>
                       <p className="text-sm text-muted-foreground mt-1 break-words whitespace-pre-wrap">

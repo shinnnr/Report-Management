@@ -37,7 +37,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, buildUrl } from "@shared/routes";
 import { type InsertActivity } from "@shared/schema";
-import { Link, useLocation, useSearch } from "wouter";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -245,15 +245,14 @@ const filterMissingRecurringActivities = (generatedActivities: any[], allActivit
 // Helper function to generate recurring activities for a specific year based on an original activity
 const generateRecurringActivitiesForYear = (originalActivity: any, year: number, allActivities?: any[]): any[] => {
   const activities: any[] = [];
-  const recurrence = originalActivity.recurrence;
 
-  if (!recurrence) return activities;
+  if (!originalActivity.recurrence) return activities;
 
   // Ensure deadlineDate is a Date object
   const originalDate = new Date(originalActivity.deadlineDate);
   const monthlyPatternWeekday = getMonthlyPatternWeekday(originalActivity, allActivities);
 
-  switch (recurrence) {
+  switch (originalActivity.recurrence) {
     case 'monthly':
       if (monthlyPatternWeekday !== null) {
         const yearStart = new Date(year, 0, 1);
@@ -1030,7 +1029,7 @@ function CalendarContent() {
   const updateHoliday = useUpdateHoliday();
   const deleteHoliday = useDeleteHoliday();
   const queryClient = useQueryClient();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const calendarHolidays = [
     ...(holidays || []),
     ...((holidaysEnabledData && showPhilippineHolidays ? philippineHolidays : []) || []).map((holiday, index) => ({
@@ -1930,16 +1929,16 @@ function CalendarContent() {
 
       const allowWindowVerticalScroll = view !== 'month' || !pageScrollContainer;
 
-      if (clientY < scrollThreshold) {
-        if (allowWindowVerticalScroll && (!monthContainerRect || monthContainerRect.top < 0)) {
-          scrollDirection = 'up';
-          scrollStrength = getAutoScrollStrength(scrollThreshold - clientY, scrollThreshold);
-        }
-      } else if (clientY > viewportHeight - scrollThreshold) {
-        if (allowWindowVerticalScroll && (!monthContainerRect || monthContainerRect.bottom > viewportHeight)) {
-          scrollDirection = 'down';
-          scrollStrength = getAutoScrollStrength(clientY - (viewportHeight - scrollThreshold), scrollThreshold);
-        }
+      if (clientY < scrollThreshold && allowWindowVerticalScroll && (!monthContainerRect || monthContainerRect.top < 0)) {
+        scrollDirection = 'up';
+        scrollStrength = getAutoScrollStrength(scrollThreshold - clientY, scrollThreshold);
+      } else if (
+        clientY > viewportHeight - scrollThreshold &&
+        allowWindowVerticalScroll &&
+        (!monthContainerRect || monthContainerRect.bottom > viewportHeight)
+      ) {
+        scrollDirection = 'down';
+        scrollStrength = getAutoScrollStrength(clientY - (viewportHeight - scrollThreshold), scrollThreshold);
       }
 
       if (scrollDirection) {
@@ -4104,13 +4103,12 @@ function CalendarContent() {
                                   "max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
                               )}
                               onWheelCapture={(event) => {
-                                const currentTarget = event.currentTarget;
-                                if (currentTarget.scrollHeight <= currentTarget.clientHeight) {
+                                if (event.currentTarget.scrollHeight <= event.currentTarget.clientHeight) {
                                   return;
                                 }
 
                                 event.preventDefault();
-                                currentTarget.scrollTop += event.deltaY;
+                                event.currentTarget.scrollTop += event.deltaY;
                               }}
                             >
                               {AGENCY_DEPARTMENT_OPTIONS[regulatoryAgency]?.map((dept) => (
