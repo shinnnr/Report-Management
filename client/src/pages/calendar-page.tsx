@@ -892,7 +892,7 @@ function ActivityDragPreviewCard({
         "pointer-events-none border font-medium text-left opacity-50 cursor-move select-none",
         baseClasses,
         getActivityPreviewStatusColor(activity.status),
-        "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+        "bg-muted/30 dark:bg-muted/20 border-gray-200",
         getActivityPreviewBorderColor(activity.status),
       )}
     >
@@ -952,7 +952,7 @@ function TimeSlotActivityStack({
                 className={cn(
                   "absolute bottom-0 top-0 truncate rounded-md border px-1.5 py-1 text-xs font-medium transition-opacity hover:opacity-80 select-none cursor-pointer",
                   getStatusColor(activity.status),
-                  "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                  "bg-muted/30 dark:bg-muted/20 border-gray-200",
                   getStatusBorderColor?.(activity.status),
                   draggedActivity?.id === activity.id && "opacity-50 cursor-move",
                   activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
@@ -1062,7 +1062,7 @@ function DayTimeSlotActivityColumns({
               "flex h-full min-w-0 select-none flex-col justify-start rounded-md border px-2 py-1.5 text-left transition-opacity",
               preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
               getStatusColor(activity.status),
-              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              "bg-muted/30 dark:bg-muted/20 border-gray-200",
               getStatusBorderColor?.(activity.status),
               !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
               activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
@@ -1188,7 +1188,7 @@ function WeekTimeSlotActivityColumns({
               "flex h-full min-w-0 select-none flex-col justify-start rounded border px-1.5 py-1 text-left text-xs font-medium transition-opacity",
               preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
               getStatusColor(activity.status),
-              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              "bg-muted/30 dark:bg-muted/20 border-gray-200",
               getStatusBorderColor?.(activity.status),
               !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
               activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
@@ -1241,7 +1241,7 @@ function WeekTimeSlotActivityColumns({
               "flex h-full min-w-0 select-none flex-col justify-start rounded border px-1.5 py-1 text-left text-xs font-medium transition-opacity",
               preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
               getStatusColor(activity.status),
-              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              "bg-muted/30 dark:bg-muted/20 border-gray-200",
               getStatusBorderColor?.(activity.status),
               !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
               activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
@@ -4081,22 +4081,22 @@ function CalendarContent() {
 
   const getStatusColor = (status: string | null) => {
     switch(status) {
-      case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
-      case 'late': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'completed': return 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-100 dark:text-emerald-800 dark:border-emerald-200';
+      case 'overdue': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-100 dark:text-red-800 dark:border-red-200';
+      case 'late': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-100 dark:text-orange-800 dark:border-orange-200';
+      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-100 dark:text-blue-800 dark:border-blue-200';
+      default: return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-100 dark:text-amber-800 dark:border-amber-200';
     }
   };
 
   // Get the border color for a status (used for left border)
   const getStatusBorderColor = (status: string | null) => {
     switch(status) {
-      case 'completed': return 'border-l-4 border-emerald-500';
-      case 'overdue': return 'border-l-4 border-red-500';
-      case 'late': return 'border-l-4 border-orange-500';
-      case 'in-progress': return 'border-l-4 border-blue-500';
-      default: return 'border-l-4 border-amber-500';
+      case 'completed': return 'border-l-4 border-emerald-500 dark:border-emerald-500';
+      case 'overdue': return 'border-l-4 border-red-500 dark:border-red-500';
+      case 'late': return 'border-l-4 border-orange-500 dark:border-orange-500';
+      case 'in-progress': return 'border-l-4 border-blue-500 dark:border-blue-500';
+      default: return 'border-l-4 border-amber-500 dark:border-amber-500';
     }
   };
 
@@ -6771,7 +6771,7 @@ function CalendarContent() {
                     className={cn(
                       "mb-1 hidden h-6 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium transition-opacity hover:opacity-80 sm:block cursor-pointer",
                       getStatusColor(activity.status),
-                      "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                      "bg-muted/30 dark:bg-muted/20 border-gray-200",
                       getStatusBorderColor?.(activity.status),
                       draggedActivity?.id === activity.id &&
                         "opacity-50 cursor-move"
@@ -6948,7 +6948,7 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
-                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200",
                           getStatusBorderColor(activity.status)
                         )}
                       >
@@ -6984,7 +6984,7 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
-                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200",
                           getStatusBorderColor(activity.status)
                         )}
                       >
@@ -7140,7 +7140,7 @@ function CalendarContent() {
                         className={cn(
                           "w-full text-left p-3 rounded-lg border hover:bg-muted/50 transition-colors",
                           getStatusColor(activity.status),
-                          "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                          "bg-muted/30 dark:bg-muted/20 border-gray-200",
                           getStatusBorderColor(activity.status)
                         )}
                       >
@@ -8246,7 +8246,7 @@ function WeekView({
     <div className="flex min-h-0 flex-col" style={{ height: `${contentHeight}px` }}>
       <div
         data-drop-target-suppress="true"
-        className="z-30 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-white"
+        className="z-30 border-b border-gray-200 bg-card dark:border-gray-800 dark:bg-card"
       >
         <div className="mr-3 grid grid-cols-[44px_repeat(7,minmax(0,1fr))] pr-4 sm:grid-cols-8">
           <div className="flex items-center justify-center border-r px-1 py-1.5 text-center sm:px-2 sm:py-2">
