@@ -1114,7 +1114,7 @@ function SettingsContent() {
                 <Button
                   variant={selectedUserForDialog?.status === "active" ? "destructive" : "outline"}
                   size="sm"
-                  className="w-full sm:w-auto"
+                  className="max-w-full self-start whitespace-normal text-center"
                   onClick={() => {
                     if (selectedUserForDialog) {
                       handleToggleUserStatus(selectedUserForDialog.id);
@@ -1136,12 +1136,12 @@ function SettingsContent() {
             </div>
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
-            <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <DialogFooter className="flex-row flex-wrap justify-start gap-2 sm:justify-end">
               {selectedUserForDialog?.role === "admin" ? (
               <>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                   }}
@@ -1151,7 +1151,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                   }}
@@ -1164,7 +1164,7 @@ function SettingsContent() {
               <>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                   }}
@@ -1174,7 +1174,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                   }}
@@ -1187,7 +1187,7 @@ function SettingsContent() {
               <>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                   }}
@@ -1197,7 +1197,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto whitespace-normal text-center"
+                  className="max-w-full whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                   }}
@@ -1209,7 +1209,7 @@ function SettingsContent() {
             )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full sm:w-auto whitespace-normal text-center">
+                  <Button variant="destructive" className="max-w-full whitespace-normal text-center">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
                   </Button>
