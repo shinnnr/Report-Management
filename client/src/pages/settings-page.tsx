@@ -1079,24 +1079,26 @@ function SettingsContent() {
 
       {/* Mobile User Details Dialog */}
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 pr-8 text-left truncate max-w-[150px]">
+            <DialogTitle className="flex min-w-0 items-start gap-2 pr-8 text-left text-base leading-snug sm:text-lg">
               <User className="w-5 h-5 flex-shrink-0" />
-              {selectedUserForDialog?.fullName}
+              <span className="min-w-0 break-words">
+                {selectedUserForDialog?.fullName}
+              </span>
             </DialogTitle>
             <DialogDescription className="sr-only">
               User details and actions
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-muted-foreground">Username</span>
-              <span className="font-medium">@{selectedUserForDialog?.username}</span>
+              <span className="font-medium break-all sm:text-right">@{selectedUserForDialog?.username}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-muted-foreground">Role</span>
-              <Badge className={selectedUserForDialog?.role === "cps" ? "bg-[#1f8f5f] text-white" : selectedUserForDialog?.role === "ets" ? "bg-[#DAA520] text-white" : selectedUserForDialog?.role === "admin" ? "bg-primary text-primary-foreground" : ""}>
+              <Badge className={`w-fit max-w-full ${selectedUserForDialog?.role === "cps" ? "bg-[#1f8f5f] text-white" : selectedUserForDialog?.role === "ets" ? "bg-[#DAA520] text-white" : selectedUserForDialog?.role === "admin" ? "bg-primary text-primary-foreground" : ""}`}>
                 {selectedUserForDialog?.role === "admin" ? (
                   <><ShieldAlert className="mr-1 h-3 w-3" /> Admin</>
                 ) : selectedUserForDialog?.role === "cps" ? (
@@ -1106,12 +1108,13 @@ function SettingsContent() {
                 )}
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-muted-foreground">Status</span>
               {selectedUserForDialog?.id !== currentUser?.id ? (
                 <Button
                   variant={selectedUserForDialog?.status === "active" ? "destructive" : "outline"}
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     if (selectedUserForDialog) {
                       handleToggleUserStatus(selectedUserForDialog.id);
@@ -1133,11 +1136,12 @@ function SettingsContent() {
             </div>
           </div>
           {selectedUserForDialog?.id !== currentUser?.id && (
-            <DialogFooter className="flex-row justify-end gap-2">
+            <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
               {selectedUserForDialog?.role === "admin" ? (
               <>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                   }}
@@ -1147,6 +1151,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                   }}
@@ -1159,6 +1164,7 @@ function SettingsContent() {
               <>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "ets");
                   }}
@@ -1168,6 +1174,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                   }}
@@ -1180,6 +1187,7 @@ function SettingsContent() {
               <>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "cps");
                   }}
@@ -1189,6 +1197,7 @@ function SettingsContent() {
                 </Button>
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto whitespace-normal text-center"
                   onClick={() => {
                     handleUpdateRole(selectedUserForDialog.id, "admin");
                   }}
@@ -1200,7 +1209,7 @@ function SettingsContent() {
             )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
+                  <Button variant="destructive" className="w-full sm:w-auto whitespace-normal text-center">
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
                   </Button>

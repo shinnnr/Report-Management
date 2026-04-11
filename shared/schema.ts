@@ -85,7 +85,7 @@ export const activities = pgTable("activities", {
 export const activitySubmissions = pgTable("activity_submissions", {
   id: serial("id").primaryKey(),
   activityId: integer("activity_id").references(() => activities.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
   reportId: integer("report_id").references(() => reports.id).notNull(),
   submissionDate: timestamp("submission_date").defaultNow(),
   status: text("status").default("submitted"), // 'submitted', 'late', 'approved', 'rejected'

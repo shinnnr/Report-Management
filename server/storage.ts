@@ -113,37 +113,22 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<void> {
     await db.transaction(async (tx) => {
+      const [user] = await tx.select().from(users).where(eq(users.id, id)).limit(1);
+      if (!user) {
+        throw new Error("User not found");
+      }
+
       // Delete activity logs for this user
       await tx.delete(activityLogs).where(eq(activityLogs.userId, id));
       // Delete notifications for this user
       await tx.delete(notifications).where(eq(notifications.userId, id));
-      // Get activities created by this user first
-      const userActivities = await tx.select({ id: activities.id }).from(activities).where(eq(activities.userId, id));
-      const userActivityIds = userActivities.map(a => a.id);
 
-      // Delete activity submissions by this user or that reference activities by this user
-      let activitySubmissionConditions = [eq(activitySubmissions.userId, id)];
-      if (userActivityIds.length > 0) {
-        activitySubmissionConditions.push(sql`${activitySubmissions.activityId} IN ${userActivityIds}`);
-      }
-      await tx.delete(activitySubmissions).where(or(...activitySubmissionConditions));
-
-      // Delete notifications that reference activities created by this user
-      if (userActivityIds.length > 0) {
-        await tx.delete(notifications).where(sql`${notifications.activityId} IN ${userActivityIds}`);
-      }
-
-      // Delete reports that reference activities created by this user
-      if (userActivityIds.length > 0) {
-        await tx.delete(reports).where(sql`${reports.activityId} IN ${userActivityIds}`);
-      }
-
-      // Update activities to remove completedBy reference, then delete activities created by this user
+      // Preserve activities, uploaded files, and submitted files by detaching ownership references.
+      await tx.update(activitySubmissions).set({ userId: null }).where(eq(activitySubmissions.userId, id));
+      await tx.update(reports).set({ uploadedBy: null }).where(eq(reports.uploadedBy, id));
+      await tx.update(activities).set({ userId: null }).where(eq(activities.userId, id));
       await tx.update(activities).set({ completedBy: null }).where(eq(activities.completedBy, id));
-      await tx.delete(activities).where(eq(activities.userId, id));
 
-      // Delete reports uploaded by this user
-      await tx.delete(reports).where(eq(reports.uploadedBy, id));
       // Handle folders created by this user
       const userFolders = await tx.select().from(folders).where(eq(folders.createdBy, id));
       if (userFolders.length > 0) {
