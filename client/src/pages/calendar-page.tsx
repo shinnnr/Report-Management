@@ -4610,7 +4610,7 @@ function CalendarContent() {
                   e.stopPropagation();
                   openSidebar();
                 }} 
-                className="p-1 hover:bg-muted rounded-md transition-colors"
+                className="relative z-20 shrink-0 p-1 pointer-events-auto touch-manipulation hover:bg-muted rounded-md transition-colors"
                 aria-label="Open menu"
               >
                 <Menu className="w-8 h-8" />
@@ -6687,12 +6687,12 @@ function CalendarContent() {
               data-date={date.toISOString()}
               data-drop-target="date"
              className={cn(
-                 "relative flex h-full flex-col overflow-hidden border-b border-r border-gray-200 bg-muted/5 px-1 py-1.5 transition-colors cursor-pointer select-none hover:bg-primary/10 sm:px-2 sm:py-2 dark:border-gray-800 dark:bg-muted/10",
-                  !isLastDayOfMonth && "last:border-r-0",
-                  selectedDate &&
-                    isSameDay(date, selectedDate) &&
-                    "bg-primary/5",
-                  indicators.isHoliday && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                "relative flex h-full flex-col overflow-hidden border-b border-r border-gray-200 bg-muted/5 px-1 py-1.5 transition-colors cursor-pointer select-none hover:bg-primary/10 sm:px-2 sm:py-2 dark:border-gray-800 dark:bg-muted/10",
+                 !isLastDayOfMonth && "last:border-r-0",
+                 selectedDate &&
+                   isSameDay(date, selectedDate) &&
+                   "bg-primary/5",
+                  indicators.isHoliday && "bg-red-50 dark:bg-red-950/20"
                 )}
                 onMouseDown={handleCalendarCellMouseDown}
                 onClick={(e) => {

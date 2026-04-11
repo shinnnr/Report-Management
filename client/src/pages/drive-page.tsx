@@ -841,7 +841,7 @@ function DriveContent() {
                   e.stopPropagation();
                   openSidebar();
                 }} 
-                className="p-1 hover:bg-muted rounded-md transition-colors"
+                className="relative z-20 shrink-0 p-1 pointer-events-auto touch-manipulation hover:bg-muted rounded-md transition-colors"
                 aria-label="Open menu"
               >
                 <Menu className="w-8 h-8" />
