@@ -637,6 +637,7 @@ const AGENCY_DEPARTMENT_OPTIONS: Record<string, string[]> = {
 
 const MONTH_VIEW_VISIBLE_ACTIVITIES = 2;
 const TIME_SLOT_VISIBLE_ACTIVITIES = 1;
+const DAY_VIEW_VISIBLE_ACTIVITIES = 10;
 const MONTH_VIEW_GRID_MIN_HEIGHT = 600;
 const MONTH_VIEW_DAY_CELL_HEIGHT = 132;
 const MONTH_VIEW_WEEK_HEADER_HEIGHT = 48;
@@ -882,6 +883,7 @@ function DayTimeSlotActivityColumns({
   onTouchDragMove,
   onTouchDragEnd,
   onActivityClick,
+  onOverflowClick,
   preview = false,
 }: {
   activities: any[];
@@ -893,19 +895,24 @@ function DayTimeSlotActivityColumns({
   onTouchDragMove?: (e: React.TouchEvent) => void;
   onTouchDragEnd?: (e: React.TouchEvent) => void;
   onActivityClick: (activity: any) => void;
+  onOverflowClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   preview?: boolean;
 }) {
   if (activities.length === 0) {
     return null;
   }
 
+  const visibleActivities = preview ? activities : activities.slice(0, DAY_VIEW_VISIBLE_ACTIVITIES);
+  const hiddenCount = preview ? 0 : Math.max(0, activities.length - visibleActivities.length);
+  const desktopColumnCount = visibleActivities.length + (hiddenCount > 0 ? 1 : 0);
+
   return (
     <>
       <div
         className="hidden h-full gap-0.5 sm:grid"
-        style={{ gridTemplateColumns: `repeat(${activities.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${desktopColumnCount}, minmax(0, 1fr))` }}
       >
-        {activities.map((activity) => (
+        {visibleActivities.map((activity) => (
           <div
             key={activity.id}
             data-activity-drag-handle="true"
@@ -931,6 +938,20 @@ function DayTimeSlotActivityColumns({
             <div className="truncate text-sm font-semibold">{activity.title}</div>
           </div>
         ))}
+        {!preview && hiddenCount > 0 && (
+          <button
+            type="button"
+            className="flex h-full min-w-0 items-center justify-center rounded-md border border-dashed border-gray-300 px-2 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOverflowClick?.(e);
+            }}
+          >
+            <span className="xl:hidden">{hiddenCount}</span>
+            <span className="hidden xl:inline">{hiddenCount} more</span>
+          </button>
+        )}
       </div>
       {!preview && (
         <button
@@ -939,10 +960,10 @@ function DayTimeSlotActivityColumns({
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => {
             e.stopPropagation();
-            onActivityClick(activities[0]);
+            onOverflowClick?.(e);
           }}
         >
-          {activities.length}
+          {hiddenCount > 0 ? `${hiddenCount} more` : activities.length}
         </button>
       )}
     </>
@@ -8353,6 +8374,11 @@ function DayView({
                     onTouchDragMove={onTouchDragMove}
                     onTouchDragEnd={onTouchDragEnd}
                     onActivityClick={onActivityClick}
+                    onOverflowClick={(e) => {
+                      e.stopPropagation();
+                      setShowTimeSlotActivitiesModal?.(true);
+                      setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
+                    }}
                   />
                 </div>
               </div>
