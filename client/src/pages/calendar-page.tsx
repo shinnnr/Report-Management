@@ -4979,34 +4979,32 @@ function CalendarContent() {
                     </div>
                   ) : (
                     paginatedActivities.map(activity => (
-                      <div
-                        key={activity.id}
-                        className={cn(
-                          "w-full min-w-0 overflow-hidden p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
-                          getStatusBorderColor(activity.status)
-                        )}
-                        onClick={() => {
-                          openActivityModal(activity);
-                        }}
-                      >
-                        <div className="flex min-w-0 items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {canDeleteActivities && (
-                              <Checkbox
-                                checked={selectedDayActivityIds.includes(activity.id)}
-                                onCheckedChange={() => toggleDayActivitySelection(activity.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="shrink-0"
-                              />
+                          <div
+                            key={activity.id}
+                            className={cn(
+                              "w-full min-w-0 overflow-hidden rounded-md border px-2.5 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
+                              getStatusBorderColor(activity.status)
                             )}
-                            <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
-                          </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
-                            {activity.status !== 'completed' && activity.status !== 'late' && (
+                            onClick={() => {
+                              openActivityModal(activity);
+                            }}
+                          >
+                        <div className="flex min-w-0 items-start gap-2">
+                          {canDeleteActivities && (
+                            <Checkbox
+                              checked={selectedDayActivityIds.includes(activity.id)}
+                              onCheckedChange={() => toggleDayActivitySelection(activity.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-2 shrink-0"
+                            />
+                          )}
+                          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1">
+                            <span className="block min-w-0 self-center truncate font-medium">{activity.title}</span>
+                            {activity.status !== 'completed' && activity.status !== 'late' ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="h-7 w-7 p-0 justify-self-end"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openEditActivityModal(activity);
@@ -5015,9 +5013,18 @@ function CalendarContent() {
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
                               </Button>
+                            ) : (
+                              <div />
+                            )}
+                            {activity.description ? (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {activity.description}
+                              </p>
+                            ) : (
+                              <div />
                             )}
                             <span className={cn(
-                              "px-2 py-0.5 rounded-full text-xs shrink-0",
+                              "px-2 py-0.5 rounded-full text-xs shrink-0 justify-self-end self-start",
                               activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
                               activity.status === 'overdue' ? "bg-red-100 text-red-700" :
                               activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
@@ -5027,11 +5034,6 @@ function CalendarContent() {
                             </span>
                           </div>
                         </div>
-                        {activity.description && (
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                            {activity.description}
-                          </p>
-                        )}
                       </div>
                     ))
                   )}
@@ -5149,10 +5151,15 @@ function CalendarContent() {
           <DialogContent className="max-h-[90vh] overflow-visible flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <div className="flex items-start justify-between gap-3 pr-8">
-                <DialogTitle className="flex min-w-0 items-center gap-2">
-                  <FileText className="w-5 h-5 shrink-0" />
-                  <span className="min-w-0 break-words">{selectedActivity?.title}</span>
-                </DialogTitle>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <DialogTitle className="flex min-w-0 items-center gap-2">
+                    <FileText className="w-5 h-5 shrink-0" />
+                    <span className="min-w-0 break-words">{selectedActivity?.title}</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Submit your report for this activity
+                  </DialogDescription>
+                </div>
                 {selectedActivity?.status !== 'completed' && selectedActivity?.status !== 'late' && (
                   <Button
                     variant="ghost"
@@ -5169,9 +5176,6 @@ function CalendarContent() {
                   </Button>
                 )}
               </div>
-              <DialogDescription>
-                Submit your report for this activity
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6 overflow-y-auto max-h-[calc(90vh-180px)] px-3 pb-3">
@@ -5574,31 +5578,29 @@ function CalendarContent() {
                           <div
                             key={activity.id}
                             className={cn(
-                              "w-full min-w-0 overflow-hidden p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                              "w-full min-w-0 overflow-hidden rounded-md border px-2.5 py-2 cursor-pointer hover:bg-muted/50 transition-colors",
                               getStatusBorderColor(activity.status)
                             )}
                             onClick={() => {
                               openActivityModal(activity);
                             }}
                           >
-                            <div className="flex min-w-0 items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                {canDeleteActivities && (
-                                  <Checkbox
-                                    checked={selectedTimeSlotActivityIds.includes(activity.id)}
-                                    onCheckedChange={() => toggleTimeSlotActivitySelection(activity.id)}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="shrink-0"
-                                  />
-                                )}
-                                <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
-                              </div>
-                              <div className="flex flex-col items-end gap-1 shrink-0">
-                                {activity.status !== 'completed' && activity.status !== 'late' && (
+                            <div className="flex min-w-0 items-start gap-2">
+                              {canDeleteActivities && (
+                                <Checkbox
+                                  checked={selectedTimeSlotActivityIds.includes(activity.id)}
+                                  onCheckedChange={() => toggleTimeSlotActivitySelection(activity.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-2 shrink-0"
+                                />
+                              )}
+                              <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1">
+                                <span className="block min-w-0 self-center truncate font-medium">{activity.title}</span>
+                                {activity.status !== 'completed' && activity.status !== 'late' ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 w-7 p-0"
+                                    className="h-7 w-7 p-0 justify-self-end"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openEditActivityModal(activity);
@@ -5607,9 +5609,18 @@ function CalendarContent() {
                                   >
                                     <Edit2 className="w-3.5 h-3.5" />
                                   </Button>
+                                ) : (
+                                  <div />
+                                )}
+                                {activity.description ? (
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {activity.description}
+                                  </p>
+                                ) : (
+                                  <div />
                                 )}
                                 <span className={cn(
-                                  "px-2 py-0.5 rounded-full text-xs shrink-0",
+                                  "px-2 py-0.5 rounded-full text-xs shrink-0 justify-self-end self-start",
                                   activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
                                   activity.status === 'overdue' ? "bg-red-100 text-red-700" :
                                   activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
@@ -5619,11 +5630,6 @@ function CalendarContent() {
                                 </span>
                               </div>
                             </div>
-                            {activity.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {activity.description}
-                              </p>
-                            )}
                           </div>
                         ))}
                       </>
