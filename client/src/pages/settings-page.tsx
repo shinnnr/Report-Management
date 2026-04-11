@@ -120,6 +120,7 @@ function SettingsContent() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const usersPerPage = 10;
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
 
 
@@ -910,17 +911,27 @@ function SettingsContent() {
                           }}
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                              {user.profilePicture ? (
+                            {user.profilePicture ? (
+                              <button
+                                type="button"
+                                className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setProfilePicturePreview(user.profilePicture ?? null);
+                                }}
+                                aria-label={`Open ${user.fullName}'s profile picture`}
+                              >
                                 <img
                                   src={user.profilePicture}
                                   alt="Profile"
                                   className="w-full h-full object-cover"
                                 />
-                              ) : (
+                              </button>
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                                 <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
-                              )}
-                            </div>
+                              </div>
+                            )}
                             <div>
                               <p className="font-medium truncate md:whitespace-normal md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
@@ -1237,6 +1248,20 @@ function SettingsContent() {
                 </AlertDialogContent>
               </AlertDialog>
             </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(profilePicturePreview)} onOpenChange={(open) => !open && setProfilePicturePreview(null)}>
+        <DialogContent className="w-auto max-w-none border-none bg-transparent p-0 shadow-none [&>button]:hidden">
+          <DialogTitle className="sr-only">Profile picture preview</DialogTitle>
+          {profilePicturePreview && (
+            <div className="flex items-center justify-center">
+              <img
+                src={profilePicturePreview}
+                alt="Profile picture preview"
+                className="h-[min(70vh,28rem)] w-[min(70vh,28rem)] rounded-full object-cover shadow-2xl"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>

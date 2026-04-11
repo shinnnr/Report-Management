@@ -12,6 +12,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -32,11 +37,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClose, isMobile }: SidebarProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logoutMutation, refetchUser } = useAuth();
   const { resetTheme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const userRoleLabel = user?.role === "admin" ? "Admin" : user?.role?.toUpperCase();
 
   const menuItems = [
@@ -48,6 +54,7 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
   ];
 
   return (
+    <>
     <div className="h-screen w-64 bg-primary dark:bg-[#022420] text-white flex flex-col shadow-2xl z-20">
       <div className="px-6 pt-6 pb-6">
         <div className="flex items-center gap-3 mb-8">
@@ -83,26 +90,40 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
       </div>
 
       <div className="mt-auto p-6 border-t border-white/10 bg-black/10">
-        <div 
-          className="flex items-center gap-3 mb-4 px-2 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => refetchUser()}
-          title="Click to refresh user info"
-        >
-          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm overflow-hidden">
-            {user?.profilePicture ? (
+        <div className="flex items-center gap-3 mb-4 px-2">
+          {user?.profilePicture ? (
+            <button
+              type="button"
+              className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm overflow-hidden transition-opacity hover:opacity-80"
+              onClick={() => setProfilePicturePreview(user.profilePicture ?? null)}
+              aria-label="Open profile picture"
+            >
               <img
                 src={user.profilePicture}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
-            ) : (
-              user?.fullName?.charAt(0) || 'U'
-            )}
-          </div>
-          <div className="overflow-hidden">
+            </button>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold text-sm overflow-hidden">
+              {user?.fullName?.charAt(0) || 'U'}
+            </div>
+          )}
+          <button
+            type="button"
+            className="overflow-hidden text-left transition-opacity hover:opacity-80"
+            onClick={() => {
+              refetchUser();
+              setLocation("/settings");
+              if (isMobile) {
+                onClose?.();
+              }
+            }}
+            title="Open settings"
+          >
             <p className="font-medium text-sm truncate text-primary-foreground dark:text-white">{user?.fullName}</p>
             <p className="text-xs text-primary-foreground/60 dark:text-gray-400">{userRoleLabel}</p>
-          </div>
+          </button>
         </div>
         
         <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
@@ -140,5 +161,20 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
         </AlertDialog>
       </div>
     </div>
+    <Dialog open={Boolean(profilePicturePreview)} onOpenChange={(open) => !open && setProfilePicturePreview(null)}>
+      <DialogContent className="w-auto max-w-none border-none bg-transparent p-0 shadow-none [&>button]:hidden">
+        <DialogTitle className="sr-only">Profile picture preview</DialogTitle>
+        {profilePicturePreview && (
+          <div className="flex items-center justify-center">
+            <img
+              src={profilePicturePreview}
+              alt="Profile picture preview"
+              className="h-[min(70vh,28rem)] w-[min(70vh,28rem)] rounded-full object-cover shadow-2xl"
+            />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
