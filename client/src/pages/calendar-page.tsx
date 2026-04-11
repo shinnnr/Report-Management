@@ -767,6 +767,176 @@ function ActivityDragPreviewCard({
   );
 }
 
+function TimeSlotActivityStack({
+  activities,
+  draggedActivity,
+  getStatusColor,
+  getStatusBorderColor,
+  onActivityMouseDown,
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd,
+  onActivityClick,
+  onOverflowClick,
+}: {
+  activities: any[];
+  draggedActivity?: any;
+  getStatusColor: (status: string | null) => string;
+  getStatusBorderColor?: (status: string | null) => string;
+  onActivityMouseDown?: (activity: any, e: React.MouseEvent<HTMLElement>) => void;
+  onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
+  onTouchDragMove?: (e: React.TouchEvent) => void;
+  onTouchDragEnd?: (e: React.TouchEvent) => void;
+  onActivityClick: (activity: any) => void;
+  onOverflowClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const visibleActivities = activities.slice(0, 6);
+  const hiddenCount = Math.max(0, activities.length - visibleActivities.length);
+  const overlapOffset = activities.length > 4 ? 10 : 14;
+  const reservedRightSpace = hiddenCount > 0 ? 28 : 0;
+
+  return (
+    <>
+      <div className="hidden h-7 sm:block">
+        <div className="relative h-full">
+          {visibleActivities.map((activity, index) => {
+            const leftOffset = index * overlapOffset;
+            const rightInset = Math.max(reservedRightSpace, 0);
+
+            return (
+              <div
+                key={activity.id}
+                data-activity-drag-handle="true"
+                onMouseDown={(e) => onActivityMouseDown?.(activity, e)}
+                onTouchStart={(e) => onTouchDragStart?.(activity, e)}
+                onTouchMove={onTouchDragMove}
+                onTouchEnd={(e) => onTouchDragEnd?.(e)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onActivityClick(activity);
+                }}
+                className={cn(
+                  "absolute bottom-0 top-0 truncate rounded-md border px-1.5 py-1 text-xs font-medium transition-opacity hover:opacity-80 select-none cursor-pointer",
+                  getStatusColor(activity.status),
+                  "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+                  getStatusBorderColor?.(activity.status),
+                  draggedActivity?.id === activity.id && "opacity-50 cursor-move",
+                  activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+                )}
+                style={{
+                  left: `${leftOffset}px`,
+                  right: `${rightInset}px`,
+                  zIndex: index + 1,
+                }}
+                title={activity.title}
+              >
+                {activity.title}
+              </div>
+            );
+          })}
+          {hiddenCount > 0 && (
+            <button
+              type="button"
+              className="absolute bottom-0 right-0 top-0 hidden rounded-md border border-dashed border-gray-300 bg-background/90 px-1.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:block"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onOverflowClick}
+            >
+              +{hiddenCount}
+            </button>
+          )}
+        </div>
+      </div>
+      {activities.length > 0 && (
+        <button
+          type="button"
+          className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onOverflowClick}
+        >
+          {activities.length}
+        </button>
+      )}
+    </>
+  );
+}
+
+function DayTimeSlotActivityColumns({
+  activities,
+  draggedActivity,
+  getStatusColor,
+  getStatusBorderColor,
+  onActivityMouseDown,
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd,
+  onActivityClick,
+  preview = false,
+}: {
+  activities: any[];
+  draggedActivity?: any;
+  getStatusColor: (status: string | null) => string;
+  getStatusBorderColor?: (status: string | null) => string;
+  onActivityMouseDown?: (activity: any, e: React.MouseEvent<HTMLElement>) => void;
+  onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
+  onTouchDragMove?: (e: React.TouchEvent) => void;
+  onTouchDragEnd?: (e: React.TouchEvent) => void;
+  onActivityClick: (activity: any) => void;
+  preview?: boolean;
+}) {
+  if (activities.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <div
+        className="hidden h-full gap-0.5 sm:grid"
+        style={{ gridTemplateColumns: `repeat(${activities.length}, minmax(0, 1fr))` }}
+      >
+        {activities.map((activity) => (
+          <div
+            key={activity.id}
+            data-activity-drag-handle="true"
+            onMouseDown={preview ? undefined : (e) => onActivityMouseDown?.(activity, e)}
+            onTouchStart={preview ? undefined : (e) => onTouchDragStart?.(activity, e)}
+            onTouchMove={preview ? undefined : onTouchDragMove}
+            onTouchEnd={preview ? undefined : (e) => onTouchDragEnd?.(e)}
+            onClick={preview ? undefined : (e) => {
+              e.stopPropagation();
+              onActivityClick(activity);
+            }}
+            className={cn(
+              "flex h-full min-w-0 select-none flex-col justify-start rounded-md border px-2 py-1.5 text-left transition-opacity",
+              preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
+              getStatusColor(activity.status),
+              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              getStatusBorderColor?.(activity.status),
+              !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
+              activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+            )}
+            title={activity.title}
+          >
+            <div className="truncate text-sm font-semibold">{activity.title}</div>
+          </div>
+        ))}
+      </div>
+      {!preview && (
+        <button
+          type="button"
+          className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onActivityClick(activities[0]);
+          }}
+        >
+          {activities.length}
+        </button>
+      )}
+    </>
+  );
+}
+
 type CalendarDropTarget = {
   date: Date;
   time: string | null;
@@ -1967,8 +2137,18 @@ function CalendarContent() {
 
   // Handle go to today
   const handleGoToToday = useCallback(() => {
-    animateCalendarToDate(new Date(), view);
-  }, [animateCalendarToDate, view]);
+    const today = new Date();
+
+    if (view === 'day' && isSameDay(currentDate, today)) {
+      const dayViewport = dayScrollAreaRef.current?.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]') ?? null;
+      if (dayViewport) {
+        dayViewport.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    animateCalendarToDate(today, view);
+  }, [animateCalendarToDate, currentDate, view]);
 
   const handleCalendarNavigation = useCallback((direction: 1 | -1) => {
     setCalendarTransitionDirection(direction);
@@ -2035,9 +2215,45 @@ function CalendarContent() {
     e.stopPropagation();
     setDraggedActivity(activity);
     e.dataTransfer.effectAllowed = 'move';
-    const transparentDragImage = getTransparentDragImage();
-    if (transparentDragImage) {
-      e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+    const dragSource = e.currentTarget as HTMLElement | null;
+
+    if (dragSource && typeof document !== "undefined") {
+      const dragPreview = dragSource.cloneNode(true) as HTMLElement;
+      const dragRect = dragSource.getBoundingClientRect();
+      const previewScale = 0.94;
+      const previewWidth = Math.max(1, Math.round(dragRect.width * previewScale));
+      const previewHeight = Math.max(1, Math.round(dragRect.height * previewScale));
+
+      dragPreview.style.position = "fixed";
+      dragPreview.style.top = "-1000px";
+      dragPreview.style.left = "-1000px";
+      dragPreview.style.width = `${previewWidth}px`;
+      dragPreview.style.height = `${previewHeight}px`;
+      dragPreview.style.minWidth = `${previewWidth}px`;
+      dragPreview.style.maxWidth = `${previewWidth}px`;
+      dragPreview.style.minHeight = `${previewHeight}px`;
+      dragPreview.style.maxHeight = `${previewHeight}px`;
+      dragPreview.style.pointerEvents = "none";
+      dragPreview.style.opacity = "0.92";
+      dragPreview.style.transform = "none";
+      dragPreview.style.boxSizing = "border-box";
+      dragPreview.style.margin = "0";
+      dragPreview.style.flex = "none";
+      dragPreview.style.display = window.getComputedStyle(dragSource).display;
+      dragPreview.style.overflow = "hidden";
+      document.body.appendChild(dragPreview);
+
+      e.dataTransfer.setDragImage(
+        dragPreview,
+        Math.min(Math.max(12, previewWidth / 2), previewWidth - 1),
+        Math.min(Math.max(12, previewHeight / 2), previewHeight - 1),
+      );
+      window.setTimeout(() => dragPreview.remove(), 0);
+    } else {
+      const transparentDragImage = getTransparentDragImage();
+      if (transparentDragImage) {
+        e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+      }
     }
     e.dataTransfer.setData('text/plain', String(activity.id));
     // Also store the activity as JSON for touch support
@@ -2678,9 +2894,11 @@ function CalendarContent() {
     if (!activityToMove || !target) return;
 
     const currentDisplayDate = getCalendarDisplayDate(activityToMove);
+    const currentDeadline = new Date(activityToMove.deadlineDate);
+    const currentTime = format(currentDeadline, 'HH:mm');
 
     if (target.time) {
-      if (!isSameDay(currentDisplayDate, target.date)) {
+      if (!isSameDay(currentDisplayDate, target.date) || currentTime !== target.time) {
         void performActivityReschedule(activityToMove, target.date, target.time);
       }
       return;
@@ -7969,44 +8187,44 @@ function DayView({
   };
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="mr-3 pr-4" style={{ height: `${contentHeight}px` }}>
-      <div className="h-full">
-        {/* Day header */}
-        <div
-          data-drop-target-suppress="true"
-          className={cn(
-            "border-b border-gray-200 bg-muted/20 dark:border-gray-800",
-            holidayLabelForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
-          )}
-        >
-          <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-1 pr-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,7fr)_auto] sm:py-2">
-            <div className="flex flex-col items-center justify-center pl-4 leading-none text-center sm:pl-5">
-              <div className={cn(
-                "text-[10px] font-semibold uppercase sm:text-xs",
-                holidayLabelForCurrentDate
-                  ? "text-red-600 dark:text-red-400"
-                  : isToday(currentDate)
-                    ? "text-primary"
-                    : "text-muted-foreground"
-              )}>{format(currentDate, 'EEE')}</div>
-              <div className={cn(
-                "mt-0.5 text-sm font-semibold sm:text-lg",
-                holidayLabelForCurrentDate && "text-red-600 dark:text-red-400"
-              )}>{format(currentDate, 'd')}</div>
-            </div>
-            <div className="min-w-0 text-center">
-              {holidayLabelForCurrentDate && (
-                <div className="truncate text-sm font-semibold text-red-600 dark:text-red-400" title={holidayLabelForCurrentDate}>
-                  {holidayLabelForCurrentDate}
-                </div>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}
-            </div>
+    <div className="flex min-h-0 flex-col" style={{ height: `${contentHeight}px` }}>
+      <div
+        data-drop-target-suppress="true"
+        className={cn(
+          "border-b border-gray-200 bg-muted/20 dark:border-gray-800",
+          holidayLabelForCurrentDate && "bg-red-50/70 dark:bg-red-950/20"
+        )}
+      >
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 py-1 pr-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,7fr)_auto] sm:py-2">
+          <div className="flex flex-col items-center justify-center pl-4 leading-none text-center sm:pl-5">
+            <div className={cn(
+              "text-[10px] font-semibold uppercase sm:text-xs",
+              holidayLabelForCurrentDate
+                ? "text-red-600 dark:text-red-400"
+                : isToday(currentDate)
+                  ? "text-primary"
+                  : "text-muted-foreground"
+            )}>{format(currentDate, 'EEE')}</div>
+            <div className={cn(
+              "mt-0.5 text-sm font-semibold sm:text-lg",
+              holidayLabelForCurrentDate && "text-red-600 dark:text-red-400"
+            )}>{format(currentDate, 'd')}</div>
+          </div>
+          <div className="min-w-0 text-center">
+            {holidayLabelForCurrentDate && (
+              <div className="truncate text-sm font-semibold text-red-600 dark:text-red-400" title={holidayLabelForCurrentDate}>
+                {holidayLabelForCurrentDate}
+              </div>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {dayActivities.length} {dayActivities.length === 1 ? 'activity' : 'activities'}
           </div>
         </div>
-      
+      </div>
+
+      <ScrollArea ref={scrollAreaRef} className="mr-3 min-h-0 flex-1 pr-4">
+        <div className="h-full">
       {/* Time slots */}
       <div 
         className="relative cursor-default select-none"
@@ -8026,6 +8244,21 @@ function DayView({
             dropTargetTime === timeString &&
             isSameDay(dropTargetDate, currentDate)
           );
+          const draggedActivityDisplayDate = draggedActivity ? getCalendarDisplayDate(draggedActivity) : null;
+          const isDraggedActivityInCurrentSlot = Boolean(
+            draggedActivity &&
+            draggedActivityDisplayDate &&
+            isSameDay(draggedActivityDisplayDate, currentDate) &&
+            getActivityHour(draggedActivity) === hour
+          );
+          const daySlotPreviewActivities = showSlotDragPreview && draggedActivity
+            ? Array.from(
+                new Map(
+                  (isDraggedActivityInCurrentSlot ? hourActivities : [...hourActivities, draggedActivity])
+                    .map((activity) => [activity.id, activity])
+                ).values()
+              )
+            : [];
           const timeSlotStripe = getTimeSlotStatusStripe(hourActivities);
           
           return (
@@ -8068,68 +8301,32 @@ function DayView({
                 {showSlotDragPreview && draggedActivity && (
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-2 top-2 z-20"
+                    className="pointer-events-none absolute inset-x-1 top-1 bottom-1 z-20"
                   >
-                    <ActivityDragPreviewCard activity={draggedActivity} variant="day" />
+                    <DayTimeSlotActivityColumns
+                      activities={daySlotPreviewActivities}
+                      getStatusColor={getStatusColor}
+                      getStatusBorderColor={getStatusBorderColor}
+                      onActivityClick={onActivityClick}
+                      preview
+                    />
                   </div>
                 )}
                 <div className={cn(
-                  "flex h-full flex-col gap-1 px-1",
-                  hourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
+                  "flex h-full flex-col",
+                  hourActivities.length > 0 ? "justify-start" : "justify-center"
                 )}>
-                  {/* Activities for this specific hour */}
-                  {hourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
-                    <div
-                      key={activity.id}
-                      data-activity-drag-handle="true"
-                      onMouseDown={(e) => onActivityMouseDown?.(activity, e)}
-                      onTouchStart={(e) => onTouchDragStart?.(activity, e)}
-                      onTouchMove={onTouchDragMove}
-                      onTouchEnd={(e) => onTouchDragEnd?.(e)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onActivityClick(activity);
-                      }}
-                      className={cn(
-                        "hidden truncate rounded border p-1 text-xs font-medium transition-opacity hover:opacity-80 select-none sm:block cursor-pointer",
-                        getStatusColor(activity.status),
-                        "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
-                        getStatusBorderColor?.(activity.status),
-                        draggedActivity?.id === activity.id && "opacity-50 cursor-move",
-                        activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
-                      )}
-                    >
-                      {activity.title}
-                    </div>
-                  ))}
-                  {hourActivities.length > 0 && (
-                    <button
-                      type="button"
-                      className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowTimeSlotActivitiesModal?.(true);
-                        setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
-                      }}
-                    >
-                      {hourActivities.length}
-                    </button>
-                  )}
-                  {hourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                    <button
-                      type="button"
-                      className="hidden self-start select-none text-xs font-medium text-muted-foreground transition-colors hover:text-primary sm:block"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowTimeSlotActivitiesModal?.(true);
-                        setTimeSlotActivitiesModalData?.({ date: currentDate, time: timeString, activities: hourActivities });
-                      }}
-                    >
-                      {hourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES} more
-                    </button>
-                  )}
+                  <DayTimeSlotActivityColumns
+                    activities={hourActivities}
+                    draggedActivity={draggedActivity}
+                    getStatusColor={getStatusColor}
+                    getStatusBorderColor={getStatusBorderColor}
+                    onActivityMouseDown={onActivityMouseDown}
+                    onTouchDragStart={onTouchDragStart}
+                    onTouchDragMove={onTouchDragMove}
+                    onTouchDragEnd={onTouchDragEnd}
+                    onActivityClick={onActivityClick}
+                  />
                 </div>
               </div>
             </div>
@@ -8138,5 +8335,6 @@ function DayView({
       </div>
     </div>
     </ScrollArea>
+    </div>
   );
 }
