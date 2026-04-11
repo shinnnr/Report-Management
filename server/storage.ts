@@ -814,7 +814,11 @@ export class DatabaseStorage implements IStorage {
       }
 
       const occurrences: { startDate: Date; deadlineDate: Date }[] = [];
-      const normalizedStartBoundary = new Date(startBoundary);
+      const normalizedStartBoundary = new Date(
+        startBoundary.getFullYear(),
+        startBoundary.getMonth(),
+        1,
+      );
       normalizedStartBoundary.setHours(0, 0, 0, 0);
       const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
       const effectiveEnd = recurrenceEndDate && recurrenceEndDate < yearEnd ? recurrenceEndDate : yearEnd;

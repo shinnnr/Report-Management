@@ -366,7 +366,7 @@ const getMonthlyWeekdayOccurrences = (
   }
 
   const occurrences: { startDate: Date; deadlineDate: Date }[] = [];
-  const startBoundary = new Date(startDate);
+  const startBoundary = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
   startBoundary.setHours(0, 0, 0, 0);
 
   const deadlineHours = deadlineDate.getHours();
