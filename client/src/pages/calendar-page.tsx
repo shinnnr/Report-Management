@@ -682,6 +682,11 @@ const getCalendarDisplayDate = (activity: any): Date => {
   return getEffectiveActivityDate(activity);
 };
 
+const getActivityTimeSlotValue = (activity: any): string => {
+  const deadlineDate = new Date(activity.deadlineDate);
+  return `${String(deadlineDate.getHours()).padStart(2, "0")}:00`;
+};
+
 const getEffectiveActivityDateWithOptions = (
   activity: any,
   holidaysEnabled: boolean,
@@ -2939,11 +2944,10 @@ function CalendarContent() {
     if (!activityToMove || !target) return;
 
     const currentDisplayDate = getCalendarDisplayDate(activityToMove);
-    const currentDeadline = new Date(activityToMove.deadlineDate);
-    const currentTime = format(currentDeadline, 'HH:mm');
+    const currentTimeSlot = getActivityTimeSlotValue(activityToMove);
 
     if (target.time) {
-      if (!isSameDay(currentDisplayDate, target.date) || currentTime !== target.time) {
+      if (!isSameDay(currentDisplayDate, target.date) || currentTimeSlot !== target.time) {
         void performActivityReschedule(activityToMove, target.date, target.time);
       }
       return;
