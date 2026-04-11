@@ -636,8 +636,8 @@ const AGENCY_DEPARTMENT_OPTIONS: Record<string, string[]> = {
 };
 
 const MONTH_VIEW_VISIBLE_ACTIVITIES = 2;
-const TIME_SLOT_VISIBLE_ACTIVITIES = 1;
 const DAY_VIEW_VISIBLE_ACTIVITIES = 10;
+const WEEK_VIEW_VISIBLE_ACTIVITIES = 2;
 const MONTH_VIEW_GRID_MIN_HEIGHT = 600;
 const MONTH_VIEW_DAY_CELL_HEIGHT = 132;
 const MONTH_VIEW_WEEK_HEADER_HEIGHT = 48;
@@ -986,6 +986,184 @@ function DayTimeSlotActivityColumns({
           }}
         >
           {hiddenCount > 0 ? `${hiddenCount} more` : activities.length}
+        </button>
+      )}
+    </>
+  );
+}
+
+function WeekTimeSlotActivityColumns({
+  activities,
+  draggedActivity,
+  getStatusColor,
+  getStatusBorderColor,
+  onActivityMouseDown,
+  onTouchDragStart,
+  onTouchDragMove,
+  onTouchDragEnd,
+  onActivityClick,
+  onOverflowClick,
+  preview = false,
+  previewGridColumnCount,
+  previewColumnIndex,
+  previewCompactGridColumnCount,
+  previewCompactColumnIndex,
+}: {
+  activities: any[];
+  draggedActivity?: any;
+  getStatusColor: (status: string | null) => string;
+  getStatusBorderColor?: (status: string | null) => string;
+  onActivityMouseDown?: (activity: any, e: React.MouseEvent<HTMLElement>) => void;
+  onTouchDragStart?: (activity: any, e: React.TouchEvent) => void;
+  onTouchDragMove?: (e: React.TouchEvent) => void;
+  onTouchDragEnd?: (e: React.TouchEvent) => void;
+  onActivityClick: (activity: any) => void;
+  onOverflowClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  preview?: boolean;
+  previewGridColumnCount?: number;
+  previewColumnIndex?: number;
+  previewCompactGridColumnCount?: number;
+  previewCompactColumnIndex?: number;
+}) {
+  if (activities.length === 0) {
+    return null;
+  }
+
+  const desktopVisibleActivities = preview ? activities : activities.slice(0, WEEK_VIEW_VISIBLE_ACTIVITIES);
+  const compactVisibleActivities = preview ? activities : activities.slice(0, 1);
+  const hiddenCount = preview ? 0 : Math.max(0, activities.length - desktopVisibleActivities.length);
+  const compactHiddenCount = preview ? 0 : Math.max(0, activities.length - compactVisibleActivities.length);
+  const desktopColumnCount = previewGridColumnCount ?? (desktopVisibleActivities.length + (hiddenCount > 0 ? 1 : 0));
+  const hasPreviewColumnPlacement =
+    preview &&
+    typeof previewColumnIndex === "number" &&
+    previewColumnIndex >= 0 &&
+    previewColumnIndex < desktopColumnCount;
+  const compactColumnCount = previewCompactGridColumnCount ?? (compactVisibleActivities.length + (compactHiddenCount > 0 ? 1 : 0));
+  const hasCompactPreviewColumnPlacement =
+    preview &&
+    typeof previewCompactColumnIndex === "number" &&
+    previewCompactColumnIndex >= 0 &&
+    previewCompactColumnIndex < compactColumnCount;
+
+  return (
+    <>
+      <div
+        className="hidden h-full gap-0.5 lg:grid"
+        style={{ gridTemplateColumns: `repeat(${desktopColumnCount}, minmax(0, 1fr))` }}
+      >
+        {hasPreviewColumnPlacement && previewColumnIndex! > 0 &&
+          Array.from({ length: previewColumnIndex! }, (_, index) => (
+            <div key={`week-preview-spacer-start-${index}`} aria-hidden="true" />
+          ))}
+        {desktopVisibleActivities.map((activity) => (
+          <div
+            key={activity.id}
+            data-activity-drag-handle="true"
+            onMouseDown={preview ? undefined : (e) => onActivityMouseDown?.(activity, e)}
+            onTouchStart={preview ? undefined : (e) => onTouchDragStart?.(activity, e)}
+            onTouchMove={preview ? undefined : onTouchDragMove}
+            onTouchEnd={preview ? undefined : (e) => onTouchDragEnd?.(e)}
+            onClick={preview ? undefined : (e) => {
+              e.stopPropagation();
+              onActivityClick(activity);
+            }}
+            className={cn(
+              "flex h-full min-w-0 select-none flex-col justify-start rounded border px-1.5 py-1 text-left text-xs font-medium transition-opacity",
+              preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
+              getStatusColor(activity.status),
+              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              getStatusBorderColor?.(activity.status),
+              !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
+              activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+            )}
+            title={activity.title}
+          >
+            <div className="truncate">{activity.title}</div>
+          </div>
+        ))}
+        {hasPreviewColumnPlacement &&
+          Array.from({ length: Math.max(desktopColumnCount - (previewColumnIndex! + desktopVisibleActivities.length), 0) }, (_, index) => (
+            <div key={`week-preview-spacer-end-${index}`} aria-hidden="true" />
+          ))}
+        {!preview && hiddenCount > 0 && (
+          <button
+            type="button"
+            className="flex h-full min-w-0 items-center justify-center rounded border border-dashed border-gray-300 px-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOverflowClick?.(e);
+            }}
+          >
+            <span className="lg:hidden">{hiddenCount}</span>
+            <span className="hidden lg:inline">{hiddenCount} more</span>
+          </button>
+        )}
+      </div>
+      <div
+        className={cn("hidden h-full gap-0.5 sm:grid lg:hidden", preview && "pointer-events-none")}
+        style={{ gridTemplateColumns: `repeat(${compactColumnCount}, minmax(0, 1fr))` }}
+      >
+        {hasCompactPreviewColumnPlacement && previewCompactColumnIndex! > 0 &&
+          Array.from({ length: previewCompactColumnIndex! }, (_, index) => (
+            <div key={`week-compact-preview-spacer-start-${index}`} aria-hidden="true" />
+          ))}
+        {compactVisibleActivities.map((activity) => (
+          <div
+            key={`compact-${activity.id}`}
+            data-activity-drag-handle="true"
+            onMouseDown={preview ? undefined : (e) => onActivityMouseDown?.(activity, e)}
+            onTouchStart={preview ? undefined : (e) => onTouchDragStart?.(activity, e)}
+            onTouchMove={preview ? undefined : onTouchDragMove}
+            onTouchEnd={preview ? undefined : (e) => onTouchDragEnd?.(e)}
+            onClick={preview ? undefined : (e) => {
+              e.stopPropagation();
+              onActivityClick(activity);
+            }}
+            className={cn(
+              "flex h-full min-w-0 select-none flex-col justify-start rounded border px-1.5 py-1 text-left text-xs font-medium transition-opacity",
+              preview ? "pointer-events-none opacity-90" : "cursor-pointer hover:opacity-80",
+              getStatusColor(activity.status),
+              "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
+              getStatusBorderColor?.(activity.status),
+              !preview && draggedActivity?.id === activity.id && "opacity-50 cursor-move",
+              activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
+            )}
+            title={activity.title}
+          >
+            <div className="truncate">{activity.title}</div>
+          </div>
+        ))}
+        {hasCompactPreviewColumnPlacement &&
+          Array.from({ length: Math.max(compactColumnCount - (previewCompactColumnIndex! + compactVisibleActivities.length), 0) }, (_, index) => (
+            <div key={`week-compact-preview-spacer-end-${index}`} aria-hidden="true" />
+          ))}
+        {!preview && compactHiddenCount > 0 && (
+          <button
+            type="button"
+            className="flex h-full min-w-0 items-center justify-center rounded border border-dashed border-gray-300 px-1 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary dark:border-gray-700"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOverflowClick?.(e);
+            }}
+          >
+            {compactHiddenCount}
+          </button>
+        )}
+      </div>
+      {!preview && activities.length > 0 && (
+        <button
+          type="button"
+          className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOverflowClick?.(e);
+          }}
+        >
+          {hiddenCount > 0 ? hiddenCount : activities.length}
         </button>
       )}
     </>
@@ -8013,12 +8191,51 @@ function WeekView({
                   </div>
                   {weekDays.map((day, dayIndex) => {
                     const dayHourActivities = activitiesByWeekSlot.get(`${weekDayKeys[dayIndex]}-${hour}`) ?? [];
+                    const visibleWeekActivities = dayHourActivities.slice(0, WEEK_VIEW_VISIBLE_ACTIVITIES);
+                    const compactVisibleWeekActivities = dayHourActivities.slice(0, 1);
+                    const hiddenWeekActivitiesCount = Math.max(0, dayHourActivities.length - visibleWeekActivities.length);
+                    const compactHiddenWeekActivitiesCount = Math.max(0, dayHourActivities.length - compactVisibleWeekActivities.length);
                     const showSlotDragPreview = Boolean(
                       draggedActivity &&
                       dropTargetDate &&
                       dropTargetTime === timeString &&
                       isSameDay(day, dropTargetDate)
                     );
+                    const draggedActivityDisplayDate = draggedActivity ? getCalendarDisplayDate(draggedActivity) : null;
+                    const isDraggedActivityInCurrentSlot = Boolean(
+                      draggedActivity &&
+                      draggedActivityDisplayDate &&
+                      isSameDay(draggedActivityDisplayDate, day) &&
+                      getActivityHour(draggedActivity) === hour
+                    );
+                    const draggedActivityVisibleIndex = draggedActivity
+                      ? visibleWeekActivities.findIndex((activity) => activity.id === draggedActivity.id)
+                      : -1;
+                    const draggedActivityCompactVisibleIndex = draggedActivity
+                      ? compactVisibleWeekActivities.findIndex((activity) => activity.id === draggedActivity.id)
+                      : -1;
+                    const showOriginalSlotGhostPreview = Boolean(
+                      showSlotDragPreview &&
+                      draggedActivity &&
+                      isDraggedActivityInCurrentSlot &&
+                      (draggedActivityVisibleIndex >= 0 || draggedActivityCompactVisibleIndex >= 0)
+                    );
+                    const weekSlotPreviewActivities = showSlotDragPreview && draggedActivity
+                      ? showOriginalSlotGhostPreview
+                        ? [draggedActivity]
+                        : Array.from(
+                            new Map(
+                              (isDraggedActivityInCurrentSlot ? dayHourActivities : [...dayHourActivities, draggedActivity])
+                                .map((activity) => [activity.id, activity])
+                            ).values()
+                          )
+                      : [];
+                    const weekSlotPreviewColumnCount = showOriginalSlotGhostPreview
+                      ? visibleWeekActivities.length + (hiddenWeekActivitiesCount > 0 ? 1 : 0)
+                      : undefined;
+                    const weekSlotPreviewCompactColumnCount = showOriginalSlotGhostPreview
+                      ? compactVisibleWeekActivities.length + (compactHiddenWeekActivitiesCount > 0 ? 1 : 0)
+                      : undefined;
                     const timeSlotStripe = getTimeSlotStatusStripe(dayHourActivities);
                     
                     return (
@@ -8059,67 +8276,41 @@ function WeekView({
                         {showSlotDragPreview && draggedActivity && (
                           <div
                             aria-hidden="true"
-                            className="pointer-events-none absolute inset-x-2 top-2 z-20"
+                            className="pointer-events-none absolute bottom-[2px] left-[6px] right-[6px] top-[6px] z-20 sm:bottom-1 sm:left-2 sm:right-2 sm:top-2"
                           >
-                            <ActivityDragPreviewCard activity={draggedActivity} variant="week" />
+                            <WeekTimeSlotActivityColumns
+                              activities={weekSlotPreviewActivities}
+                              getStatusColor={getStatusColor}
+                              getStatusBorderColor={getStatusBorderColor}
+                              onActivityClick={onActivityClick}
+                              preview
+                              previewGridColumnCount={weekSlotPreviewColumnCount}
+                              previewColumnIndex={showOriginalSlotGhostPreview && draggedActivityVisibleIndex >= 0 ? draggedActivityVisibleIndex : undefined}
+                              previewCompactGridColumnCount={weekSlotPreviewCompactColumnCount}
+                              previewCompactColumnIndex={showOriginalSlotGhostPreview && draggedActivityCompactVisibleIndex >= 0 ? draggedActivityCompactVisibleIndex : undefined}
+                            />
                           </div>
                         )}
                         <div className={cn(
-                          "flex h-full flex-col gap-1 px-1",
+                          "flex h-full flex-col px-1",
                           dayHourActivities.length > 0 ? "justify-start pt-1" : "justify-center"
                         )}>
-                          {dayHourActivities.slice(0, TIME_SLOT_VISIBLE_ACTIVITIES).map(activity => (
-                            <div
-                              key={activity.id}
-                              data-activity-drag-handle="true"
-                              onMouseDown={(e) => onActivityMouseDown?.(activity, e)}
-                              onTouchStart={(e) => onTouchDragStart?.(activity, e)}
-                              onTouchMove={onTouchDragMove}
-                              onTouchEnd={(e) => onTouchDragEnd?.(e)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onActivityClick(activity);
-                              }}
-                              className={cn(
-                                "hidden truncate rounded border p-1 text-xs font-medium transition-opacity hover:opacity-80 select-none sm:block cursor-pointer",
-                                getStatusColor(activity.status),
-                                "bg-muted/30 dark:bg-muted/20 border-gray-200 dark:border-gray-700",
-                                getStatusBorderColor?.(activity.status),
-                                draggedActivity?.id === activity.id && "opacity-50 cursor-move",
-                                activity.status === 'completed' || activity.status === 'late' ? "opacity-75" : ""
-                              )}
-                            >
-                              {activity.title}
-                            </div>
-                          ))}
-                          {dayHourActivities.length > 0 && (
-                            <button
-                              type="button"
-                              className="my-auto self-center select-none text-[10px] font-semibold text-muted-foreground transition-colors hover:text-primary sm:hidden"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowTimeSlotActivitiesModal?.(true);
-                                setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
-                              }}
-                            >
-                              {dayHourActivities.length}
-                            </button>
-                          )}
-                          {dayHourActivities.length > TIME_SLOT_VISIBLE_ACTIVITIES && (
-                            <button
-                              type="button"
-                              className="hidden self-start select-none text-xs font-medium text-muted-foreground transition-colors hover:text-primary sm:block"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowTimeSlotActivitiesModal?.(true);
-                                setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
-                              }}
-                            >
-                              {dayHourActivities.length - TIME_SLOT_VISIBLE_ACTIVITIES}
-                            </button>
-                          )}
+                          <WeekTimeSlotActivityColumns
+                            activities={dayHourActivities}
+                            draggedActivity={draggedActivity}
+                            getStatusColor={getStatusColor}
+                            getStatusBorderColor={getStatusBorderColor}
+                            onActivityMouseDown={onActivityMouseDown}
+                            onTouchDragStart={onTouchDragStart}
+                            onTouchDragMove={onTouchDragMove}
+                            onTouchDragEnd={onTouchDragEnd}
+                            onActivityClick={onActivityClick}
+                            onOverflowClick={(e) => {
+                              e.stopPropagation();
+                              setShowTimeSlotActivitiesModal?.(true);
+                              setTimeSlotActivitiesModalData?.({ date: day, time: timeString, activities: dayHourActivities });
+                            }}
+                          />
                         </div>
                       </div>
                     );
