@@ -890,6 +890,8 @@ function DayTimeSlotActivityColumns({
   onActivityClick,
   onOverflowClick,
   preview = false,
+  previewGridColumnCount,
+  previewColumnIndex,
 }: {
   activities: any[];
   draggedActivity?: any;
@@ -902,6 +904,8 @@ function DayTimeSlotActivityColumns({
   onActivityClick: (activity: any) => void;
   onOverflowClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   preview?: boolean;
+  previewGridColumnCount?: number;
+  previewColumnIndex?: number;
 }) {
   if (activities.length === 0) {
     return null;
@@ -909,7 +913,12 @@ function DayTimeSlotActivityColumns({
 
   const visibleActivities = preview ? activities : activities.slice(0, DAY_VIEW_VISIBLE_ACTIVITIES);
   const hiddenCount = preview ? 0 : Math.max(0, activities.length - visibleActivities.length);
-  const desktopColumnCount = visibleActivities.length + (hiddenCount > 0 ? 1 : 0);
+  const desktopColumnCount = previewGridColumnCount ?? (visibleActivities.length + (hiddenCount > 0 ? 1 : 0));
+  const hasPreviewColumnPlacement =
+    preview &&
+    typeof previewColumnIndex === "number" &&
+    previewColumnIndex >= 0 &&
+    previewColumnIndex < desktopColumnCount;
 
   return (
     <>
@@ -917,6 +926,10 @@ function DayTimeSlotActivityColumns({
         className="hidden h-full gap-0.5 sm:grid"
         style={{ gridTemplateColumns: `repeat(${desktopColumnCount}, minmax(0, 1fr))` }}
       >
+        {hasPreviewColumnPlacement && previewColumnIndex! > 0 &&
+          Array.from({ length: previewColumnIndex! }, (_, index) => (
+            <div key={`preview-spacer-start-${index}`} aria-hidden="true" />
+          ))}
         {visibleActivities.map((activity) => (
           <div
             key={activity.id}
@@ -943,6 +956,10 @@ function DayTimeSlotActivityColumns({
             <div className="truncate text-sm font-semibold">{activity.title}</div>
           </div>
         ))}
+        {hasPreviewColumnPlacement &&
+          Array.from({ length: Math.max(desktopColumnCount - (previewColumnIndex! + visibleActivities.length), 0) }, (_, index) => (
+            <div key={`preview-spacer-end-${index}`} aria-hidden="true" />
+          ))}
         {!preview && hiddenCount > 0 && (
           <button
             type="button"
@@ -8289,6 +8306,8 @@ function DayView({
       >
         {hours.map((hour) => {
           const hourActivities = dayActivities.filter(activity => getActivityHour(activity) === hour);
+          const visibleHourActivities = hourActivities.slice(0, DAY_VIEW_VISIBLE_ACTIVITIES);
+          const hiddenHourActivitiesCount = Math.max(0, hourActivities.length - visibleHourActivities.length);
           const timeString = `${hour.toString().padStart(2, '0')}:00`;
           const showSlotDragPreview = Boolean(
             draggedActivity &&
@@ -8303,14 +8322,28 @@ function DayView({
             isSameDay(draggedActivityDisplayDate, currentDate) &&
             getActivityHour(draggedActivity) === hour
           );
+          const draggedActivityVisibleIndex = draggedActivity
+            ? visibleHourActivities.findIndex((activity) => activity.id === draggedActivity.id)
+            : -1;
+          const showOriginalSlotGhostPreview = Boolean(
+            showSlotDragPreview &&
+            draggedActivity &&
+            isDraggedActivityInCurrentSlot &&
+            draggedActivityVisibleIndex >= 0
+          );
           const daySlotPreviewActivities = showSlotDragPreview && draggedActivity
-            ? Array.from(
+            ? showOriginalSlotGhostPreview
+              ? [draggedActivity]
+              : Array.from(
                 new Map(
                   (isDraggedActivityInCurrentSlot ? hourActivities : [...hourActivities, draggedActivity])
                     .map((activity) => [activity.id, activity])
                 ).values()
               )
             : [];
+          const daySlotPreviewColumnCount = showOriginalSlotGhostPreview
+            ? visibleHourActivities.length + (hiddenHourActivitiesCount > 0 ? 1 : 0)
+            : undefined;
           const timeSlotStripe = getTimeSlotStatusStripe(hourActivities);
           
           return (
@@ -8361,6 +8394,8 @@ function DayView({
                       getStatusBorderColor={getStatusBorderColor}
                       onActivityClick={onActivityClick}
                       preview
+                      previewGridColumnCount={daySlotPreviewColumnCount}
+                      previewColumnIndex={showOriginalSlotGhostPreview ? draggedActivityVisibleIndex : undefined}
                     />
                   </div>
                 )}
