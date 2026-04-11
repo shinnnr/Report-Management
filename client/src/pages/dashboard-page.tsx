@@ -379,6 +379,7 @@ function DashboardContent() {
         if (lowerAction.includes('activity_submit') || lowerDescription.includes('submitted report for activity') || lowerDescription.includes('submitted 1 report(s) for activity') || lowerDescription.includes('submitted ') && lowerDescription.includes('report(s) for activity')) return FileText;
         if (lowerAction.includes('activity_completed') || lowerDescription.includes('marked as completed via report upload')) return Check;
         if (lowerAction.includes('activity_started')) return Play;
+        if (lowerAction.includes('update_activity')) return Pencil;
         if (lowerAction.includes('create_report') || lowerAction.includes('upload_report')) return File;
         if (lowerAction.includes('update_report')) return FileText;
         if (lowerAction.includes('create_folder')) return Plus;

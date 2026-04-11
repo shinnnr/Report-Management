@@ -1063,21 +1063,28 @@ export async function registerRoutes(
     const id = parseInt(req.params.id as string);
     const parsedInput = api.activities.update.input.parse(req.body);
     const { applyToSeries, ...updates } = parsedInput;
+    const existingActivity = await storage.getActivity(id);
 
-    const activity = applyToSeries && updates.deadlineDate
-      ? await storage.rescheduleRecurringActivitySeries(id, updates.deadlineDate)
-      : await storage.updateActivity(id, updates);
-    
-    // Check if deadlineDate was changed - this is a reschedule operation
-    if (updates.deadlineDate) {
-      await storage.createLog(
-        (req.user as any).id,
-        "MOVE_ACTIVITY",
-        `${applyToSeries ? 'Moved recurring activity series' : 'Moved activity'}: ${activity.title} to ${new Date(activity.deadlineDate).toLocaleDateString()}`
-      );
-    } else {
-      await storage.createLog((req.user as any).id, "UPDATE_ACTIVITY", `Updated activity: ${activity.title}`);
+    if (!existingActivity) {
+      return res.status(404).json({ message: "Activity not found" });
     }
+
+    const activity = applyToSeries
+      ? await storage.updateRecurringActivitySeries(id, updates)
+      : await storage.updateActivity(id, updates);
+
+    const deadlineChanged = updates.deadlineDate
+      ? new Date(updates.deadlineDate).getTime() !== new Date(existingActivity.deadlineDate).getTime()
+      : false;
+    const formattedDeadline = new Date(activity.deadlineDate).toLocaleString();
+
+    await storage.createLog(
+      (req.user as any).id,
+      "UPDATE_ACTIVITY",
+      deadlineChanged
+        ? `${applyToSeries ? "Updated recurring activity series" : "Updated activity"}: ${activity.title} (deadline: ${formattedDeadline})`
+        : `${applyToSeries ? "Updated recurring activity series" : "Updated activity"}: ${activity.title}`
+    );
     
     res.json(activity);
   });

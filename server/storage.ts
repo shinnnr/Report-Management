@@ -43,6 +43,7 @@ export interface IStorage {
   createActivities(activities: InsertActivity[]): Promise<Activity[]>;
   generateRecurringActivitiesForYear(year: number, masterActivityId?: number): Promise<Activity[]>;
   updateActivity(id: number, updates: Partial<Activity>): Promise<Activity>;
+  updateRecurringActivitySeries(id: number, updates: Partial<Activity>): Promise<Activity>;
   rescheduleRecurringActivitySeries(id: number, deadlineDate: Date): Promise<Activity>;
   deleteActivity(id: number): Promise<void>;
   deleteActivities(ids: number[]): Promise<number>;
@@ -1026,6 +1027,52 @@ export class DatabaseStorage implements IStorage {
     
     const [activity] = await db.update(activities).set(updates).where(eq(activities.id, id)).returning();
     return activity;
+  }
+
+  async updateRecurringActivitySeries(id: number, updates: Partial<Activity>): Promise<Activity> {
+    const currentActivity = await this.getActivity(id);
+    if (!currentActivity) {
+      throw new Error("Activity not found");
+    }
+
+    if (!currentActivity.recurrence || currentActivity.recurrence === 'none') {
+      return this.updateActivity(id, updates);
+    }
+
+    const seriesCandidates = await db.select().from(activities).where(
+      and(
+        eq(activities.title, currentActivity.title),
+        eq(activities.recurrence, currentActivity.recurrence)
+      )
+    );
+
+    const seriesActivities = seriesCandidates.filter((activity) =>
+      activity.userId === currentActivity.userId &&
+      activity.regulatoryAgency === currentActivity.regulatoryAgency &&
+      activity.concernDepartment === currentActivity.concernDepartment
+    );
+
+    const { deadlineDate, ...remainingUpdates } = updates;
+    let updatedActivity = currentActivity;
+
+    if (deadlineDate) {
+      updatedActivity = await this.rescheduleRecurringActivitySeries(id, new Date(deadlineDate));
+    }
+
+    const seriesIds = seriesActivities.map((activity) => activity.id);
+    const metadataUpdates = Object.fromEntries(
+      Object.entries(remainingUpdates).filter(([, value]) => value !== undefined)
+    ) as Partial<Activity>;
+
+    if (seriesIds.length > 0 && Object.keys(metadataUpdates).length > 0) {
+      await db.update(activities).set(metadataUpdates).where(sql`${activities.id} IN ${seriesIds}`);
+      const refreshedActivity = await this.getActivity(id);
+      if (refreshedActivity) {
+        updatedActivity = refreshedActivity;
+      }
+    }
+
+    return updatedActivity;
   }
 
   async rescheduleRecurringActivitySeries(id: number, deadlineDate: Date): Promise<Activity> {

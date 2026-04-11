@@ -112,6 +112,72 @@ const getRecurringActivityTitles = (
     .sort();
 };
 
+const formatTimeDisplay = (time: string) => {
+  const [rawHours = "23", rawMinutes = "59"] = time.split(":");
+  const hours = Number(rawHours);
+  const minutes = Number(rawMinutes);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return time;
+  }
+
+  const suffix = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+
+type TimePickerPopoverProps = {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
+
+const TimePickerPopover = ({ id, value, onChange, placeholder = "Pick a time" }: TimePickerPopoverProps) => {
+  const quickTimes = ["08:00", "12:00", "17:00", "23:59"];
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          variant="outline"
+          className={cn(
+            "h-10 w-full justify-start text-left font-normal !border-gray-300 dark:!border-gray-600",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          {value ? <span>{formatTimeDisplay(value)}</span> : <span>{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-3" align="start">
+        <div className="space-y-3">
+          <Input
+            type="time"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="h-10 w-[220px] border border-gray-300 dark:border-gray-600"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            {quickTimes.map((quickTime) => (
+              <Button
+                key={quickTime}
+                type="button"
+                variant={value === quickTime ? "default" : "outline"}
+                className="h-9"
+                onClick={() => onChange(quickTime)}
+              >
+                {formatTimeDisplay(quickTime)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const readStoredPhilippineHolidayRestoreDates = (): Record<string, string> => {
   if (typeof window === "undefined") {
     return {};
@@ -1332,6 +1398,9 @@ function CalendarContent() {
   const [selectedDayActivityIds, setSelectedDayActivityIds] = useState<number[]>([]);
   const [newActivityReturnModal, setNewActivityReturnModal] = useState<null | 'day' | 'time'>(null);
   const [holidayReturnModal, setHolidayReturnModal] = useState<null | 'day' | 'time'>(null);
+  const [isEditActivityOpen, setIsEditActivityOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<any>(null);
+  const [isUpdatingActivity, setIsUpdatingActivity] = useState(false);
   const dayActivitiesPerPage = 10;
   const [selectedTimeSlotActivityIds, setSelectedTimeSlotActivityIds] = useState<number[]>([]);
   const [deleteSelectionContext, setDeleteSelectionContext] = useState<null | {
@@ -1409,6 +1478,7 @@ function CalendarContent() {
     holidayName !== editingHoliday.name || 
     (holidayDate && editingHoliday.date && !isSameDay(new Date(holidayDate), new Date(editingHoliday.date)))
   );
+
   const selectedSubmissionHoliday = showHolidayIndicators
     ? calendarHolidays?.find((holiday: any) => isSameDay(new Date(holiday.date), submissionDate))
     : undefined;
@@ -1596,7 +1666,76 @@ function CalendarContent() {
   };
   
   const [reportDetails, setReportDetails] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editSelectedDate, setEditSelectedDate] = useState<Date | null>(null);
+  const [editActivityTime, setEditActivityTime] = useState<string>("23:59");
+  const [editRegulatoryAgency, setEditRegulatoryAgency] = useState("");
+  const [editConcernDepartment, setEditConcernDepartment] = useState<string[]>([]);
+  const [editReportDetails, setEditReportDetails] = useState("");
+  const hasEditActivityChanges = useMemo(() => {
+    if (!editingActivity || !editSelectedDate) {
+      return false;
+    }
+
+    const originalDeadline = new Date(editingActivity.deadlineDate);
+    const originalConcernDepartment = editingActivity.concernDepartment
+      ? editingActivity.concernDepartment.split(",").map((department: string) => department.trim()).filter(Boolean)
+      : [];
+
+    return (
+      editTitle !== (editingActivity.title || "") ||
+      editDescription !== (editingActivity.description || "") ||
+      !isSameDay(editSelectedDate, originalDeadline) ||
+      editActivityTime !== format(originalDeadline, 'HH:mm') ||
+      editRegulatoryAgency !== (editingActivity.regulatoryAgency || "") ||
+      editConcernDepartment.join(", ") !== originalConcernDepartment.join(", ") ||
+      editReportDetails !== (editingActivity.reportDetails || "")
+    );
+  }, [
+    editActivityTime,
+    editConcernDepartment,
+    editDescription,
+    editRegulatoryAgency,
+    editReportDetails,
+    editSelectedDate,
+    editTitle,
+    editingActivity,
+  ]);
   const [submissionRemarks, setSubmissionRemarks] = useState("");
+
+  const resetEditActivityForm = () => {
+    setEditingActivity(null);
+    setEditTitle("");
+    setEditDescription("");
+    setEditSelectedDate(null);
+    setEditActivityTime("23:59");
+    setEditRegulatoryAgency("");
+    setEditConcernDepartment([]);
+    setEditReportDetails("");
+  };
+
+  const openEditActivityModal = (activity: any) => {
+    if (activity.status === 'completed' || activity.status === 'late') {
+      return;
+    }
+
+    const activityDeadline = new Date(activity.deadlineDate);
+
+    setEditingActivity(activity);
+    setEditTitle(activity.title || "");
+    setEditDescription(activity.description || "");
+    setEditSelectedDate(activityDeadline);
+    setEditActivityTime(format(activityDeadline, 'HH:mm'));
+    setEditRegulatoryAgency(activity.regulatoryAgency || "");
+    setEditConcernDepartment(
+      activity.concernDepartment
+        ? activity.concernDepartment.split(",").map((department: string) => department.trim()).filter(Boolean)
+        : []
+    );
+    setEditReportDetails(activity.reportDetails || "");
+    setIsEditActivityOpen(true);
+  };
 
   // Helper function to create blob URL from base64 data
   const createBlobUrl = (dataUrl: string) => {
@@ -3085,6 +3224,55 @@ function CalendarContent() {
     }
   };
 
+  const handleEditActivity = async () => {
+    if (!editingActivity || !editSelectedDate || !editTitle || isDateHolidayOrWeekend(editSelectedDate)) {
+      return;
+    }
+
+    setIsUpdatingActivity(true);
+
+    try {
+      const [hours, minutes] = editActivityTime.split(':').map(Number);
+      const deadlineWithTime = new Date(editSelectedDate);
+      deadlineWithTime.setHours(hours, minutes, 0, 0);
+
+      const isRecurringSeriesEdit = Boolean(editingActivity.recurrence && editingActivity.recurrence !== 'none');
+      const deadlineToPersist = isRecurringSeriesEdit
+        ? deadlineWithTime
+        : adjustToPreviousWorkingDay(deadlineWithTime);
+
+      const { activity: updatedActivity } = await updateActivity.mutateAsync({
+        id: editingActivity.id,
+        data: {
+          title: editTitle,
+          description: editDescription,
+          deadlineDate: deadlineToPersist,
+          regulatoryAgency: editRegulatoryAgency || null,
+          concernDepartment: editConcernDepartment.length > 0 ? editConcernDepartment.join(", ") : null,
+          reportDetails: editReportDetails || null,
+          applyToSeries: isRecurringSeriesEdit,
+        },
+        suppressSuccessToast: true,
+      });
+
+      if (selectedActivity?.id === editingActivity.id) {
+        setSelectedActivity(updatedActivity);
+      }
+
+      toast({
+        title: isRecurringSeriesEdit ? "Recurring activities updated" : "Activity updated",
+        description: isRecurringSeriesEdit
+          ? "Changes applied to the recurring activity series"
+          : "Activity details updated",
+      });
+
+      setIsEditActivityOpen(false);
+      resetEditActivityForm();
+    } finally {
+      setIsUpdatingActivity(false);
+    }
+  };
+
   const createActivitiesFast = async (activitiesToCreate: InsertActivity[]) => {
     const response = await fetch(api.activities.createMany.path, {
       method: api.activities.createMany.method,
@@ -3890,10 +4078,10 @@ function CalendarContent() {
                Manage Holidays
              </Button>
            </DialogTrigger>
-             <DialogContent
-               className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col"
-               onCloseAutoFocus={(event) => event.preventDefault()}
-             >
+        <DialogContent
+            className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
               <DialogHeader className="shrink-0 pb-4 border-b">
                 <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" />
@@ -4408,15 +4596,36 @@ function CalendarContent() {
                     Deadline
                   </h3>
                   <div className="space-y-2">
+                    <Label htmlFor="activityDate" className="text-sm font-medium">Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="activityDate"
+                          variant="outline"
+                          className={cn(
+                            "h-10 w-full justify-start text-left font-normal !border-gray-300 dark:!border-gray-600",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate || undefined}
+                          onSelect={(date) => date && setSelectedDate(date)}
+                          initialFocus
+                          holidays={calendarHolidays}
+                          holidaysEnabled={holidaysEnabledData}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="time" className="text-sm font-medium">Time</Label>
-                    <Input 
-                      id="time" 
-                      name="time"
-                      type="time" 
-                      value={activityTime} 
-                      onChange={(e) => setActivityTime(e.target.value)} 
-                      className="h-10 border border-gray-300 dark:border-gray-600"
-                    />
+                    <TimePickerPopover id="time" value={activityTime} onChange={setActivityTime} />
                     <p className="text-xs text-muted-foreground">Set the time (optional, defaults to end of day)</p>
                   </div>
                 </div>
@@ -4427,15 +4636,236 @@ function CalendarContent() {
                 <Button variant="outline" onClick={() => setIsNewActivityOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={isCreatingActivity || createActivity.isPending || !title || !regulatoryAgency || concernDepartment.length === 0 || (recurrence !== 'none' && !recurrenceEndDate)}>
+                <Button
+                  onClick={handleCreate}
+                  disabled={
+                    isCreatingActivity ||
+                    createActivity.isPending ||
+                    !selectedDate ||
+                    isDateHolidayOrWeekend(selectedDate) ||
+                    !title ||
+                    !regulatoryAgency ||
+                    concernDepartment.length === 0 ||
+                    (recurrence !== 'none' && recurrence !== 'yearly' && !recurrenceEndDate)
+                  }
+                >
                   {isCreatingActivity || createActivity.isPending ? (
                     <>
                       Adding...
+                    </>
+                  ) : selectedDate && isDateHolidayOrWeekend(selectedDate) ? (
+                    <>
+                      {isDateHoliday(selectedDate) ? 'Holiday' : 'Weekend'}
                     </>
                   ) : (
                     <>
                       Add Activity
                     </>
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditActivityOpen} onOpenChange={(open) => {
+          setIsEditActivityOpen(open);
+          if (!open) {
+            resetEditActivityForm();
+          }
+        }}>
+          <DialogContent
+            className="max-w-2xl max-h-[90vh] overflow-visible flex flex-col"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+          >
+            <DialogHeader className="shrink-0 pb-4 border-b">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                Edit Activity
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Update the activity details for {editingActivity ? format(getCalendarDisplayDate(editingActivity), 'MMMM d, yyyy') : 'the selected date'}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="h-[400px] overflow-y-auto py-4 px-6 pb-8 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-primary rounded-full"></span>
+                    Basic Information
+                  </h3>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editTitle" className="text-sm font-medium">Title</Label>
+                      <Input id="editTitle" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Submit Q1 Report" className="h-10 border border-gray-300 dark:border-gray-600" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editDescription" className="text-sm font-medium">Description</Label>
+                      <Textarea id="editDescription" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Brief description of the activity" className="resize-none border border-gray-300 dark:border-gray-600" rows={2} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                    Agency & Department
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Regulatory Agency</div>
+                      <Select value={editRegulatoryAgency} onValueChange={setEditRegulatoryAgency}>
+                        <SelectTrigger className="h-10 border border-gray-300 dark:border-gray-600">
+                          <SelectValue placeholder="Select agency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DOE">DOE</SelectItem>
+                          <SelectItem value="ERC">ERC</SelectItem>
+                          <SelectItem value="IEMOP">IEMOP</SelectItem>
+                          <SelectItem value="NEA">NEA</SelectItem>
+                          <SelectItem value="NEA-WEB PORTAL">NEA-WEB PORTAL</SelectItem>
+                          <SelectItem value="NGCP">NGCP</SelectItem>
+                          <SelectItem value="PSALM">PSALM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Concern Department</div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            disabled={!editRegulatoryAgency}
+                            className="h-10 w-full justify-between border border-gray-300 dark:border-gray-600 bg-background hover:bg-background text-foreground font-normal disabled:cursor-not-allowed disabled:opacity-100"
+                            style={{ borderColor: 'rgb(209 213 219)' }}
+                          >
+                            {editConcernDepartment.length > 0 ? (
+                              <span className="truncate">{editConcernDepartment.join(", ")}</span>
+                            ) : (
+                              <span className="text-muted-foreground">Select departments</span>
+                            )}
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        {editRegulatoryAgency && (
+                          <PopoverContent className="w-[300px] p-2" align="start">
+                            <div className="space-y-2">
+                              <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                                {editRegulatoryAgency} Departments
+                              </div>
+                              <div
+                                className={cn(
+                                  "space-y-1 pr-1 overscroll-contain",
+                                  (AGENCY_DEPARTMENT_OPTIONS[editRegulatoryAgency]?.length ?? 0) > 8 &&
+                                    "max-h-[260px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
+                                )}
+                                onWheelCapture={(event) => {
+                                  if (event.currentTarget.scrollHeight <= event.currentTarget.clientHeight) {
+                                    return;
+                                  }
+
+                                  event.preventDefault();
+                                  event.currentTarget.scrollTop += event.deltaY;
+                                }}
+                              >
+                                {AGENCY_DEPARTMENT_OPTIONS[editRegulatoryAgency]?.map((dept) => (
+                                  <label key={dept} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded-md cursor-pointer">
+                                    <Checkbox
+                                      checked={editConcernDepartment.includes(dept)}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setEditConcernDepartment([...editConcernDepartment, dept]);
+                                        } else {
+                                          setEditConcernDepartment(editConcernDepartment.filter((department) => department !== dept));
+                                        }
+                                      }}
+                                    />
+                                    <span className="text-sm">{dept}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        )}
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-green-500 rounded-full"></span>
+                    Report Details
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="editReportDetails" className="text-sm font-medium">Reports Detail</Label>
+                    <Textarea id="editReportDetails" value={editReportDetails} onChange={(e) => setEditReportDetails(e.target.value)} placeholder="Details about the report to be submitted" className="resize-none border border-gray-300 dark:border-gray-600" rows={3} />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
+                    Deadline
+                  </h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="editActivityDate" className="text-sm font-medium">Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="editActivityDate"
+                          variant="outline"
+                          className={cn(
+                            "h-10 w-full justify-start text-left font-normal !border-gray-300 dark:!border-gray-600",
+                            !editSelectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {editSelectedDate ? format(editSelectedDate, 'PPP') : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={editSelectedDate || undefined}
+                          onSelect={(date) => date && setEditSelectedDate(date)}
+                          initialFocus
+                          holidays={calendarHolidays}
+                          holidaysEnabled={holidaysEnabledData}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editTime" className="text-sm font-medium">Time</Label>
+                    <TimePickerPopover id="editTime" value={editActivityTime} onChange={setEditActivityTime} />
+                    <p className="text-xs text-muted-foreground">Changing date or time updates the recurring series the same way as moving an activity.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="shrink-0 pt-4 mt-4">
+              <div className="flex gap-3 w-full justify-end">
+                <Button variant="outline" onClick={() => setIsEditActivityOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleEditActivity}
+                  disabled={
+                    isUpdatingActivity ||
+                    !editSelectedDate ||
+                    isDateHolidayOrWeekend(editSelectedDate) ||
+                    !editTitle ||
+                    !editRegulatoryAgency ||
+                    editConcernDepartment.length === 0 ||
+                    !hasEditActivityChanges
+                  }
+                >
+                  {isUpdatingActivity ? (
+                    <>Updating...</>
+                  ) : editSelectedDate && isDateHolidayOrWeekend(editSelectedDate) ? (
+                    <>{isDateHoliday(editSelectedDate) ? 'Holiday' : 'Weekend'}</>
+                  ) : (
+                    <>Update Activity</>
                   )}
                 </Button>
               </div>
@@ -4571,15 +5001,31 @@ function CalendarContent() {
                             )}
                             <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
                           </div>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-xs shrink-0",
-                            activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
-                            activity.status === 'overdue' ? "bg-red-100 text-red-700" :
-                            activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
-                            "bg-orange-100 text-orange-700"
-                          )}>
-                            {activity.status}
-                          </span>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            {activity.status !== 'completed' && activity.status !== 'late' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditActivityModal(activity);
+                                }}
+                                aria-label={`Edit ${activity.title}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-xs shrink-0",
+                              activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                              activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                              activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                              "bg-orange-100 text-orange-700"
+                            )}>
+                              {activity.status}
+                            </span>
+                          </div>
                         </div>
                         {activity.description && (
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -4702,10 +5148,27 @@ function CalendarContent() {
         }}>
           <DialogContent className="max-h-[90vh] overflow-visible flex flex-col">
             <DialogHeader className="flex-shrink-0">
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                {selectedActivity?.title}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-3 pr-8">
+                <DialogTitle className="flex min-w-0 items-center gap-2">
+                  <FileText className="w-5 h-5 shrink-0" />
+                  <span className="min-w-0 break-words">{selectedActivity?.title}</span>
+                </DialogTitle>
+                {selectedActivity?.status !== 'completed' && selectedActivity?.status !== 'late' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 shrink-0 p-0"
+                    onClick={() => {
+                      if (selectedActivity) {
+                        openEditActivityModal(selectedActivity);
+                      }
+                    }}
+                    aria-label={selectedActivity ? `Edit ${selectedActivity.title}` : "Edit activity"}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
               <DialogDescription>
                 Submit your report for this activity
               </DialogDescription>
@@ -5130,15 +5593,31 @@ function CalendarContent() {
                                 )}
                                 <span className="block min-w-0 flex-1 truncate font-medium">{activity.title}</span>
                               </div>
-                              <span className={cn(
-                                "px-2 py-0.5 rounded-full text-xs shrink-0",
-                                activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
-                                activity.status === 'overdue' ? "bg-red-100 text-red-700" :
-                                activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
-                                "bg-orange-100 text-orange-700"
-                              )}>
-                                {activity.status}
-                              </span>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                {activity.status !== 'completed' && activity.status !== 'late' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditActivityModal(activity);
+                                    }}
+                                    aria-label={`Edit ${activity.title}`}
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded-full text-xs shrink-0",
+                                  activity.status === 'completed' || activity.status === 'late' ? "bg-green-100 text-green-700" :
+                                  activity.status === 'overdue' ? "bg-red-100 text-red-700" :
+                                  activity.status === 'in-progress' ? "bg-blue-100 text-blue-700" :
+                                  "bg-orange-100 text-orange-700"
+                                )}>
+                                  {activity.status}
+                                </span>
+                              </div>
                             </div>
                             {activity.description && (
                               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">

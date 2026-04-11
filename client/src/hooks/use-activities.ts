@@ -213,7 +213,7 @@ export function useUpdateActivity() {
       suppressSuccessToast,
     }: {
       id: number;
-      data: Partial<{ title: string; description: string; deadlineDate: Date; status: string; applyToSeries: boolean }>;
+      data: Partial<InsertActivity> & { applyToSeries?: boolean };
       suppressSuccessToast?: boolean;
     }) => {
       const url = buildUrl(api.activities.update.path, { id });
@@ -231,6 +231,7 @@ export function useUpdateActivity() {
     },
     onSuccess: ({ suppressSuccessToast }) => {
       queryClient.invalidateQueries({ queryKey: [api.activities.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.logs.list.path] });
       if (!suppressSuccessToast) {
         toast({ title: "Success", description: "Activity updated" });
       }
