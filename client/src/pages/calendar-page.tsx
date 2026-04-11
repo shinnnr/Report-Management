@@ -126,6 +126,52 @@ const formatTimeDisplay = (time: string) => {
   return `${displayHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
 };
 
+const parseTimeValue = (time: string) => {
+  const [rawHours = "23", rawMinutes = "59"] = time.split(":");
+  const hours24 = Number(rawHours);
+  const minutes = Number(rawMinutes);
+
+  if (Number.isNaN(hours24) || Number.isNaN(minutes)) {
+    return { hour12: "11", minute: "59", period: "PM" as const };
+  }
+
+  const period = hours24 >= 12 ? "PM" as const : "AM" as const;
+  const hour12 = hours24 % 12 || 12;
+
+  return {
+    hour12: String(hour12).padStart(2, "0"),
+    minute: String(minutes).padStart(2, "0"),
+    period,
+  };
+};
+
+const buildTimeValue = (hour12: string, minute: string, period: "AM" | "PM") => {
+  const parsedHour12 = Number(hour12);
+  const parsedMinute = Number(minute);
+
+  if (Number.isNaN(parsedHour12) || Number.isNaN(parsedMinute)) {
+    return "23:59";
+  }
+
+  const normalizedHour12 = parsedHour12 % 12 || 12;
+  const hours24 = period === "PM"
+    ? (normalizedHour12 % 12) + 12
+    : normalizedHour12 % 12;
+
+  return `${String(hours24).padStart(2, "0")}:${String(parsedMinute).padStart(2, "0")}`;
+};
+
+const handlePopoverScrollAreaWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const viewport = event.currentTarget.querySelector<HTMLElement>("[data-radix-scroll-area-viewport]");
+  if (!viewport || viewport.scrollHeight <= viewport.clientHeight) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  viewport.scrollTop += event.deltaY;
+};
+
 type TimePickerPopoverProps = {
   id: string;
   value: string;
@@ -135,6 +181,22 @@ type TimePickerPopoverProps = {
 
 const TimePickerPopover = ({ id, value, onChange, placeholder = "Pick a time" }: TimePickerPopoverProps) => {
   const quickTimes = ["08:00", "12:00", "17:00", "23:59"];
+  const { hour12, minute, period } = parseTimeValue(value);
+  const hours = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
+  const minutes = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
+  const periods: Array<"AM" | "PM"> = ["AM", "PM"];
+
+  const handleHourChange = (nextHour: string) => {
+    onChange(buildTimeValue(nextHour, minute, period));
+  };
+
+  const handleMinuteChange = (nextMinute: string) => {
+    onChange(buildTimeValue(hour12, nextMinute, period));
+  };
+
+  const handlePeriodChange = (nextPeriod: "AM" | "PM") => {
+    onChange(buildTimeValue(hour12, minute, nextPeriod));
+  };
 
   return (
     <Popover>
@@ -151,15 +213,69 @@ const TimePickerPopover = ({ id, value, onChange, placeholder = "Pick a time" }:
           {value ? <span>{formatTimeDisplay(value)}</span> : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-3" align="start">
+      <PopoverContent className="w-auto p-0" align="start">
         <div className="space-y-3">
-          <Input
-            type="time"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            className="h-10 w-[220px] border border-gray-300 dark:border-gray-600"
-          />
-          <div className="grid grid-cols-2 gap-2">
+          <div className="border-b border-border px-4 py-3">
+            <div className="text-sm font-medium">{value ? formatTimeDisplay(value) : placeholder}</div>
+            <div className="text-xs text-muted-foreground">Choose hour, minute, and period</div>
+          </div>
+          <div className="grid grid-cols-[88px_88px_72px] gap-3 px-4 pt-4">
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">Hour</div>
+              <ScrollArea className="h-56 rounded-md border border-border" onWheelCapture={handlePopoverScrollAreaWheel}>
+                <div className="space-y-1 p-2">
+                  {hours.map((entry) => (
+                    <Button
+                      key={entry}
+                      type="button"
+                      variant={hour12 === entry ? "default" : "ghost"}
+                      className="h-9 w-full justify-center"
+                      onClick={() => handleHourChange(entry)}
+                    >
+                      {entry}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">Minute</div>
+              <ScrollArea className="h-56 rounded-md border border-border" onWheelCapture={handlePopoverScrollAreaWheel}>
+                <div className="space-y-1 p-2">
+                  {minutes.map((entry) => (
+                    <Button
+                      key={entry}
+                      type="button"
+                      variant={minute === entry ? "default" : "ghost"}
+                      className="h-9 w-full justify-center"
+                      onClick={() => handleMinuteChange(entry)}
+                    >
+                      {entry}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">Period</div>
+              <ScrollArea className="h-56 rounded-md border border-border" onWheelCapture={handlePopoverScrollAreaWheel}>
+                <div className="space-y-1 p-2">
+                  {periods.map((entry) => (
+                    <Button
+                      key={entry}
+                      type="button"
+                      variant={period === entry ? "default" : "ghost"}
+                      className="h-9 w-full justify-center"
+                      onClick={() => handlePeriodChange(entry)}
+                    >
+                      {entry}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 px-4 pb-4">
             {quickTimes.map((quickTime) => (
               <Button
                 key={quickTime}
@@ -5465,8 +5581,8 @@ function CalendarContent() {
                             {activity.status !== 'completed' && activity.status !== 'late' ? (
                               <Button
                                 variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 justify-self-end"
+                                size="icon"
+                                className="h-7 w-7 justify-self-end"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   openEditActivityModal(activity);
@@ -5625,8 +5741,8 @@ function CalendarContent() {
                 {selectedActivity?.status !== 'completed' && selectedActivity?.status !== 'late' && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 shrink-0 p-0"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
                     onClick={() => {
                       if (selectedActivity) {
                         openEditActivityModal(selectedActivity);
@@ -6061,8 +6177,8 @@ function CalendarContent() {
                                 {activity.status !== 'completed' && activity.status !== 'late' ? (
                                   <Button
                                     variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 justify-self-end"
+                                    size="icon"
+                                    className="h-7 w-7 justify-self-end"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openEditActivityModal(activity);
