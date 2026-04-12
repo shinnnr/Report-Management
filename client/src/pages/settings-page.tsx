@@ -468,28 +468,26 @@ function SettingsContent() {
                     )}
                   </div>
                   {/* Profile Picture Controls */}
-                  <div className="absolute -bottom-1 -right-1 flex gap-1">
-                    <label className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleProfilePictureUpload}
-                        className="hidden"
-                        disabled={isUploadingProfilePicture || updateProfilePictureMutation.isPending}
-                      />
-                      <Camera className="w-3 h-3" />
-                    </label>
-                    {currentUser?.profilePicture && (
-                      <button
-                        onClick={handleProfilePictureRemove}
-                        disabled={isRemovingProfilePicture || updateProfilePictureMutation.isPending}
-                        className="w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors"
-                        title="Remove profile picture"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
+                  {currentUser?.profilePicture && (
+                    <button
+                      onClick={handleProfilePictureRemove}
+                      disabled={isRemovingProfilePicture || updateProfilePictureMutation.isPending}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                      title="Remove profile picture"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                  <label className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureUpload}
+                      className="hidden"
+                      disabled={isUploadingProfilePicture || updateProfilePictureMutation.isPending}
+                    />
+                    <Camera className="w-3 h-3" />
+                  </label>
                 </div>
                 <div>
                   <p className="text-lg font-medium truncate max-w-[150px]">{currentUser?.fullName}</p>
