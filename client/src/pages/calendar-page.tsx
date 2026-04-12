@@ -4781,9 +4781,9 @@ function CalendarContent() {
                          >
                            Cancel
                          </Button>
-                       )}
+                        )}
+                  </div>
                 </div>
-              </div>
 
               {/* Existing Holidays - Right Column */}
               <div className="border rounded-lg overflow-hidden flex self-start flex-col">
@@ -5538,8 +5538,8 @@ function CalendarContent() {
                     Total: {dayActs.length} {dayActs.length === 1 ? "activity" : "activities"}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-                  <div className="box-border w-full space-y-2 py-4 pl-4 pr-4">
+                <ScrollArea className="min-h-0 flex-1 -mx-4 sm:-mx-6">
+                  <div className="box-border w-full space-y-2 px-4 py-4 sm:px-6">
                   {paginatedActivities.length === 0 && !isHolidayOrWeekend ? (
                     <p className="text-center text-muted-foreground py-8">No activities for this day</p>
                   ) : paginatedActivities.length === 0 && isHolidayOrWeekend ? (
@@ -5615,42 +5615,40 @@ function CalendarContent() {
                       </div>
                     ))
                   )}
-                </div>
-                </div>
-                <div className="shrink-0 bg-muted/10 p-4">
+                  </div>
+                </ScrollArea>
+                <div className="shrink-0 bg-muted/10 px-4 py-2 sm:px-6">
                   <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:gap-4">
                     {selectedDayActivityIds.length > 0 ? (
                       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:w-auto sm:min-w-0 sm:justify-start sm:gap-3">
+                        <div className="flex min-h-9 items-center gap-2">
+                          <p className="-ml-4 whitespace-nowrap text-sm text-muted-foreground sm:-ml-6">
+                            {dayActs.length > dayActivitiesPerPage ? `Page ${dayActivitiesPage} of ${totalPages}` : ""}
+                          </p>
                           {dayActs.length > dayActivitiesPerPage ? (
-                            <>
-                              <p className="whitespace-nowrap text-sm text-muted-foreground">
-                                Page {dayActivitiesPage} of {totalPages}
-                              </p>
-                              <div className="flex shrink-0 gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
-                                  disabled={dayActivitiesPage === 1}
-                                >
-                                  <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
-                                  disabled={dayActivitiesPage === totalPages}
-                                >
-                                  <ChevronRight className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </>
+                            <div className="flex shrink-0 gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDayActivitiesPage(p => Math.max(1, p - 1))}
+                                disabled={dayActivitiesPage === 1}
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDayActivitiesPage(p => Math.min(totalPages, p + 1))}
+                                disabled={dayActivitiesPage === totalPages}
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                            </div>
                           ) : null}
                         </div>
                         {canDeleteActivities ? (
-                          <div className="flex min-h-9 w-full items-center justify-start gap-2 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
-                            <span className="hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline">
+                          <div className="-ml-4 flex min-h-9 w-full items-center justify-start gap-2 sm:-mr-6 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
+                            <span className="text-sm text-muted-foreground sm:min-w-[84px] sm:text-right">
                               {selectedDayActivityIds.length} selected
                             </span>
                             <Button
@@ -5678,11 +5676,11 @@ function CalendarContent() {
                       </div>
                     ) : (
                       <>
-                        <p className="whitespace-nowrap text-sm text-muted-foreground">
+                        <p className="-ml-4 whitespace-nowrap text-sm text-muted-foreground sm:-ml-6">
                           {dayActs.length > dayActivitiesPerPage ? `Page ${dayActivitiesPage} of ${totalPages}` : ""}
                         </p>
                         {dayActs.length > dayActivitiesPerPage ? (
-                          <div className="flex shrink-0 gap-1">
+                          <div className="-mr-4 flex shrink-0 gap-1 sm:-mr-6">
                             <Button
                               variant="outline"
                               size="sm"
@@ -6125,8 +6123,8 @@ function CalendarContent() {
                 {timeSlotActivitiesModalData ? format(timeSlotActivitiesModalData.date, 'MMMM d, yyyy') : ''} - {timeSlotActivitiesModalData?.activities.length} {timeSlotActivitiesModalData?.activities.length === 1 ? 'activity' : 'activities'}
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-              <div className="box-border w-full space-y-2 py-4 pl-4 pr-4">
+            <ScrollArea className="min-h-0 flex-1 -mx-4 sm:-mx-6">
+              <div className="box-border w-full space-y-2 px-4 py-4 sm:px-6">
                 {timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && !(isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
                   <p className="text-center text-muted-foreground py-8">No activities at this time</p>
                 ) : timeSlotActivitiesModalData?.activities.length === 0 && timeSlotActivitiesModalData && (isDateWeekend(timeSlotActivitiesModalData.date) || (holidaysEnabledData && isDateHoliday(timeSlotActivitiesModalData.date))) ? (
@@ -6215,44 +6213,42 @@ function CalendarContent() {
                   })()
                 )}
               </div>
-            </div>
+            </ScrollArea>
             {timeSlotActivitiesModalData && (() => {
               const totalPages = Math.ceil((timeSlotActivitiesModalData?.activities.length || 0) / timeSlotActivitiesPerPage);
               return (
-                <div className="shrink-0 bg-muted/10 p-4">
+                <div className="shrink-0 bg-muted/10 px-4 py-2 sm:px-6">
                   <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:gap-4">
                     {selectedTimeSlotActivityIds.length > 0 ? (
                       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-h-9 w-full items-center justify-between gap-2 sm:w-auto sm:min-w-0 sm:justify-start sm:gap-3">
+                        <div className="flex min-h-9 items-center gap-2">
+                          <p className="-ml-4 whitespace-nowrap text-sm text-muted-foreground sm:-ml-6">
+                            {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? `Page ${timeSlotActivitiesPage} of ${totalPages}` : ""}
+                          </p>
                           {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? (
-                            <>
-                              <p className="whitespace-nowrap text-sm text-muted-foreground">
-                                Page {timeSlotActivitiesPage} of {totalPages}
-                              </p>
-                              <div className="flex shrink-0 gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
-                                  disabled={timeSlotActivitiesPage === 1}
-                                >
-                                  <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
-                                  disabled={timeSlotActivitiesPage === totalPages}
-                                >
-                                  <ChevronRight className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </>
+                            <div className="flex shrink-0 gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTimeSlotActivitiesPage(p => Math.max(1, p - 1))}
+                                disabled={timeSlotActivitiesPage === 1}
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTimeSlotActivitiesPage(p => Math.min(totalPages, p + 1))}
+                                disabled={timeSlotActivitiesPage === totalPages}
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                            </div>
                           ) : null}
                         </div>
                         {canDeleteActivities ? (
-                          <div className="flex min-h-9 w-full items-center justify-start gap-2 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
-                            <span className="hidden min-w-[84px] text-right text-sm text-muted-foreground sm:inline">
+                          <div className="-ml-4 flex min-h-9 w-full items-center justify-start gap-2 sm:-mr-6 sm:ml-auto sm:w-auto sm:shrink-0 sm:justify-end">
+                            <span className="text-sm text-muted-foreground sm:min-w-[84px] sm:text-right">
                               {selectedTimeSlotActivityIds.length} selected
                             </span>
                             <Button
@@ -6280,11 +6276,11 @@ function CalendarContent() {
                       </div>
                     ) : (
                       <>
-                        <p className="whitespace-nowrap text-sm text-muted-foreground">
+                        <p className="-ml-4 whitespace-nowrap text-sm text-muted-foreground sm:-ml-6">
                           {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? `Page ${timeSlotActivitiesPage} of ${totalPages}` : ""}
                         </p>
                         {(timeSlotActivitiesModalData?.activities.length || 0) > timeSlotActivitiesPerPage ? (
-                          <div className="flex shrink-0 gap-1">
+                          <div className="-mr-4 flex shrink-0 gap-1 sm:-mr-6">
                             <Button
                               variant="outline"
                               size="sm"
@@ -6924,8 +6920,8 @@ function CalendarContent() {
             </div>
             <div className="flex-1 min-h-0 p-4">
               <div className="h-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                <ScrollArea className="h-full mr-3">
-                  <div className="space-y-4 p-4 pr-4">
+                <ScrollArea className="h-full -mr-4">
+                  <div className="space-y-4 p-4 pr-7">
                 {/* Overdue Section */}
                 {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
                   <div className="mt-0">
@@ -7127,8 +7123,8 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="flex-1 mr-3">
-                  <div className="space-y-2 pl-4 pr-4 pb-2">
+                <ScrollArea className="flex-1 -mr-4">
+                  <div className="space-y-2 px-4 pb-2 pr-7">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}

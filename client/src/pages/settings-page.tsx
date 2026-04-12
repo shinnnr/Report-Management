@@ -1140,7 +1140,7 @@ function SettingsContent() {
                   )}
                 </Button>
               ) : (
-                <Badge variant="outline">
+                <Badge variant="outline" className="w-fit self-start capitalize">
                   {selectedUserForDialog?.status}
                 </Badge>
               )}

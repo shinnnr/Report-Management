@@ -84,8 +84,8 @@ export function NotificationModal({ isOpen, onClose }: NotificationModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="h-[400px] pr-4">
-          <div className="space-y-4 pr-4 pb-4">
+        <ScrollArea className="h-[400px] -mx-4 sm:-mx-6">
+          <div className="space-y-4 px-4 pb-4 sm:px-6">
             {notifications && notifications.length > 0 ? (
               notifications
                 .slice((currentPage - 1) * notificationsPerPage, currentPage * notificationsPerPage)

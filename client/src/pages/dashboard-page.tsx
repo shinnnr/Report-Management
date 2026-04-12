@@ -826,8 +826,8 @@ function DashboardContent() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-4">
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-4 pr-3">
                   {logs?.slice(0, 10).map((log) => {
                     const toggleVisual = getSettingToggleVisual(log.action);
                     const IconComponent = toggleVisual?.Icon ?? getActivityIcon(log.action, log.description);
@@ -991,8 +991,8 @@ function DashboardContent() {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-2 pr-4 pb-4">
+          <ScrollArea className="h-[400px] -mx-4 sm:-mx-6">
+            <div className="space-y-2 px-4 pb-4 sm:px-6">
               {logs && logs.length > 0 ? (
               logs
                 .slice((currentPage - 1) * logsPerPage, currentPage * logsPerPage)
@@ -1034,7 +1034,7 @@ function DashboardContent() {
                       </div>
                       <button
                         onClick={() => deleteLogMutation.mutate(log.id)}
-                        className={`p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
+                        className={`mr-1 p-1 hover:bg-destructive/20 rounded transition-all flex-shrink-0 ${isMobile ? '' : 'opacity-0 group-hover:opacity-100'}`}
                         title="Delete log"
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -1103,8 +1103,8 @@ function DashboardContent() {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-4 pr-4 pb-4">
+          <ScrollArea className="h-[400px] -mx-4 sm:-mx-6">
+            <div className="space-y-4 px-4 pb-4 sm:px-6">
               {paginatedActivityStatusOverviewActivities.length > 0 ? (
                 paginatedActivityStatusOverviewActivities.map((activity) => (
                   <div
@@ -1142,13 +1142,15 @@ function DashboardContent() {
             </div>
           </ScrollArea>
 
-          <div className="mt-2 flex min-h-[56px] shrink-0 items-center justify-between gap-2 py-2 pr-4">
-            {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE && (
-              <>
-                <span className="text-sm text-muted-foreground">
-                  Page {safeActivityStatusOverviewPage} of {activityStatusOverviewTotalPages}
-                </span>
-                <div className="ml-auto flex gap-1">
+          <div className="mt-2 shrink-0 py-2">
+            <div className="flex min-h-9 w-full items-center justify-between gap-2">
+              <span className="whitespace-nowrap text-sm text-muted-foreground">
+                {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE ? (
+                  <>Page {safeActivityStatusOverviewPage} of {activityStatusOverviewTotalPages}</>
+                ) : ""}
+              </span>
+              {selectedActivityStatusActivities.length > STATUS_OVERVIEW_MODAL_PAGE_SIZE ? (
+                <div className="flex shrink-0 gap-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -1170,8 +1172,10 @@ function DashboardContent() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-              </>
-            )}
+              ) : (
+                <div className="min-h-9" />
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
