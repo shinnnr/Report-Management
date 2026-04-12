@@ -6919,9 +6919,9 @@ function CalendarContent() {
               <p className="text-sm text-muted-foreground">Next activities and overdue items</p>
             </div>
             <div className="flex-1 min-h-0 p-4">
-              <div className="h-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                <ScrollArea className="h-full -mr-4">
-                  <div className="space-y-4 p-4 pr-7">
+              <div className="flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                <ScrollArea className="flex-1">
+                  <div className="space-y-4 px-4 pb-2">
                 {/* Overdue Section */}
                 {activities && activities.filter(a => a.status === 'overdue').length > 0 && (
                   <div className="mt-0">
