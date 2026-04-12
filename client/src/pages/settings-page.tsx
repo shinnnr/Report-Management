@@ -911,11 +911,11 @@ function SettingsContent() {
                             }
                           }}
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-3 md:gap-4">
                             {user.profilePicture ? (
                               <button
                                 type="button"
-                                className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
+                                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex shrink-0 items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setProfilePicturePreview(user.profilePicture ?? null);
@@ -929,11 +929,11 @@ function SettingsContent() {
                                 />
                               </button>
                             ) : (
-                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex shrink-0 items-center justify-center overflow-hidden">
                                 <span className="font-medium text-primary">{user.fullName?.charAt(0) || 'U'}</span>
                               </div>
                             )}
-                            <div>
+                            <div className="min-w-0">
                               <p className="font-medium truncate md:whitespace-normal md:max-w-none">{user.fullName}{user.id === currentUser?.id && " (You)"}</p>
                               <p className="text-sm text-muted-foreground">@{user.username}</p>
                             </div>
@@ -1093,7 +1093,7 @@ function SettingsContent() {
       <Dialog open={isUserDialogOpen && isMobile} onOpenChange={setIsUserDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex min-w-0 items-start gap-2 pr-8 text-left text-base leading-snug sm:text-lg">
+            <DialogTitle className="flex min-w-0 items-center gap-2 pr-8 text-left text-base leading-snug sm:text-lg">
               <User className="w-5 h-5 flex-shrink-0" />
               <span className="min-w-0 break-words">
                 {selectedUserForDialog?.fullName}
@@ -1103,6 +1103,21 @@ function SettingsContent() {
               User details and actions
             </DialogDescription>
           </DialogHeader>
+          {selectedUserForDialog?.profilePicture && (
+            <div className="flex justify-center py-2">
+              <button
+                type="button"
+                onClick={() => setProfilePicturePreview(selectedUserForDialog.profilePicture ?? null)}
+                className="w-24 h-24 rounded-full overflow-hidden transition-opacity hover:opacity-80 cursor-pointer"
+              >
+                <img
+                  src={selectedUserForDialog.profilePicture}
+                  alt={selectedUserForDialog.fullName}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            </div>
+          )}
           <div className="space-y-4 py-2">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-muted-foreground">Username</span>
