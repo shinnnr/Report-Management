@@ -395,7 +395,7 @@ function SettingsContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
+            {(isMobile || isCompactDesktop) && isSidebarToggleable ? (
               <button 
                 type="button" 
                 onClick={(e) => {

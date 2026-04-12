@@ -4604,7 +4604,7 @@ function CalendarContent() {
       <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-8">
         <div className="w-full">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
+            {(isMobile || isCompactDesktop) && isSidebarToggleable ? (
               <button 
                 type="button" 
                 onClick={(e) => {

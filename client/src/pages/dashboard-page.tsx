@@ -431,7 +431,7 @@ function DashboardContent() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
+              {(isMobile || isCompactDesktop) && isSidebarToggleable ? (
                 <button 
                   type="button" 
                   onClick={(e) => {
