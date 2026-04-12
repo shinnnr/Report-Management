@@ -1254,6 +1254,8 @@ function SettingsContent() {
       </Dialog>
       <Dialog open={Boolean(profilePicturePreview)} onOpenChange={(open) => !open && setProfilePicturePreview(null)}>
         <DialogContent className="w-auto max-w-none border-none bg-transparent p-0 shadow-none [&>button]:hidden">
+          <DialogTitle className="absolute -left-[10000px] -top-[10000px] h-[1px] w-[1px] overflow-hidden">Profile picture preview</DialogTitle>
+          <DialogDescription className="absolute -left-[10000px] -top-[10000px] h-[1px] w-[1px] overflow-hidden">Profile picture preview dialog</DialogDescription>
           {profilePicturePreview && (
             <div className="flex items-center justify-center">
               <img
