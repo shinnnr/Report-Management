@@ -4795,16 +4795,16 @@ function CalendarContent() {
                 </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <div className="px-4">
+                    <div className="pr-2">
                       <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                        <div className="space-y-2 pr-4 pb-2">
+                        <div className="space-y-2 pr-3 pb-2 pl-4">
                           {paginatedHolidays.map((holiday: any) => (
                             <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
                               <div>
                                 <p className="font-medium">{holiday.name}</p>
                                 <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 shrink-0">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -4834,7 +4834,7 @@ function CalendarContent() {
                       </ScrollArea>
                     </div>
                     {showHolidayPagination && (
-                      <div className="flex items-center justify-between bg-muted/10 p-4">
+                      <div className="flex items-center justify-between bg-muted/10 p-4 pl-12">
                         <p className="text-sm text-muted-foreground">
                           Page {holidayPage} of {totalHolidayPages}
                         </p>
@@ -8015,16 +8015,16 @@ function CalendarContent() {
                 </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <div className="px-4">
+                    <div className="pr-2">
                       <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                        <div className="space-y-2 pr-4 pb-2">
+                        <div className="space-y-2 pr-3 pb-2 pl-4">
                           {paginatedHolidays.map((holiday: any) => (
                             <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
                               <div>
                                 <p className="font-medium">{holiday.name}</p>
                                 <p className="text-sm text-muted-foreground">{format(new Date(holiday.date), 'PPP')}</p>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 shrink-0">
                                  <Button
                                     variant="outline"
                                     size="sm"
