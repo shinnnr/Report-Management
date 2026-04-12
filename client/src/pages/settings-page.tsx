@@ -1,5 +1,5 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSettings, useUserManagement, useSystemSettings } from "@/hooks/use-settings";
@@ -38,8 +38,9 @@ import { useCheckDeadlines } from "@/hooks/use-activities";
 
 function SettingsContent() {
   const { user } = useAuth();
-  const { openSidebar, isSidebarOpen } = useSidebar();
+  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
   const isMobile = useIsMobile();
+  const isCompactDesktop = useIsCompactDesktop();
   const { currentUser, updateUsernameMutation, updatePasswordMutation, updateProfilePictureMutation } = useSettings();
   const { users, createUserMutation, updateUserMutation, deleteUserMutation } = useUserManagement();
   const {
@@ -394,7 +395,7 @@ function SettingsContent() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isMobile ? (
+            {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
               <button 
                 type="button" 
                 onClick={(e) => {

@@ -1,5 +1,5 @@
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { StatCard } from "@/components/stat-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Folder, FileText, Clock, AlertCircle, Activity, File, Pencil, Archive, Trash2, RotateCcw, Plus, ArrowRightLeft, LogIn, LogOut, Key, Settings, LayoutDashboard, Menu, Eye, Check, ToggleRight, ToggleLeft, UserCog, ChevronLeft, ChevronRight, Shield, ShieldCheck, Play, Pause, Camera, X, User, type LucideIcon } from "lucide-react";
@@ -82,8 +82,9 @@ export default function DashboardPage() {
 
 function DashboardContent() {
     const { user } = useAuth();
-    const { openSidebar } = useSidebar();
+    const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
     const isMobile = useIsMobile();
+    const isCompactDesktop = useIsCompactDesktop();
     const isAdmin = user?.role === "admin";
     const { data: folders } = useFolders('all', 'active', 5000);
     const { data: reportsCount } = useReportsCount(undefined, 'active');
@@ -430,7 +431,7 @@ function DashboardContent() {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-              {isMobile ? (
+              {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
                 <button 
                   type="button" 
                   onClick={(e) => {

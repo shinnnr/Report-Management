@@ -109,7 +109,7 @@ export default function DrivePage() {
 
 function DriveContent() {
   const { user } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
   const isMobile = useIsMobile();
   const isCompactDesktop = useIsCompactDesktop();
   const { toast } = useToast();
@@ -835,7 +835,7 @@ function DriveContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isMobile ? (
+            {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
               <button 
                 type="button" 
                 onClick={(e) => {

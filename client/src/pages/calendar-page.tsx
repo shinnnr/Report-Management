@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import { LayoutWrapper, useSidebar } from "@/components/layout-wrapper";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { format, isSameDay, isSameMonth, eachDayOfInterval, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, startOfWeek, differenceInDays, isToday } from "date-fns";
 import {
   Menu,
@@ -1446,7 +1446,8 @@ export default function CalendarPage() {
 
 function CalendarContent() {
   const { user } = useAuth();
-  const { openSidebar } = useSidebar();
+  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
+  const isCompactDesktop = useIsCompactDesktop();
   const { allowNonAdminActivityDelete, allowNonAdminHolidayAdd } = useSystemSettings();
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;
   const prefersReducedMotion = useReducedMotion();
@@ -4603,7 +4604,7 @@ function CalendarContent() {
       <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-8">
         <div className="w-full">
           <h1 className="text-2xl lg:text-3xl font-display font-bold text-primary mb-2 flex items-center gap-2">
-            {isMobile ? (
+            {(isMobile || isCompactDesktop) && isSidebarToggleable && !isSidebarOpen ? (
               <button 
                 type="button" 
                 onClick={(e) => {
