@@ -4795,9 +4795,9 @@ function CalendarContent() {
                 </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <div className="pr-2">
+                    <div>
                       <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                        <div className="space-y-2 pr-3 pb-2 pl-4">
+                        <div className="space-y-2 px-4 pb-2">
                           {paginatedHolidays.map((holiday: any) => (
                             <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
                               <div>
@@ -8015,9 +8015,9 @@ function CalendarContent() {
                 </div>
                 {holidays && holidays.length > 0 ? (
                   <>
-                    <div className="pr-2">
+                    <div>
                       <ScrollArea className={showHolidayPagination ? "h-[248px]" : "max-h-[300px]"}>
-                        <div className="space-y-2 pr-3 pb-2 pl-4">
+                        <div className="space-y-2 px-4 pb-2">
                           {paginatedHolidays.map((holiday: any) => (
                             <div key={holiday.id} className="flex items-center justify-between p-3 border rounded-md">
                               <div>
