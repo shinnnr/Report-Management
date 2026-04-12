@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect, createContext, useContext } from "react";
 import { Sidebar } from "./layout-sidebar";
 import { useAuth } from "@/hooks/use-auth";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsCompactDesktop } from "@/hooks/use-mobile";
 import { Redirect } from "wouter";
 
 // Create context for sidebar
@@ -26,7 +26,8 @@ export const useSidebar = () => useContext(SidebarContext);
 export function LayoutWrapper({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const isMobile = useIsMobile();
-  const isSidebarToggleable = isMobile === true; // Only true when explicitly true
+  const isCompactDesktop = useIsCompactDesktop();
+  const isSidebarToggleable = isMobile === true || isCompactDesktop === true; // Toggleable on mobile or compact desktop
   const [sidebarOpen, setSidebarOpen] = useState(!isSidebarToggleable);
 
   // Handle sidebar state based on mobile/toggleable status
@@ -39,14 +40,14 @@ export function LayoutWrapper({ children }: { children: ReactNode }) {
     setSidebarOpen(true);
   }, [isSidebarToggleable]);
 
-  // Prevent body scroll when sidebar is open on mobile
+  // Prevent body scroll when sidebar is open on mobile or compact desktop
   useEffect(() => {
-    if (sidebarOpen && isMobile) {
+    if (sidebarOpen && (isMobile || isCompactDesktop)) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-  }, [sidebarOpen, isMobile]);
+  }, [sidebarOpen, isMobile, isCompactDesktop]);
 
   const toggleSidebar = () => {
     if (!isSidebarToggleable) {
