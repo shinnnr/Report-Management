@@ -92,7 +92,7 @@ export default function ArchivesPage() {
 
 function ArchivesContent() {
   const { user } = useAuth();
-  const { openSidebar, isSidebarToggleable } = useSidebar();
+  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
   const isMobile = useIsMobile();
   const isCompactDesktop = useIsCompactDesktop();
   const { allowNonAdminFileManagement } = useSystemSettings();
