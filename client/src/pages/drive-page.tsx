@@ -109,7 +109,7 @@ export default function DrivePage() {
 
 function DriveContent() {
   const { user } = useAuth();
-  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
+  const { openSidebar, isSidebarToggleable } = useSidebar();
   const isMobile = useIsMobile();
   const isCompactDesktop = useIsCompactDesktop();
   const { toast } = useToast();

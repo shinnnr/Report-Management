@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
 function DashboardContent() {
     const { user } = useAuth();
-    const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
+    const { openSidebar, isSidebarToggleable } = useSidebar();
     const isMobile = useIsMobile();
     const isCompactDesktop = useIsCompactDesktop();
     const isAdmin = user?.role === "admin";

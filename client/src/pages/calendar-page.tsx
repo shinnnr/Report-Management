@@ -1446,7 +1446,7 @@ export default function CalendarPage() {
 
 function CalendarContent() {
   const { user } = useAuth();
-  const { openSidebar, isSidebarOpen, isSidebarToggleable } = useSidebar();
+  const { openSidebar, isSidebarToggleable } = useSidebar();
   const isCompactDesktop = useIsCompactDesktop();
   const { allowNonAdminActivityDelete, allowNonAdminHolidayAdd } = useSystemSettings();
   const canDeleteActivities = user?.role === "admin" || allowNonAdminActivityDelete;

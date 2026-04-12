@@ -162,14 +162,13 @@ export function Sidebar({ onClose, isMobile }: SidebarProps) {
       </div>
     </div>
     <Dialog open={Boolean(profilePicturePreview)} onOpenChange={(open) => !open && setProfilePicturePreview(null)}>
-      <DialogContent className="w-auto max-w-none border-none bg-transparent p-0 shadow-none [&>button]:hidden focus:outline-none" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogTitle className="sr-only">Profile picture preview</DialogTitle>
+      <DialogContent className="w-auto max-w-none border-none bg-transparent p-0 shadow-none [&>button]:hidden">
         {profilePicturePreview && (
           <div className="flex items-center justify-center">
             <img
               src={profilePicturePreview}
               alt="Profile picture preview"
-              className="h-[min(70vh,70vw,24rem)] w-[min(70vh,70vw,24rem)] rounded-full object-cover shadow-2xl aspect-square focus:outline-none"
+              className="h-[min(70vh,70vw,24rem)] w-[min(70vh,70vw,24rem)] rounded-full object-cover shadow-2xl aspect-square"
             />
           </div>
         )}
