@@ -14,6 +14,7 @@ import {
   Plus,
   Trash2,
   ChevronRight,
+  ChevronLeft,
   Home,
   UploadCloud,
   Loader2,
@@ -1910,7 +1911,7 @@ function DriveContent() {
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        Previous
+                        <ChevronLeft className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="outline"
@@ -1918,7 +1919,7 @@ function DriveContent() {
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage >= totalPages}
                       >
-                        Next
+                        <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

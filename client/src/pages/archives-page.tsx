@@ -17,6 +17,7 @@ import {
   Home,
   Menu,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Search,
   Loader2,
@@ -1037,7 +1038,7 @@ function ArchivesContent() {
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        Previous
+                        <ChevronLeft className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="outline"
@@ -1045,7 +1046,7 @@ function ArchivesContent() {
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage >= totalPages}
                       >
-                        Next
+                        <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

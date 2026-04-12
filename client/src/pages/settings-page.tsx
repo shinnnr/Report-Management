@@ -1058,7 +1058,7 @@ function SettingsContent() {
 
                   {/* Pagination controls - only show when more than 10 users */}
                   {filteredUsers.length > usersPerPage && (
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between mt-4 pt-4">
                       <span className="text-sm text-muted-foreground">
                         Showing {Math.min((userCurrentPage - 1) * usersPerPage + 1, filteredUsers.length)} to {Math.min(userCurrentPage * usersPerPage, filteredUsers.length)} of {filteredUsers.length} users
                       </span>
