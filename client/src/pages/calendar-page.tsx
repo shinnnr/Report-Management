@@ -7123,8 +7123,8 @@ function CalendarContent() {
               
               return (
                 <>
-                <ScrollArea className="flex-1 -mr-4">
-                  <div className="space-y-2 px-4 pb-2 pr-7">
+                <ScrollArea className="flex-1">
+                  <div className="space-y-2 px-4 pb-2">
                     {paginatedActivities.map(activity => (
                       <button
                         key={activity.id}
