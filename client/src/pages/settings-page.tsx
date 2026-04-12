@@ -458,11 +458,17 @@ function SettingsContent() {
                 <div className="relative">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                     {currentUser?.profilePicture ? (
-                      <img
-                        src={currentUser.profilePicture}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setProfilePicturePreview(currentUser.profilePicture)}
+                        className="w-full h-full rounded-full overflow-hidden transition-opacity hover:opacity-80"
+                      >
+                        <img
+                          src={currentUser.profilePicture}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
                     ) : (
                       <span className="text-2xl font-bold text-primary">{currentUser?.fullName?.charAt(0) || 'U'}</span>
                     )}
