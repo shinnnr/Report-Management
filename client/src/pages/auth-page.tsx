@@ -100,7 +100,7 @@ export default function AuthPage() {
         </div>
         
         <div className="relative z-10 text-xs lg:text-sm opacity-60">
-          © {new Date().getFullYear()} RMS Inc. Secure & Encrypted.
+          © {new Date().getFullYear()} Nueva Ecija II Electric Cooperative, Inc. - Area 1. Corporate Planning, Information Technology, and Energy Trading Department.
         </div>
       </div>
 
